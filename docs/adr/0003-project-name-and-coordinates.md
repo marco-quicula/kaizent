@@ -30,5 +30,12 @@ with stable Maven coordinates and a Java base package.
 ## Consequences
 
 - All documentation, code and artifacts use "Kaizent" and `br.com.refatorado.kaizent`.
+- Kaizent is an application. It will be distributed as a container image and as release
+  jars, so publishing to Maven Central is only needed if we publish reusable modules (for
+  example, a connector SPI). If that happens, the `br.com.refatorado` namespace is
+  verified on the Sonatype Central Portal through a DNS TXT record.
+- If the project grows into a community project of its own, we may register a dedicated
+  domain (for example, `kaizent.dev`) and move to its namespace through a superseding
+  ADR. That change is cheaper before the first public release of any library module.
 - The name was checked informally. A formal trademark search and registration remain
   open (see the open decisions).

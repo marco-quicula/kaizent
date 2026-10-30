@@ -65,9 +65,11 @@ name is Kaizent everywhere.
   author and committer, with a matching DCO sign-off. Before committing, set
   `git config user.name "Marco Quiçula"` and
   `git config user.email "marco.quicula@quicula.com.br"`, then use `git commit -s`.
-  Never sign off in the name of an AI assistant. Cryptographic signatures (the
-  "Verified" badge) come from merging through GitHub or from re-signing locally; never
-  ask for or store private keys.
+  Never sign off in the name of an AI assistant. Cloud sessions sign commits with the
+  session's own SSH key, which is not registered on the maintainer's GitHub account, so
+  branch commits show as "Unverified". This is expected: pull requests are merged with
+  **Squash and merge**, so the commit on `main` is signed by GitHub and shows as
+  "Verified". Never ask for or store the maintainer's private keys.
 - **Never commit secrets**: API keys come from environment variables or a local `.env`
   file (git-ignored). Document variables in `.env.example` without values.
 - Never commit real customer or personal data. Demo data is synthetic.
