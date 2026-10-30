@@ -61,6 +61,13 @@ name is Kaizent everywhere.
 
 - License: Apache-2.0. Contributions are signed off under the DCO (`git commit -s`)
   (ADR-0002).
+- **Commit identity:** commits made for the maintainer must have the maintainer as
+  author and committer, with a matching DCO sign-off. Before committing, set
+  `git config user.name "Marco Quiçula"` and
+  `git config user.email "marco.quicula@quicula.com.br"`, then use `git commit -s`.
+  Never sign off in the name of an AI assistant. Cryptographic signatures (the
+  "Verified" badge) come from merging through GitHub or from re-signing locally; never
+  ask for or store private keys.
 - **Never commit secrets**: API keys come from environment variables or a local `.env`
   file (git-ignored). Document variables in `.env.example` without values.
 - Never commit real customer or personal data. Demo data is synthetic.
