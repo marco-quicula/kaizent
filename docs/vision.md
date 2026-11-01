@@ -61,8 +61,8 @@ These capabilities are the destination. They are not the MVP, and they arrive in
 5. **Start with plain files; earn complexity.** Markdown in git comes before vector
    databases, and built-in tools come before MCP. Each new piece of technology has to
    justify itself with a concrete need.
-6. **Provider-neutral.** No lock-in to a single LLM vendor. Cloud APIs and local models
-   are interchangeable through configuration.
+6. **Provider-neutral.** No lock-in to a single LLM vendor. Cloud APIs, local models and
+   locally installed agent CLI tools are interchangeable through configuration.
 7. **Transparent reasoning.** A reviewer can always see why the agent answered the way
    it did: the role, the skills, the sources, the tool calls and the cost.
 8. **Cost-aware.** Token usage and cost are visible for every run, and budgets are

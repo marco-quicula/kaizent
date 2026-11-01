@@ -16,7 +16,8 @@ with stable Maven coordinates and a Java base package.
 - Home: `kaizent.refatorado.com.br`, a subdomain of a domain the maintainer owns.
 - Maven groupId and Java base package: **`br.com.refatorado.kaizent`**.
 - The GitHub repository will be renamed from `omnisolve` to `kaizent`. GitHub keeps
-  redirects from the old name.
+  redirects from the old name. *(Done on 2026-10-30: the repository is now
+  `marco-quicula/kaizent`.)*
 
 ## Alternatives considered
 

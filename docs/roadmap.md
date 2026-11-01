@@ -50,7 +50,8 @@ No real customer data is used. See [ADR-0013](adr/0013-demo-domain-spring-petcli
 | **Metrics** | Per subject: approved-as-is, approved-with-edits and rejected rates. The **autonomy level is computed and displayed, but does not act yet**: every answer still requires human approval. |
 | **Data capture** | Each run stores input, assembled context, proposal, final answer, verdict, tokens and cost. This is the seed for evaluation and future fine-tuning. |
 | **Cost control** | Tokens and cost per run are visible in the console, with a configurable budget limit per run. |
-| **LLM providers** | Anthropic, OpenAI, Gemini or a local model (Ollama), selected by configuration behind the `LlmGateway` port. The MVP is validated with at least one cloud provider. |
+| **LLM access** | Two ports, `LlmGateway` (single structured calls) and `AgentRuntime` (the resolution loop), with **API adapters** (Gemini, OpenAI, Anthropic, Ollama, through Spring AI) and **CLI adapters** (Codex validated; Claude Code, Antigravity and Gemini CLI presets provided) selected per pipeline step by configuration. Validated with Codex CLI, the Gemini API free tier and fake adapters. See [ADR-0016](adr/0016-llm-access-api-and-cli-adapters.md). |
+| **Evaluation** | An opt-in runner executes the demo's evaluation cases against real adapters and writes a report. CI never calls real models. See [ADR-0020](adr/0020-testing-and-evaluation-strategy.md). |
 | **Project hygiene** | `LICENSE`, `CONTRIBUTING.md` (DCO), `SECURITY.md`, `.env.example`, no secrets committed, and CI that builds and tests every pull request. |
 
 ### Out of scope for the MVP
@@ -63,7 +64,8 @@ authentication or multi-user support, and Kubernetes deployment.
 
 A newcomer can:
 
-1. clone the repository and set one LLM API key in a local `.env` file;
+1. clone the repository and configure one LLM access: an API key in a local `.env` file
+   (the Gemini free tier works) or a logged-in local CLI tool (Codex);
 2. start the stack locally (PostgreSQL through `docker compose`, then the application);
 3. drop a demo ticket into `inbox/`;
 4. watch the run in the console and inspect its full trace;
@@ -72,12 +74,20 @@ A newcomer can:
    lands in the knowledge base;
 7. do all of this by following the README alone.
 
+### Specs
+
+Wave 1 is broken down into 12 specs, listed in implementation order in
+[docs/specs/README.md](specs/README.md). The shared technical picture is in
+[docs/architecture.md](architecture.md).
+
 ---
 
 ## Wave 2: real connectors, MCP tools and skill evolution
 
 - Movidesk inbound and outbound adapter (the first real channel).
 - MCP client support: MCP servers configured per role and exposed as agent tools.
+- Kaizent as an MCP server: its knowledge and skill tools exposed to CLI runtimes, so
+  that every runtime uses the same tools and produces the same trace.
 - A second problem type: business and analytical questions over internal knowledge.
 - **Skill improvement proposals**, delivered as a branch or pull request on the skills
   repository, and **new-skill suggestions**.
@@ -101,6 +111,9 @@ A newcomer can:
 ## Wave 5: operations, Kubernetes and incident handling
 
 - Helm chart and Kubernetes deployment (on-premise first).
+- Agent runner: a service (pod) with the CLI tools installed that runs headless tasks for
+  Kaizent through `RemoteRunnerExecutor`, plus a how-to covering isolation, credentials
+  and the providers' terms of use.
 - Observability with OpenTelemetry (traces, metrics, LLM usage).
 - Authentication, multiple users and roles for reviewers.
 - A third problem type: operational incidents (alerts, failing workloads), with MCP

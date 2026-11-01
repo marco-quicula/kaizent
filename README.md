@@ -9,9 +9,10 @@ level, and learns from how a human reviews that proposal. Every resolution runs 
 a PDCA (Plan-Do-Check-Act) cycle, and agents earn autonomy per subject as their track
 record improves.
 
-> **Status: planning.** There is no code yet. The project is in its planning phase: the
-> vision, the roadmap and the first architecture decisions are documented, and
-> implementation of the first wave (the MVP) has not started.
+> **Status: planning.** There is no code yet. The vision, the roadmap and the
+> architecture decisions are documented, and the first wave (the MVP) is broken down into
+> [specs](docs/specs/README.md) awaiting review. Implementation starts once they are
+> approved.
 
 ## How it works (target for the MVP)
 
@@ -23,7 +24,9 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 ```
 
 - **Pluggable everywhere.** Ticket sources, reply sinks, skill repositories, knowledge
-  sources, tools (MCP) and LLM providers are ports with swappable adapters, chosen at setup.
+  sources, tools (MCP) and LLM access are ports with swappable adapters, chosen at setup.
+  Models can be reached through provider APIs or through locally installed agent CLI
+  tools such as Codex.
 - **Human in the loop first.** At the start, a person confirms every answer. Human
   approvals, edits and rejections are both the safety net and the success metric.
 - **Graduated autonomy.** Each subject gets a level (Junior → Mid-level → Senior →
@@ -37,6 +40,8 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 |---|---|
 | [docs/vision.md](docs/vision.md) | Long-term vision, principles and core concepts |
 | [docs/roadmap.md](docs/roadmap.md) | Delivery waves: the MVP in detail, later waves at a high level |
+| [docs/architecture.md](docs/architecture.md) | Wave 1 technical picture: modules, domain model, pipeline, API |
+| [docs/specs/](docs/specs/README.md) | Spec-driven development process and the wave 1 specs |
 | [docs/adr/](docs/adr/README.md) | Architecture Decision Records and the list of open decisions |
 | [CLAUDE.md](CLAUDE.md) | Context and conventions for AI-assisted development sessions |
 

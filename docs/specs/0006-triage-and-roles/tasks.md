@@ -1,0 +1,13 @@
+# Tasks 0006: Triage and roles
+
+- [ ] **T1:** `RoleCatalog`, `FileRoleCatalog` and the validator rules. *Covers:* AC-1,
+  AC-2.
+- [ ] **T2:** The `PromptTemplate` helper (rendering and content hash) and
+  `prompts/triage.md`. *Covers:* AC-8.
+- [ ] **T3:** `TriageService` with `TriageOutput` and unknown-subject normalization.
+  *Covers:* AC-3, AC-4.
+- [ ] **T4:** `RoleSelector`, the orchestrator `TRIAGING` step, migration `V5` and the
+  failure path. *Covers:* AC-5, AC-6.
+- [ ] **T5:** API fields and the subject filter. *Covers:* AC-7.
+- [ ] **T6:** Run the evaluation for EV-1 to EV-4 with a real adapter, and record the
+  results in the PR.
