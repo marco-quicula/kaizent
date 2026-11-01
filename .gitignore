@@ -1,0 +1,28 @@
+# Build output
+target/
+
+# Local configuration and secrets (see .env.example)
+.env
+.env.*
+!.env.example
+
+# Console build (spec 0001 T7, T8)
+node/
+node_modules/
+dist/
+
+# IDEs and editors
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+.factorypath
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

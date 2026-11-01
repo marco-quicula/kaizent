@@ -30,7 +30,7 @@ The target layout is described in ADR-0019 and `docs/architecture.md`.
 server.address: 127.0.0.1
 spring.datasource.url: jdbc:postgresql://localhost:5432/kaizent
 spring.datasource.username: ${KAIZENT_DB_USER:kaizent}
-spring.datasource.password: ${KAIZENT_DB_PASSWORD:kaizent}
+spring.datasource.password: ${KAIZENT_DB_PASSWORD}   # no default; set in .env
 management.endpoints.web.exposure.include: health,info
 ```
 

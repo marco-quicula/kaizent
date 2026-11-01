@@ -1,0 +1,23 @@
+# Local infrastructure for development (ADR-0009). Start it with: docker compose up -d
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: kaizent
+      POSTGRES_USER: ${KAIZENT_DB_USER:-kaizent}
+      # Required, no default: set KAIZENT_DB_PASSWORD in .env (see .env.example).
+      POSTGRES_PASSWORD: ${KAIZENT_DB_PASSWORD}
+    ports:
+      # Reachable from this machine only.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # PostgreSQL 18 images keep their data under /var/lib/postgresql.
+      - kaizent-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kaizent-postgres:

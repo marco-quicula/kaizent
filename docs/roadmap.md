@@ -6,7 +6,7 @@ waves are kept at a high level and will be refined when they get closer.
 
 | Wave | Theme | Status |
 |---|---|---|
-| 1 | MVP: minimal PDCA cycle with a human in the loop | Planned |
+| 1 | MVP: minimal PDCA cycle with a human in the loop | In progress |
 | 2 | Real connectors, MCP tools and skill evolution | Planned |
 | 3 | Vector-based retrieval (RAG) | Planned |
 | 4 | Graduated autonomy and evaluation | Planned |

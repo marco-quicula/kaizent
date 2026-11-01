@@ -9,9 +9,10 @@ level, and learns from how a human reviews that proposal. Every resolution runs 
 a PDCA (Plan-Do-Check-Act) cycle, and agents earn autonomy per subject as their track
 record improves.
 
-> **Status: planning.** There is no code yet. The vision, the roadmap and the
-> architecture decisions are documented, and the first wave (the MVP) is broken down into
-> approved [specs](docs/specs/README.md). Implementation has not started yet.
+> **Status: wave 1 in progress.** The vision, the roadmap and the architecture decisions
+> are documented, and the first wave (the MVP) is broken down into approved
+> [specs](docs/specs/README.md). Implementation has started with spec 0001 (project
+> foundation); there is no domain behavior yet.
 
 ## How it works (target for the MVP)
 
