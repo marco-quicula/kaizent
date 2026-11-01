@@ -1,6 +1,6 @@
 # ADR-0007: Provider-neutral LLM access with cost tracking
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0016](0016-llm-access-api-and-cli-adapters.md)
 - **Date:** 2026-10-30
 
 ## Context

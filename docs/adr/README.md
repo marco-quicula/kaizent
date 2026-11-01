@@ -3,24 +3,39 @@
 This folder records the significant decisions about Kaizent, together with the reasons
 behind them. The format is described in [ADR-0001](0001-record-architecture-decisions.md).
 
-## Accepted decisions
+## Decisions
 
-| ADR | Decision |
-|---|---|
-| [0001](0001-record-architecture-decisions.md) | Record architecture decisions as ADRs |
-| [0002](0002-license-apache-2-0-with-dco.md) | License under Apache-2.0, with contributions under the DCO |
-| [0003](0003-project-name-and-coordinates.md) | Name: Kaizent; coordinates `br.com.refatorado.kaizent` |
-| [0004](0004-language-policy.md) | English for all repository content |
-| [0005](0005-backend-stack-java-spring.md) | Java 25, Maven, Spring Boot 4, Spring AI |
-| [0006](0006-modular-monolith-hexagonal.md) | Modular monolith with ports and adapters (Spring Modulith) |
-| [0007](0007-llm-gateway-provider-neutral.md) | Provider-neutral LLM access with cost tracking and budgets |
-| [0008](0008-api-first-react-console.md) | API-first backend with a React + TypeScript SPA console |
-| [0009](0009-postgresql-persistence.md) | PostgreSQL (Flyway) for operational data; pgvector later |
-| [0010](0010-skills-agent-skills-format-in-git.md) | Skills in the Agent Skills format, versioned in git |
-| [0011](0011-markdown-knowledge-before-vectors.md) | Markdown knowledge in git before vector retrieval |
-| [0012](0012-human-in-the-loop-and-autonomy-levels.md) | Human in the loop; autonomy levels earned per subject |
-| [0013](0013-demo-domain-spring-petclinic.md) | Spring PetClinic as the demo domain, with synthetic data |
-| [0014](0014-file-based-connectors-for-mvp.md) | File-based connectors and a canonical problem model for the MVP |
+| ADR | Decision | Status |
+|---|---|---|
+| [0001](0001-record-architecture-decisions.md) | Record architecture decisions as ADRs | Accepted |
+| [0002](0002-license-apache-2-0-with-dco.md) | License under Apache-2.0, with contributions under the DCO | Accepted |
+| [0003](0003-project-name-and-coordinates.md) | Name: Kaizent; coordinates `br.com.refatorado.kaizent` | Accepted |
+| [0004](0004-language-policy.md) | English for all repository content | Accepted |
+| [0005](0005-backend-stack-java-spring.md) | Java 25, Maven, Spring Boot 4, Spring AI | Accepted |
+| [0006](0006-modular-monolith-hexagonal.md) | Modular monolith with ports and adapters (Spring Modulith) | Accepted |
+| [0007](0007-llm-gateway-provider-neutral.md) | Provider-neutral LLM access with cost tracking | Superseded by 0016 |
+| [0008](0008-api-first-react-console.md) | API-first backend with a React + TypeScript SPA console | Accepted |
+| [0009](0009-postgresql-persistence.md) | PostgreSQL (Flyway) for operational data; pgvector later | Accepted |
+| [0010](0010-skills-agent-skills-format-in-git.md) | Skills in the Agent Skills format, versioned in git | Accepted |
+| [0011](0011-markdown-knowledge-before-vectors.md) | Markdown knowledge in git before vector retrieval | Accepted |
+| [0012](0012-human-in-the-loop-and-autonomy-levels.md) | Human in the loop; autonomy levels earned per subject | Accepted |
+| [0013](0013-demo-domain-spring-petclinic.md) | Spring PetClinic as the demo domain, with synthetic data | Accepted |
+| [0014](0014-file-based-connectors-for-mvp.md) | File-based connectors and a canonical problem model for the MVP | Accepted |
+| [0015](0015-spec-driven-development.md) | Spec-driven development (spec, plan and tasks per slice) | Accepted |
+| [0016](0016-llm-access-api-and-cli-adapters.md) | LLM access through `LlmGateway` and `AgentRuntime`, with API, CLI and fake adapters | Accepted |
+| [0017](0017-pipeline-orchestration-in-own-code.md) | Pipeline orchestration in our own code on Spring AI (Embabel deferred) | Accepted |
+| [0018](0018-dependency-version-baseline.md) | Dependency version baseline and pinning policy | Accepted |
+| [0019](0019-repository-and-module-layout.md) | Repository and Maven module layout | Accepted |
+| [0020](0020-testing-and-evaluation-strategy.md) | Testing without real LLMs in CI; opt-in evaluations | Accepted |
+| [0021](0021-knowledge-search-with-lucene.md) | Knowledge search with an in-memory Lucene index | Accepted |
+| [0022](0022-confidence-scoring.md) | Confidence: self-reported, capped by evidence rules | Accepted |
+| [0023](0023-run-execution-model.md) | Run execution model: Postgres queue, single worker, state machine | Accepted |
+| [0024](0024-contract-first-rest-api.md) | Contract-first REST API with OpenAPI | Accepted |
+| [0025](0025-console-tooling.md) | Console tooling: Node 24, Mantine, TanStack Query, Vitest | Accepted |
+| [0026](0026-ci-and-repository-automation.md) | CI and repository automation (GitHub Actions, DCO, Dependabot) | Accepted |
+| [0027](0027-workspace-layout.md) | Workspace layout; Kaizent never runs git commands in wave 1 | Accepted |
+| [0028](0028-ticket-file-format-and-canonical-problem.md) | Ticket file format and canonical problem model | Accepted |
+| [0029](0029-reply-language-follows-ticket.md) | Replies use the ticket's language | Accepted |
 
 ## Open decisions
 
@@ -29,18 +44,12 @@ resolved. The "Needed by" column says when the answer is required.
 
 | # | Question | Needed by | Notes |
 |---|---|---|---|
-| 1 | Agent loop: plain Spring AI ChatClient with tool calling, or Embabel on top of Spring AI? | Wave 1 start | Spike both on one demo ticket before committing. |
-| 2 | Exact versions of Spring Boot 4.x and Spring AI | Wave 1 start | Pin the latest compatible GA releases. |
-| 3 | Maven layout: one module with Spring Modulith packages, or multiple Maven modules (core, adapters, app, console)? | Wave 1 start | |
-| 4 | Default LLM provider and models for development and CI | Wave 1 start | Weigh cost against quality; consider a cheap model for triage. |
-| 5 | Text search for `search_knowledge`: in-memory (for example, Lucene) or PostgreSQL full-text search? | Wave 1 | |
-| 6 | How confidence is computed: self-reported by the model, evidence-based, or a combination | Wave 1 | Recorded from day one; calibrated against verdicts later. |
-| 7 | Ticket file format (front matter fields) and the shape of the canonical `Problem` model | Wave 1 | |
-| 8 | Layout of the deployment configuration repository (roles, skills, knowledge, inbox/outbox) | Wave 1 | Inside the main repository for the demo, separate for real deployments. |
-| 9 | Frontend tooling details: Node version, component library, API client generation from OpenAPI | Wave 1 | |
-| 10 | CI platform and checks (GitHub Actions; build, tests, DCO, license headers, secret scanning) | Wave 1 | |
-| 11 | Redaction of personal data before prompts leave the system | Before the first real connector (wave 2) | |
-| 12 | Thresholds and minimum sample sizes for the autonomy levels | Wave 4 | Data collected from wave 1. |
-| 13 | Delivery of skill improvement proposals: branch, pull request, or both; which git hosting APIs | Wave 2 | |
-| 14 | Embedding model(s) and the chunking strategy | Wave 3 | Local ONNX option vs. cloud APIs. |
-| 15 | Trademark search and registration for "Kaizent" | Before public promotion | |
+| 1 | Redaction of personal data before prompts leave the system, and before traces are stored | Before the first real connector (wave 2) | |
+| 2 | Kaizent as an MCP server: exposing its tools to CLI runtimes and other clients | Wave 2 | Required before the vector store (wave 3). |
+| 3 | Delivery of skill improvement proposals: branch, pull request, or both; which git hosting APIs; Kaizent's git identity | Wave 2 | ADR-0027 defers git writes to wave 2. |
+| 4 | Embedding model(s) and the chunking strategy | Wave 3 | Local ONNX option vs. cloud APIs. |
+| 5 | Final thresholds and minimum sample sizes for the autonomy levels, and how levels act | Wave 4 | Provisional values in spec 0012. |
+| 6 | Agent runner service for Kubernetes (`RemoteRunnerExecutor`): API, isolation, credential handling, terms-of-use guidance | Wave 5 | Seam already in ADR-0016. |
+| 7 | Authentication and roles for the console | Wave 5 | |
+| 8 | Trace retention and purge policy | Wave 5 | |
+| 9 | Trademark search and registration for "Kaizent" | Before public promotion | |
