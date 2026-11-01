@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: kaizent
+  config:
+    # Loads a local .env file (git-ignored) from the working directory, if present.
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:postgresql://localhost:5432/kaizent
+    username: ${KAIZENT_DB_USER:kaizent}
+    # No default: set KAIZENT_DB_PASSWORD in .env (see .env.example).
+    password: ${KAIZENT_DB_PASSWORD}
+
+server:
+  # Bind to the loopback interface only (spec 0001 AC-5).
+  address: 127.0.0.1
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

@@ -1,17 +1,17 @@
 # Tasks 0001: Project foundation
 
-- [ ] **T1:** Create the parent POM, the Maven Wrapper and empty `kaizent-server` and
+- [x] **T1:** Create the parent POM, the Maven Wrapper and empty `kaizent-server` and
   `kaizent-console` modules, and pin the versions (ADR-0018). *Done when:* `./mvnw
   verify` succeeds on empty modules. *Covers:* AC-12.
-- [ ] **T2:** Add `.gitignore`, `.editorconfig`, `.env.example` and `compose.yaml`
+- [x] **T2:** Add `.gitignore`, `.editorconfig`, `.env.example` and `compose.yaml`
   (PostgreSQL 18). *Done when:* `docker compose up -d` gives a healthy database.
   *Covers:* AC-2, AC-10 (part).
-- [ ] **T3:** Spring Boot application with the datasource, Flyway baseline, Actuator and
+- [x] **T3:** Spring Boot application with the datasource, Flyway baseline, Actuator and
   `127.0.0.1` binding, plus an integration test with Testcontainers. *Done when:* the test
   asserts health `UP` and the applied migration. *Covers:* AC-3, AC-5.
-- [ ] **T4:** Spring Modulith dependency and `ModularityTest`. *Done when:* the test
+- [x] **T4:** Spring Modulith dependency and `ModularityTest`. *Done when:* the test
   passes and a violation fixture is detected. *Covers:* AC-6.
-- [ ] **T5:** Spotless (google-java-format) wired into `verify`. *Done when:* unformatted
+- [x] **T5:** Spotless (google-java-format) wired into `verify`. *Done when:* unformatted
   code fails the build. *Covers:* AC-7 (Java).
 - [ ] **T6:** `api/openapi.yaml` with `GET /system`, generated server interfaces and
   `SystemController`. *Done when:* the API test passes. *Covers:* AC-8 (server).
