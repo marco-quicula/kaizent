@@ -1,6 +1,6 @@
 # Spec 0007: Skills and knowledge
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0003
 - **Related ADRs:** 0010, 0011, 0021, 0027

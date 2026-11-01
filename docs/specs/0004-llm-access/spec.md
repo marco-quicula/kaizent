@@ -1,6 +1,6 @@
 # Spec 0004: LLM access: API, CLI and fake adapters
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0002
 - **Related ADRs:** 0016, 0017, 0020

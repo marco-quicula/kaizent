@@ -1,6 +1,6 @@
 # Spec 0002: Walking skeleton
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0001
 - **Related ADRs:** 0014, 0016, 0023, 0027, 0028

@@ -16,7 +16,8 @@ resolution. The repository is `marco-quicula/kaizent` (it was created as "omniso
 - Decisions and open questions: `docs/adr/README.md`
 
 **Current status: planning, no code yet.** Wave 1 (the MVP) is broken down into specs
-0001–0012, all in `Draft` and awaiting the maintainer's approval.
+0001–0012, all `Approved` (2026-11-01). Implementation has not started; it begins with
+spec 0001.
 
 ## Language
 

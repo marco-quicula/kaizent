@@ -11,8 +11,7 @@ record improves.
 
 > **Status: planning.** There is no code yet. The vision, the roadmap and the
 > architecture decisions are documented, and the first wave (the MVP) is broken down into
-> [specs](docs/specs/README.md) awaiting review. Implementation starts once they are
-> approved.
+> approved [specs](docs/specs/README.md). Implementation has not started yet.
 
 ## How it works (target for the MVP)
 

@@ -1,6 +1,6 @@
 # Spec 0010: Review console
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0005, 0008, 0009
 - **Related ADRs:** 0008, 0012, 0024, 0025

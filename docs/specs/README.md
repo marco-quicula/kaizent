@@ -57,17 +57,17 @@ Implement in this order. Each spec lists its dependencies.
 
 | # | Spec | Status |
 |---|---|---|
-| [0001](0001-project-foundation/spec.md) | Project foundation | Draft |
-| [0002](0002-walking-skeleton/spec.md) | Walking skeleton (end-to-end thin slice) | Draft |
-| [0003](0003-petclinic-demo-workspace/spec.md) | PetClinic demo workspace and evaluation runner | Draft |
-| [0004](0004-llm-access/spec.md) | LLM access: API, CLI and fake adapters | Draft |
-| [0005](0005-problem-intake/spec.md) | Problem intake and canonical model | Draft |
-| [0006](0006-triage-and-roles/spec.md) | Triage and roles | Draft |
-| [0007](0007-skills-and-knowledge/spec.md) | Skills and knowledge | Draft |
-| [0008](0008-resolution-and-proposal/spec.md) | Resolution and proposal | Draft |
-| [0009](0009-trace-usage-and-budget/spec.md) | Run trace, usage and budget | Draft |
-| [0010](0010-review-console/spec.md) | Review console | Draft |
-| [0011](0011-lessons/spec.md) | Lessons | Draft |
-| [0012](0012-subject-metrics-and-autonomy/spec.md) | Subject metrics and autonomy levels | Draft |
+| [0001](0001-project-foundation/spec.md) | Project foundation | Approved |
+| [0002](0002-walking-skeleton/spec.md) | Walking skeleton (end-to-end thin slice) | Approved |
+| [0003](0003-petclinic-demo-workspace/spec.md) | PetClinic demo workspace and evaluation runner | Approved |
+| [0004](0004-llm-access/spec.md) | LLM access: API, CLI and fake adapters | Approved |
+| [0005](0005-problem-intake/spec.md) | Problem intake and canonical model | Approved |
+| [0006](0006-triage-and-roles/spec.md) | Triage and roles | Approved |
+| [0007](0007-skills-and-knowledge/spec.md) | Skills and knowledge | Approved |
+| [0008](0008-resolution-and-proposal/spec.md) | Resolution and proposal | Approved |
+| [0009](0009-trace-usage-and-budget/spec.md) | Run trace, usage and budget | Approved |
+| [0010](0010-review-console/spec.md) | Review console | Approved |
+| [0011](0011-lessons/spec.md) | Lessons | Approved |
+| [0012](0012-subject-metrics-and-autonomy/spec.md) | Subject metrics and autonomy levels | Approved |
 
 Specs 0003 and 0004 can be worked on in parallel after 0002.

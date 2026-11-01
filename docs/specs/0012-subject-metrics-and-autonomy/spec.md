@@ -1,6 +1,6 @@
 # Spec 0012: Subject metrics and autonomy levels
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0006, 0010
 - **Related ADRs:** 0012, 0022

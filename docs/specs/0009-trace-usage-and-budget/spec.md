@@ -1,6 +1,6 @@
 # Spec 0009: Run trace, usage and budget
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0004, 0008
 - **Related ADRs:** 0016, 0020, 0023

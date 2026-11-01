@@ -1,6 +1,6 @@
 # Spec 0005: Problem intake and canonical model
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0002
 - **Related ADRs:** 0014, 0027, 0028

@@ -1,6 +1,6 @@
 # Spec 0008: Resolution and proposal
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0004, 0006, 0007
 - **Related ADRs:** 0016, 0017, 0022, 0029

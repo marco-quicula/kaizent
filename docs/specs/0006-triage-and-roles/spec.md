@@ -1,6 +1,6 @@
 # Spec 0006: Triage and roles
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0003, 0004, 0005
 - **Related ADRs:** 0016, 0023, 0029

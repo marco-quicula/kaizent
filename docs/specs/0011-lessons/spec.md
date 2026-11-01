@@ -1,6 +1,6 @@
 # Spec 0011: Lessons
 
-- **Status:** Draft
+- **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0007, 0010
 - **Related ADRs:** 0011, 0012, 0027
