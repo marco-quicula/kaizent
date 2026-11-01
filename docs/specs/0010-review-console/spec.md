@@ -31,8 +31,8 @@ foundation.
 
 - **AC-1:** **Runs page:** a table with ticket, title, subject, status, adjusted
   confidence band, cost and age. It can be filtered by status and subject, and "Awaiting
-  review" is the default filter. Evaluation runs are hidden unless the user asks for
-  them.
+  review" is the default filter. Evaluation runs (`review_mode = SKIP`, whatever their
+  status) are hidden unless the user asks for them.
 - **AC-2:** **Live updates:** `GET /api/v1/events` (SSE) emits `run.updated` and
   `lesson.updated` with ids and statuses. The console updates lists and the open detail
   without a page reload, and reconnects automatically.

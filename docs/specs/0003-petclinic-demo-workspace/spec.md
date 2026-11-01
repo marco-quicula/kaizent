@@ -84,8 +84,8 @@ PetClinic, but they are the source of truth for the demo:
   contacts are synthetic. A `README.md` in the workspace says that the data is synthetic.
 - **AC-3:** Evaluation cases are YAML files with the properties: `ticket`,
   `expect.subject` (one or a list), `expect.problemType`, `expect.citesAny`,
-  `expect.mentionsAll`, `expect.mentionsNone`, `expect.lowConfidence` and
-  `expect.replyLanguage`.
+  `expect.mentionsAll`, `expect.mentionsNone`, `expect.lowConfidence`,
+  `expect.ticketLanguage` and `expect.replyLanguage`.
 - **AC-4:** Running the application with the `eval` profile processes every case through
   the pipeline, without the human review step and without writing to `outbox/`. It then
   writes `target/eval/report-<timestamp>.md`, with pass or fail per property and case,
@@ -93,8 +93,12 @@ PetClinic, but they are the source of truth for the demo:
 - **AC-5:** The evaluation runner refuses to start with the `fake` adapters, unless a
   `--dry-run` flag is set (used by its own tests).
 - **AC-6:** The property checkers are unit-tested. `mentionsAll` and `mentionsNone` are
-  case-insensitive and run against the reply. `replyLanguage` compares with the language
-  detected by triage. `lowConfidence` means an adjusted confidence below 0.5.
+  case-insensitive and run against the reply. `ticketLanguage` compares with the
+  language detected by triage, which checks the classification of the input.
+  `replyLanguage` detects the language of the generated `suggestedReply` itself, with a
+  local language detector and no LLM, and compares it with the expected value. This way
+  a triage that is correct cannot hide a reply written in the wrong language.
+  `lowConfidence` means an adjusted confidence below 0.5.
 
 ## Evaluation cases
 

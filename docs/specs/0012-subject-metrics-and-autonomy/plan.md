@@ -4,7 +4,7 @@
 
 | Module | Component | Responsibility |
 |---|---|---|
-| `metrics` | `SubjectMetricsQuery` (`adapter.jdbc`) | One SQL query with window functions over `run` (verdict JSONB, triage subject), excluding `EVALUATED` |
+| `metrics` | `SubjectMetricsQuery` (`adapter.jdbc`) | One SQL query with window functions over `run` (verdict JSONB, triage subject), with `WHERE review_mode = 'HUMAN'`, so evaluation runs are excluded whatever their status, including `FAILED` |
 | `metrics` | `AutonomyPolicy` | A pure function from metrics and `AutonomyProperties` to a level and the progress toward the next one |
 | `metrics` | `SubjectMetricsService` | Joins the declared subjects (from `WorkspaceConfig`) with the query results; includes `unknown` |
 | `api` | `SubjectsController` | `GET /subjects`, `GET /subjects/{id}/runs` |
@@ -31,7 +31,7 @@ kaizent.autonomy:
 
 | AC | Test |
 |---|---|
-| AC-1, AC-2, AC-7 | Query integration tests on seeded runs |
+| AC-1, AC-2, AC-7 | Query integration tests on seeded runs, including evaluation runs in `EVALUATED` and in `FAILED`, both excluded |
 | AC-3, AC-4 | `AutonomyPolicy` table-driven unit tests at each boundary |
 | AC-5 | Orchestrator test with seeded Specialist metrics |
 | AC-6 | Console tests |

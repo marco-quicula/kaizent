@@ -27,7 +27,8 @@ level is displayed only: every proposal still requires human review.
     20);
   - the average adjusted confidence, overall and per verdict type;
   - the average tokens and the average API cost per run.
-- **AC-2:** Evaluation runs (`EVALUATED`) are excluded from every metric.
+- **AC-2:** Evaluation runs (`review_mode = SKIP`) are excluded from every metric,
+  whatever their status. This includes failed evaluation runs.
 - **AC-3:** The **provisional autonomy level** is computed from the last `window`
   reviewed runs. All thresholds are configurable:
 

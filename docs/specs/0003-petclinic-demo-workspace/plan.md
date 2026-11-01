@@ -9,8 +9,10 @@
 | `evaluation` (new module) | `EvalRunner` (`@Profile("eval")`, `ApplicationRunner`), `EvalCase`, `PropertyChecker`s, `EvalReportWriter` | Load cases, submit each ticket as a run with `reviewMode = SKIP`, wait for completion, check properties, write the report |
 | `run` | `ReviewMode` on `Run` | `HUMAN` (default) or `SKIP` (evaluation only); skipped runs end in `EVALUATED` and are never delivered |
 
-`EVALUATED` is a terminal status used only by evaluation runs. The console hides these
-runs by default.
+`EVALUATED` is a terminal status used only by evaluation runs. An evaluation run can also
+end in `FAILED`, so **`review_mode = SKIP` is the persistent marker of an evaluation
+run, whatever its status**. Every consumer that must exclude evaluation runs (the
+console lists, the metrics) filters on `review_mode`, never on the status.
 
 ## Data
 
@@ -51,8 +53,13 @@ expect:
   mentionsAll: ["not supported"]
   mentionsNone: ["cancel button"]
   lowConfidence: false
+  ticketLanguage: en
   replyLanguage: en
 ```
+
+`ReplyLanguageChecker` uses [Lingua](https://github.com/pemistahl/lingua) (Apache-2.0),
+restricted to the languages declared in the evaluation cases for accuracy. It runs on
+`suggestedReply` and never on triage output.
 
 ## Configuration
 
