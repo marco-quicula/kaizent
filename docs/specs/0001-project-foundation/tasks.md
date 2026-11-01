@@ -22,9 +22,9 @@
 - [x] **T8:** Package the console as a resources jar and serve it from the server,
   including the SPA fallback to `index.html` for client-side routes. *Done when:* `/` and
   `/runs` load the console from the running app. *Covers:* AC-1, AC-4.
-- [ ] **T9:** GitHub Actions `ci.yml` and the Dependabot configuration. *Done when:* the
+- [x] **T9:** GitHub Actions `ci.yml` and the Dependabot configuration. *Done when:* the
   workflow is green on the PR. *Covers:* AC-9, AC-10 (part).
-- [ ] **T10:** `CONTRIBUTING.md` (DCO, workflow, specs), `SECURITY.md`,
+- [x] **T10:** `CONTRIBUTING.md` (DCO, workflow, specs), `SECURITY.md`,
   `CODE_OF_CONDUCT.md`, and issue and PR templates. *Covers:* AC-10.
 - [ ] **T11:** README "Getting started" and a "Repository settings" checklist for the
   maintainer. *Done when:* the maintainer completes the walkthrough on a fresh clone.

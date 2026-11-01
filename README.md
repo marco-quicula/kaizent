@@ -34,6 +34,74 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 - **Starts simple.** Markdown files in git come first. Vector search, MCP tools and
   fine-tuning arrive in later waves.
 
+## Getting started
+
+The application runs locally: PostgreSQL in Docker, and the server (which also serves the
+console) on your machine. There is no domain behavior yet: the console shell and the
+System page are what you can see so far.
+
+### Prerequisites
+
+- **JDK 25**, for example [Eclipse Temurin](https://adoptium.net/).
+- **Docker** with Docker Compose.
+- Git. You do not need Maven or Node.js: the Maven Wrapper (`./mvnw`) downloads Maven,
+  and the build downloads Node 24 for the console.
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/marco-quicula/kaizent.git
+cd kaizent
+cp .env.example .env
+```
+
+Edit `.env` and set `KAIZENT_DB_PASSWORD` to a password of your choice for the local
+database. `.env` is git-ignored; never commit it. Both Docker Compose and the
+application read it from the repository root.
+
+### 2. Start PostgreSQL
+
+```bash
+docker compose up -d
+```
+
+`docker compose ps` should show the `postgres` service as `healthy`. It listens on
+`127.0.0.1:5432`.
+
+If you change `KAIZENT_DB_PASSWORD` after the first start, recreate the database volume
+with `docker compose down -v` (this deletes the local data), then start it again.
+
+### 3. Build
+
+```bash
+./mvnw verify
+```
+
+This builds the console and the server and runs all the checks and tests. The tests start
+their own PostgreSQL with Testcontainers, so Docker must be running. The first build takes
+a few minutes while dependencies are downloaded. Use `./mvnw package -DskipTests` for a
+faster build without tests.
+
+### 4. Run
+
+From the repository root (so that the application finds `.env`):
+
+```bash
+java -jar kaizent-server/target/kaizent-server-0.1.0-SNAPSHOT.jar
+```
+
+Then open:
+
+- <http://localhost:8080/>: the console, with the Runs, Lessons, Subjects, Intake and
+  System pages (only System shows data for now);
+- <http://localhost:8080/actuator/health>: the health check, which reports `UP`
+  including the database;
+- <http://localhost:8080/api/v1/system>: the REST API, described by
+  <http://localhost:8080/api/v1/openapi.yaml>.
+
+The application listens on `127.0.0.1` only. Stop it with `Ctrl+C`, and stop the
+database with `docker compose down`.
+
 ## Read more
 
 | Document | What it covers |
@@ -45,17 +113,38 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 | [docs/adr/](docs/adr/README.md) | Architecture Decision Records and the list of open decisions |
 | [CLAUDE.md](CLAUDE.md) | Context and conventions for AI-assisted development sessions |
 
-## Planned stack
+## Stack
 
-Java 25 · Maven · Spring Boot 4 · Spring AI · Spring Modulith · PostgreSQL · React +
-TypeScript. See the [ADRs](docs/adr/README.md) for the reasoning behind each choice.
+Java 25 · Maven · Spring Boot 4 · Spring AI · Spring Modulith · PostgreSQL 18 · React +
+TypeScript (Vite, Mantine). See the [ADRs](docs/adr/README.md) for the reasoning behind
+each choice.
 
 ## Contributing
 
-The project is not yet ready for code contributions. Feedback on the vision, the roadmap
-and the open decisions is welcome through GitHub issues. Contributions will use the
-[Developer Certificate of Origin](https://developercertificate.org/) (`git commit -s`);
-see [ADR-0002](docs/adr/0002-license-apache-2-0-with-dco.md).
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first: Kaizent uses
+spec-driven development, and every commit must be signed off under the
+[Developer Certificate of Origin](https://developercertificate.org/) (`git commit -s`).
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md), and report security problems as
+described in [SECURITY.md](SECURITY.md).
+
+## Repository settings (maintainer)
+
+These settings live on GitHub, not in the repository. Check them when setting up a fork
+that should behave like the main repository:
+
+- [ ] **DCO:** the [DCO GitHub App](https://github.com/apps/dco) is installed on the
+  repository.
+- [ ] **Secret scanning and push protection:** enabled in Settings → Advanced Security.
+- [ ] **Private vulnerability reporting:** enabled in Settings → Advanced Security, so
+  that SECURITY.md's "Report a vulnerability" works.
+- [ ] **Dependabot alerts:** enabled in Settings → Advanced Security. Version updates come
+  from `.github/dependabot.yml`.
+- [ ] **Merge button:** only **Allow squash merging** is enabled, and **Automatically
+  delete head branches** is on (Settings → General → Pull Requests).
+- [ ] **Ruleset for `main`** (Settings → Rules → Rulesets): require a pull request before
+  merging, allow only squash merges, block force pushes and deletions, and **require
+  status checks to pass** with the `DCO` check and the CI check `Build and test`. A check
+  can only be selected after it has run once on a pull request.
 
 ## License
 
