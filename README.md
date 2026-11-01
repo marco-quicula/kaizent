@@ -121,7 +121,7 @@ database with `docker compose down`.
 | [docs/architecture.md](docs/architecture.md) | Wave 1 technical picture: modules, domain model, pipeline, API |
 | [docs/specs/](docs/specs/README.md) | Spec-driven development process and the wave 1 specs |
 | [docs/adr/](docs/adr/README.md) | Architecture Decision Records and the list of open decisions |
-| [CLAUDE.md](CLAUDE.md) | Context and conventions for AI-assisted development sessions |
+| [AGENTS.md](AGENTS.md) | Context and conventions for AI coding agents (Codex, Claude Code and others) |
 
 ## Stack
 
