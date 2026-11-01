@@ -42,10 +42,20 @@ System page are what you can see so far.
 
 ### Prerequisites
 
-- **JDK 25**, for example [Eclipse Temurin](https://adoptium.net/).
+- **JDK 25**, for example [Eclipse Temurin](https://adoptium.net/). It must be the JDK
+  that your shell uses: `JAVA_HOME` must point to it and its `bin` folder must come first
+  in `PATH`. Both `./mvnw` (step 3) and `java -jar` (step 4) use it. Check with
+  `java -version` and, on macOS or Linux, `echo $JAVA_HOME` (on Windows PowerShell,
+  `echo $env:JAVA_HOME`); both must show version 25. The build stops with "Kaizent
+  requires JDK 25 or newer" when an older JDK is active.
 - **Docker** with Docker Compose.
 - Git. You do not need Maven or Node.js: the Maven Wrapper (`./mvnw`) downloads Maven,
   and the build downloads Node 24 for the console.
+
+On **Windows**, run the commands in PowerShell, use `.\mvnw.cmd` instead of `./mvnw`,
+and `copy .env.example .env` instead of `cp`. The repository's `.gitattributes` keeps LF
+line endings in the checkout, which the formatting checks require, even when Git is
+configured with `core.autocrlf=true`.
 
 ### 1. Clone and configure
 

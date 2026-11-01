@@ -1,0 +1,22 @@
+# Line endings: the repository stores LF, and checkouts keep LF on every platform, even with
+# core.autocrlf=true (the Git for Windows default). Prettier, Spotless and the shell
+# scripts expect LF.
+* text=auto eol=lf
+
+# Windows scripts keep CRLF in the working tree.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary files: never convert or diff them as text.
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary
+*.zip binary
