@@ -1,0 +1,42 @@
+name: Bug report
+description: Something does not work as described.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for reporting a bug. Please do not include secrets, API keys or real customer
+        data. Security problems go through SECURITY.md, not through issues.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start the stack with ...
+        2. Drop the ticket ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Relevant log output (remove any secrets first) or screenshots.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: The commit you are running, or the version shown on the console's System page.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, JDK, Docker version, and the LLM adapter in use, if any.
