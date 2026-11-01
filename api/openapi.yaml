@@ -1,0 +1,47 @@
+openapi: 3.1.0
+info:
+  title: Kaizent API
+  summary: REST API of Kaizent, used by the review console and integrations.
+  version: 0.1.0
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+servers:
+  - url: /api/v1
+tags:
+  - name: System
+    description: Information about the running application.
+paths:
+  /system:
+    get:
+      tags: [System]
+      operationId: getSystem
+      summary: Describe the running application
+      description: >-
+        Returns the application version. The workspace and the pipeline profiles are filled
+        in by later specs (0002 and 0004).
+      responses:
+        "200":
+          description: The system information.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemInfo"
+components:
+  schemas:
+    SystemInfo:
+      type: object
+      required: [version, workspace, profiles]
+      properties:
+        version:
+          type: string
+          description: The application version.
+          examples: ["0.1.0-SNAPSHOT"]
+        workspace:
+          type: [string, "null"]
+          description: The path of the active workspace, or null when none is configured.
+        profiles:
+          type: array
+          description: The adapter configured for each pipeline step (defined by spec 0004).
+          items:
+            type: object

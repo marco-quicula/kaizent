@@ -13,13 +13,13 @@
   passes and a violation fixture is detected. *Covers:* AC-6.
 - [x] **T5:** Spotless (google-java-format) wired into `verify`. *Done when:* unformatted
   code fails the build. *Covers:* AC-7 (Java).
-- [ ] **T6:** `api/openapi.yaml` with `GET /system`, generated server interfaces and
+- [x] **T6:** `api/openapi.yaml` with `GET /system`, generated server interfaces and
   `SystemController`. *Done when:* the API test passes. *Covers:* AC-8 (server).
-- [ ] **T7:** Console scaffold (Vite, React, TypeScript, Mantine, React Router, TanStack
+- [x] **T7:** Console scaffold (Vite, React, TypeScript, Mantine, React Router, TanStack
   Query, ESLint, Prettier, Vitest), generated API types, a shell layout with placeholder
   routes, and a System page that calls `/api/v1/system`. *Done when:* `npm test` and
   `npm run build` pass. *Covers:* AC-4, AC-7 (console), AC-8 (console).
-- [ ] **T8:** Package the console as a resources jar and serve it from the server,
+- [x] **T8:** Package the console as a resources jar and serve it from the server,
   including the SPA fallback to `index.html` for client-side routes. *Done when:* `/` and
   `/runs` load the console from the running app. *Covers:* AC-1, AC-4.
 - [ ] **T9:** GitHub Actions `ci.yml` and the Dependabot configuration. *Done when:* the

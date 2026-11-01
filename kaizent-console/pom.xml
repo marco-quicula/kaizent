@@ -16,5 +16,91 @@
   <name>Kaizent Console</name>
   <description>The review console (React SPA), packaged as a jar of static resources (ADR-0019)</description>
 
-  <!-- The console scaffold and the frontend build are added by spec 0001 T7 and T8. -->
+  <build>
+    <resources>
+      <!-- The Vite build output, served by kaizent-server at / (ADR-0019). -->
+      <resource>
+        <directory>${project.basedir}/dist</directory>
+        <targetPath>META-INF/resources</targetPath>
+      </resource>
+    </resources>
+
+    <plugins>
+      <plugin>
+        <!-- Node and npm are downloaded into ./node; no global installation is needed (ADR-0025). -->
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-maven-plugin</artifactId>
+        <configuration>
+          <nodeVersion>${node.version}</nodeVersion>
+          <installDirectory>${project.basedir}</installDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>install-node-and-npm</id>
+            <goals>
+              <goal>install-node-and-npm</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>npm-ci</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>ci</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-generate-api</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>run generate:api</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-lint</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>run lint</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-test</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>generate-resources</phase>
+            <configuration>
+              <arguments>test</arguments>
+              <skip>${skipTests}</skip>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-build</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <configuration>
+              <arguments>run build</arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <configuration>
+          <filesets>
+            <fileset>
+              <directory>${project.basedir}/dist</directory>
+            </fileset>
+          </filesets>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
