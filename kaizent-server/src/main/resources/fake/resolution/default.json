@@ -1,0 +1,5 @@
+{
+  "diagnosis": "Fake diagnosis: scripted by the fake LLM adapter, no model was called.",
+  "suggestedReply": "Hello,\n\nThank you for reaching out. This is a scripted reply from the fake LLM adapter.\n\nBest regards,\nSupport",
+  "rawConfidence": 0.5
+}

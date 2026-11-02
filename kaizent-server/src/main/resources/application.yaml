@@ -15,6 +15,24 @@ server:
   address: 127.0.0.1
   port: 8080
 
+kaizent:
+  workspace:
+    # Relative paths are resolved against the working directory (the repository root).
+    path: examples/petclinic
+  intake:
+    poll-interval: 10s
+  worker:
+    poll-interval: 2s
+  llm:
+    profiles:
+      resolution:
+        adapter: gemini-api
+        model: gemini-3.6-flash
+
+# Read by the gemini-api adapter. Without a key the application still starts, and runs fail
+# with a clear message.
+spring.ai.google.genai.api-key: ${GEMINI_API_KEY:}
+
 management:
   endpoints:
     web:

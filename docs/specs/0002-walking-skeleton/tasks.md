@@ -1,15 +1,15 @@
 # Tasks 0002: Walking skeleton
 
-- [ ] **T1:** `workspace` module: properties and path resolution, with a minimal
+- [x] **T1:** `workspace` module: properties and path resolution, with a minimal
   `examples/petclinic/` containing `inbox/PC-001.md` and an empty `outbox/.gitkeep`.
   *Done when:* a unit test resolves the paths.
-- [ ] **T2:** Flyway `V2`, `Problem` and `Run` aggregates, Spring Data JDBC repositories.
+- [x] **T2:** Flyway `V2`, `Problem` and `Run` aggregates, Spring Data JDBC repositories.
   *Done when:* the repository integration tests pass.
-- [ ] **T3:** `TicketSource` port, `FileInboxTicketSource` and `IntakePoller` with
+- [x] **T3:** `TicketSource` port, `FileInboxTicketSource` and `IntakePoller` with
   idempotent creation. *Done when:* the AC-1 and AC-2 tests pass. *Covers:* AC-1, AC-2.
-- [ ] **T4:** `LlmGateway` port, `FakeLlmGateway` and the minimal `SpringAiLlmGateway`
+- [x] **T4:** `LlmGateway` port, `FakeLlmGateway` and the minimal `SpringAiLlmGateway`
   (`gemini-api`). *Done when:* a fake-based unit test returns a typed `Proposal`.
-- [ ] **T5:** `RunWorker` and `RunOrchestrator` with `SkeletonResolver`, including
+- [x] **T5:** `RunWorker` and `RunOrchestrator` with `SkeletonResolver`, including
   failure handling. *Done when:* the AC-3 and AC-4 tests pass. *Covers:* AC-3, AC-4.
 - [ ] **T6:** OpenAPI additions, `RunsController`, `ReviewService` (`APPROVED` only),
   `ReplySink` and `FileOutboxReplySink`. *Done when:* the API tests pass. *Covers:*

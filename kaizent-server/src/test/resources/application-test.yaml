@@ -1,0 +1,11 @@
+# Profile for integration tests: no background polling (tests drive intake and the worker
+# directly), an empty workspace by default, and the fake LLM adapter (ADR-0020).
+kaizent:
+  scheduling:
+    enabled: false
+  workspace:
+    path: target/test-workspace
+  llm:
+    profiles:
+      resolution:
+        adapter: fake

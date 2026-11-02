@@ -11,16 +11,12 @@ import org.flywaydb.core.api.MigrationInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Starts the full application against PostgreSQL 18 (spec 0001 AC-3, AC-5). */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@Import(TestcontainersConfiguration.class)
+@KaizentIntegrationTest
 class KaizentApplicationTests {
 
   @LocalServerPort private int port;
@@ -41,11 +37,13 @@ class KaizentApplicationTests {
   }
 
   @Test
-  void baselineMigrationIsApplied() {
+  void migrationsAreApplied() {
     MigrationInfo[] applied = flyway.info().applied();
 
-    assertThat(applied).extracting(info -> info.getVersion().getVersion()).containsExactly("1");
-    assertThat(applied[0].getState().isApplied()).isTrue();
+    assertThat(applied)
+        .extracting(info -> info.getVersion().getVersion())
+        .containsExactly("1", "2");
+    assertThat(applied).allMatch(info -> info.getState().isApplied());
   }
 
   @Test

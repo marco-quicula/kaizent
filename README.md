@@ -11,9 +11,8 @@ record improves.
 
 > **Status: wave 1 in progress.** The vision, the roadmap and the architecture decisions
 > are documented, and the first wave (the MVP) is broken down into approved
-> [specs](docs/specs/README.md). Spec 0001 (project foundation) is done: the project
-> builds, runs and is checked by CI, but there is no domain behavior yet. Spec 0002 (the
-> walking skeleton) is next.
+> [specs](docs/specs/README.md). Spec 0001 (project foundation) is done, and spec 0002
+> (the walking skeleton, the first end-to-end cycle) is in progress.
 
 ## How it works (target for the MVP)
 
@@ -38,8 +37,11 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 ## Getting started
 
 The application runs locally: PostgreSQL in Docker, and the server (which also serves the
-console) on your machine. There is no domain behavior yet: the console shell and the
-System page are what you can see so far.
+console) on your machine. The console shows its shell and the System page so far. In the
+background, the application already picks up the demo ticket
+`examples/petclinic/inbox/PC-001.md` and tries to resolve it; without a model configured,
+that run fails with "GEMINI_API_KEY is not set" in the log. The run pages and the setup of
+a real model come with the rest of spec 0002.
 
 ### Prerequisites
 
