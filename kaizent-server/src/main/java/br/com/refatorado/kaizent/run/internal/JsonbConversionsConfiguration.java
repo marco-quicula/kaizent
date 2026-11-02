@@ -2,6 +2,7 @@ package br.com.refatorado.kaizent.run.internal;
 
 import br.com.refatorado.kaizent.intake.ProblemAttributes;
 import br.com.refatorado.kaizent.resolution.Proposal;
+import br.com.refatorado.kaizent.run.Verdict;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
@@ -25,7 +26,8 @@ import tools.jackson.databind.json.JsonMapper;
 class JsonbConversionsConfiguration {
 
   /** Value types stored as {@code jsonb}. */
-  static final List<Class<?>> JSONB_TYPES = List.of(ProblemAttributes.class, Proposal.class);
+  static final List<Class<?>> JSONB_TYPES =
+      List.of(ProblemAttributes.class, Proposal.class, Verdict.class);
 
   @Bean
   JdbcCustomConversions kaizentJdbcCustomConversions(JdbcDialect dialect, JsonMapper json) {

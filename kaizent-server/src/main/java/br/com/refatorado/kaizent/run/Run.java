@@ -19,6 +19,7 @@ public record Run(
     FailureReason failureReason,
     String failureMessage,
     Proposal proposal,
+    Verdict verdict,
     Instant createdAt,
     Instant updatedAt,
     @Version Integer version) {
@@ -28,7 +29,7 @@ public record Run(
   /** A new run for a received problem. */
   public static Run received(UUID problemId, Instant now) {
     return new Run(
-        UUID.randomUUID(), problemId, RunStatus.RECEIVED, null, null, null, now, now, null);
+        UUID.randomUUID(), problemId, RunStatus.RECEIVED, null, null, null, null, now, now, null);
   }
 
   public Run startResolving(Instant now) {
@@ -39,6 +40,31 @@ public record Run(
   public Run awaitReview(Proposal newProposal, Instant now) {
     requireStatus(RunStatus.RESOLVING);
     return with(RunStatus.AWAITING_REVIEW, null, null, newProposal, now);
+  }
+
+  /** Records an {@code APPROVED} verdict on a run awaiting review. */
+  public Run approve(Verdict newVerdict, Instant now) {
+    requireStatus(RunStatus.AWAITING_REVIEW);
+    if (newVerdict.type() != VerdictType.APPROVED) {
+      throw new IllegalArgumentException("Not an APPROVED verdict: " + newVerdict.type());
+    }
+    return new Run(
+        id,
+        problemId,
+        RunStatus.APPROVED,
+        null,
+        null,
+        proposal,
+        newVerdict,
+        createdAt,
+        now,
+        version);
+  }
+
+  /** The approved reply was delivered. */
+  public Run delivered(Instant now) {
+    requireStatus(RunStatus.APPROVED);
+    return with(RunStatus.DELIVERED, null, null, proposal, now);
   }
 
   public Run fail(FailureReason reason, String message, Instant now) {
@@ -55,12 +81,13 @@ public record Run(
       String message,
       Proposal newProposal,
       Instant now) {
-    return new Run(id, problemId, newStatus, reason, message, newProposal, createdAt, now, version);
+    return new Run(
+        id, problemId, newStatus, reason, message, newProposal, verdict, createdAt, now, version);
   }
 
   private void requireStatus(RunStatus expected) {
     if (status != expected) {
-      throw new IllegalStateException("Run " + id + " is " + status + ", expected " + expected);
+      throw new RunStateException(id, status, expected);
     }
   }
 }

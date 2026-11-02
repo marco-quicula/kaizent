@@ -11,6 +11,10 @@ node/
 node_modules/
 dist/
 
+# Replies written by local runs of the demo workspace (ADR-0027: the workspace owner commits
+# replies on purpose; the demo keeps only the empty outbox).
+examples/petclinic/outbox/*.reply.md
+
 # IDEs and editors
 .idea/
 *.iml

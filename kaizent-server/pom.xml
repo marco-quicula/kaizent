@@ -147,6 +147,8 @@
                 <openApiNullable>false</openApiNullable>
                 <annotationLibrary>none</annotationLibrary>
                 <documentationProvider>none</documentationProvider>
+                <!-- Optional fields are omitted from the JSON instead of being sent as null. -->
+                <additionalModelTypeAnnotations>@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)</additionalModelTypeAnnotations>
               </configOptions>
             </configuration>
           </execution>

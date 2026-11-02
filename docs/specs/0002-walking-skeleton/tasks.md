@@ -11,12 +11,12 @@
   (`gemini-api`). *Done when:* a fake-based unit test returns a typed `Proposal`.
 - [x] **T5:** `RunWorker` and `RunOrchestrator` with `SkeletonResolver`, including
   failure handling. *Done when:* the AC-3 and AC-4 tests pass. *Covers:* AC-3, AC-4.
-- [ ] **T6:** OpenAPI additions, `RunsController`, `ReviewService` (`APPROVED` only),
+- [x] **T6:** OpenAPI additions, `RunsController`, `ReviewService` (`APPROVED` only),
   `ReplySink` and `FileOutboxReplySink`. *Done when:* the API tests pass. *Covers:*
   AC-5, AC-6, AC-7.
-- [ ] **T7:** Console `RunsPage` and `RunDetailPage` with the Approve button. *Done
+- [x] **T7:** Console `RunsPage` and `RunDetailPage` with the Approve button. *Done
   when:* the Vitest tests pass. *Covers:* AC-8.
-- [ ] **T8:** End-to-end test with the fake adapter. *Done when:* it is green in CI.
+- [x] **T8:** End-to-end test with the fake adapter. *Done when:* it is green in CI.
   *Covers:* AC-9.
 - [ ] **T9:** Manual run with `gemini-api`, documented in the README ("Run with a real
   model"). *Covers:* AC-10, EV-1.

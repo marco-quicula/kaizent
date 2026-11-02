@@ -9,17 +9,85 @@ info:
 servers:
   - url: /api/v1
 tags:
+  - name: Runs
+    description: Runs, their proposals and the reviewer's verdicts.
   - name: System
     description: Information about the running application.
 paths:
+  /runs:
+    get:
+      tags: [Runs]
+      operationId: listRuns
+      summary: List runs, newest first
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page number.
+          schema: { type: integer, format: int32, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          description: Page size.
+          schema: { type: integer, format: int32, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: A page of runs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunPage"
+  /runs/{id}:
+    get:
+      tags: [Runs]
+      operationId: getRun
+      summary: Get a run with its problem, proposal, verdict and failure
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      responses:
+        "200":
+          description: The run.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /runs/{id}/verdict:
+    post:
+      tags: [Runs]
+      operationId: recordVerdict
+      summary: Record the reviewer's verdict on a run awaiting review
+      description: >-
+        In spec 0002 only `APPROVED` is accepted: the run becomes `APPROVED`, the suggested
+        reply is delivered, and the run becomes `DELIVERED`. Spec 0010 adds the other verdicts.
+      parameters:
+        - $ref: "#/components/parameters/RunId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerdictRequest"
+      responses:
+        "200":
+          description: The run after the verdict.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunDetail"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /system:
     get:
       tags: [System]
       operationId: getSystem
       summary: Describe the running application
       description: >-
-        Returns the application version. The workspace and the pipeline profiles are filled
-        in by later specs (0002 and 0004).
+        Returns the application version and the workspace path. The pipeline profiles are
+        filled in by spec 0004.
       responses:
         "200":
           description: The system information.
@@ -28,7 +96,124 @@ paths:
               schema:
                 $ref: "#/components/schemas/SystemInfo"
 components:
+  parameters:
+    RunId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    BadRequest:
+      description: The request is not valid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    NotFound:
+      description: The resource does not exist.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    Conflict:
+      description: The resource is not in a state that allows the operation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
   schemas:
+    RunStatus:
+      type: string
+      enum:
+        [RECEIVED, TRIAGING, RESOLVING, AWAITING_REVIEW, APPROVED, DELIVERED, REJECTED, FAILED]
+    FailureReason:
+      type: string
+      enum: [ERROR, BUDGET_EXCEEDED, TIMEOUT]
+    VerdictType:
+      type: string
+      enum: [APPROVED, APPROVED_WITH_EDITS, REJECTED]
+    RunSummary:
+      type: object
+      required: [id, ticketKey, title, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        ticketKey: { type: string, description: The ticket id in its source. }
+        title: { type: string }
+        status: { $ref: "#/components/schemas/RunStatus" }
+        createdAt: { type: string, format: date-time }
+    RunPage:
+      type: object
+      required: [items, page, size, totalItems]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/RunSummary" }
+        page: { type: integer, format: int32 }
+        size: { type: integer, format: int32 }
+        totalItems: { type: integer, format: int64 }
+    Problem:
+      type: object
+      required: [ticketKey, source, title, body, labels, createdAt, receivedAt]
+      properties:
+        ticketKey: { type: string }
+        source: { type: string, description: "The connector, for example file-inbox." }
+        title: { type: string }
+        body: { type: string, description: The ticket text, in Markdown. }
+        requester: { type: string }
+        channel: { type: string }
+        labels:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+        receivedAt: { type: string, format: date-time }
+    Proposal:
+      type: object
+      required: [diagnosis, suggestedReply, rawConfidence]
+      properties:
+        diagnosis: { type: string }
+        suggestedReply: { type: string }
+        rawConfidence: { type: number, format: double, minimum: 0, maximum: 1 }
+    Verdict:
+      type: object
+      required: [type, finalReply, reviewedAt]
+      properties:
+        type: { $ref: "#/components/schemas/VerdictType" }
+        finalReply: { type: string }
+        comment: { type: string }
+        reviewer: { type: string }
+        reviewedAt: { type: string, format: date-time }
+    Failure:
+      type: object
+      required: [reason, message]
+      properties:
+        reason: { $ref: "#/components/schemas/FailureReason" }
+        message: { type: string }
+    RunDetail:
+      type: object
+      required: [id, status, problem, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        status: { $ref: "#/components/schemas/RunStatus" }
+        problem: { $ref: "#/components/schemas/Problem" }
+        proposal: { $ref: "#/components/schemas/Proposal" }
+        verdict: { $ref: "#/components/schemas/Verdict" }
+        failure: { $ref: "#/components/schemas/Failure" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    VerdictRequest:
+      type: object
+      required: [type]
+      properties:
+        type: { $ref: "#/components/schemas/VerdictType" }
+    ProblemDetail:
+      type: object
+      description: An error, as defined by RFC 9457.
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer, format: int32 }
+        detail: { type: string }
+        instance: { type: string }
     SystemInfo:
       type: object
       required: [version, workspace, profiles]

@@ -3,6 +3,7 @@ package br.com.refatorado.kaizent.api;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.refatorado.kaizent.KaizentIntegrationTest;
+import br.com.refatorado.kaizent.workspace.Workspace;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -21,6 +22,7 @@ class SystemApiTests {
   @LocalServerPort private int port;
 
   @Autowired private BuildProperties buildProperties;
+  @Autowired private Workspace workspace;
 
   @Test
   void returnsTheApplicationVersion() throws Exception {
@@ -32,7 +34,7 @@ class SystemApiTests {
     assertThat(system.at("/version").asString())
         .isEqualTo(buildProperties.getVersion())
         .isNotBlank();
-    assertThat(system.at("/workspace").isNull()).isTrue();
+    assertThat(system.at("/workspace").asString()).isEqualTo(workspace.root().toString());
     assertThat(system.at("/profiles").isArray()).isTrue();
     assertThat(system.at("/profiles").isEmpty()).isTrue();
   }
