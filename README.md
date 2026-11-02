@@ -11,8 +11,9 @@ record improves.
 
 > **Status: wave 1 in progress.** The vision, the roadmap and the architecture decisions
 > are documented, and the first wave (the MVP) is broken down into approved
-> [specs](docs/specs/README.md). Spec 0001 (project foundation) is done, and spec 0002
-> (the walking skeleton, the first end-to-end cycle) is in progress.
+> [specs](docs/specs/README.md). Specs 0001 (project foundation) and 0002 (the walking
+> skeleton, the first end-to-end cycle with a real model) are done; specs 0003 and 0004 are
+> next.
 
 ## How it works (target for the MVP)
 
