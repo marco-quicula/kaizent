@@ -15,11 +15,6 @@ Exactly 10 digits, with nothing else: for example `4799990000`. See
 No. PetClinic has no delete actions. Visits also cannot be cancelled or rescheduled; see
 [product/visits.md](product/visits.md).
 
-## Can PetClinic send reminders or messages to owners?
-
-PetClinic sends no e-mails, SMS or other notifications. See
-[product/overview.md](product/overview.md).
-
 ## Is there a login or user permissions?
 
 No. Everyone who can open PetClinic can see and change all data.

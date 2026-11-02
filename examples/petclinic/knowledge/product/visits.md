@@ -25,4 +25,3 @@ Visits are booked ahead of time:
   changed or removed in the application. Clinics usually add a new visit with the right date
   and note the change in its description.
 - Book a time of day: visits have a date only.
-- Send reminders to owners: PetClinic sends no notifications.

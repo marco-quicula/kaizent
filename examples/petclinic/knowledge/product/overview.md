@@ -29,6 +29,5 @@ and is the source of truth for the demo's answers.
 
 ## What PetClinic does not do
 
-PetClinic has no user accounts or permissions, no billing, no appointment calendar, no
-reminders or notifications (no e-mail and no SMS), and no screens to manage reference data
-such as pet types or veterinary specialties.
+PetClinic has no user accounts or permissions, no billing, no appointment calendar, and no
+screens to manage reference data such as pet types or veterinary specialties.
