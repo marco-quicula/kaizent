@@ -62,6 +62,30 @@ describe("Runs page", () => {
     expect(router.state.location.pathname).toBe(`/runs/${RUN_ID}`);
   });
 
+  it("pages through more runs than fit on one page", async () => {
+    const run = (n: number) => ({
+      id: `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`,
+      ticketKey: `PC-${n}`,
+      title: `Ticket ${n}`,
+      status: "AWAITING_REVIEW",
+      createdAt: "2026-10-01T10:00:00Z",
+    });
+    const fetchMock = mockApi({
+      "GET /api/v1/runs": (request) => {
+        const page = Number(new URL(request.url).searchParams.get("page"));
+        return json({ items: [run(page === 0 ? 2 : 1)], page, size: 50, totalItems: 51 });
+      },
+    });
+    renderConsole("/runs");
+    expect(await screen.findByText("PC-2")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "2" }));
+
+    expect(await screen.findByText("PC-1")).toBeInTheDocument();
+    const pages = fetchMock.mock.calls.map(([r]) => new URL(r.url).searchParams.get("page"));
+    expect(pages).toContain("1");
+  });
+
   it("explains how to get a first run when there is none", async () => {
     mockApi({
       "GET /api/v1/runs": () => json({ items: [], page: 0, size: 50, totalItems: 0 }),
