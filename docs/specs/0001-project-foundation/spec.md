@@ -1,6 +1,6 @@
 # Spec 0001: Project foundation
 
-- **Status:** In progress
+- **Status:** Done
 - **Wave:** 1
 - **Depends on:** none
 - **Related ADRs:** 0002, 0005, 0006, 0009, 0018, 0019, 0024, 0025, 0026

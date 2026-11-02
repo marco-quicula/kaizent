@@ -11,8 +11,9 @@ record improves.
 
 > **Status: wave 1 in progress.** The vision, the roadmap and the architecture decisions
 > are documented, and the first wave (the MVP) is broken down into approved
-> [specs](docs/specs/README.md). Implementation has started with spec 0001 (project
-> foundation); there is no domain behavior yet.
+> [specs](docs/specs/README.md). Spec 0001 (project foundation) is done: the project
+> builds, runs and is checked by CI, but there is no domain behavior yet. Spec 0002 (the
+> walking skeleton) is next.
 
 ## How it works (target for the MVP)
 
@@ -48,14 +49,20 @@ System page are what you can see so far.
   `java -version` and, on macOS or Linux, `echo $JAVA_HOME` (on Windows PowerShell,
   `echo $env:JAVA_HOME`); both must show version 25. The build stops with "Kaizent
   requires JDK 25 or newer" when an older JDK is active.
+  - On **Windows**, if you installed the JDK by hand, open *Settings → System → About →
+    Advanced system settings → Environment Variables*, set `JAVA_HOME` to the JDK folder
+    (for example `C:\Program Files\Eclipse Adoptium\jdk-25...`), and put `%JAVA_HOME%\bin`
+    at the top of `Path`. Package managers such as Scoop or winget usually do this for
+    you. **Open a new terminal** afterwards: terminals that are already open keep the old
+    values.
 - **Docker** with Docker Compose.
 - Git. You do not need Maven or Node.js: the Maven Wrapper (`./mvnw`) downloads Maven,
   and the build downloads Node 24 for the console.
 
-On **Windows**, run the commands in PowerShell, use `.\mvnw.cmd` instead of `./mvnw`,
-and `copy .env.example .env` instead of `cp`. The repository's `.gitattributes` keeps LF
-line endings in the checkout, which the formatting checks require, even when Git is
-configured with `core.autocrlf=true`.
+On **Windows**, run the commands in **PowerShell**; each step shows the Windows variant
+where a command differs. The repository's `.gitattributes` keeps LF line endings in the
+checkout (CRLF only for Windows `.cmd` scripts), which the formatting checks require, even
+when Git is configured with `core.autocrlf=true`.
 
 ### 1. Clone and configure
 
@@ -64,6 +71,8 @@ git clone https://github.com/marco-quicula/kaizent.git
 cd kaizent
 cp .env.example .env
 ```
+
+On Windows (PowerShell), use `copy .env.example .env` for the last command.
 
 Edit `.env` and set `KAIZENT_DB_PASSWORD` to a password of your choice for the local
 database. `.env` is git-ignored; never commit it. Both Docker Compose and the
@@ -78,8 +87,10 @@ docker compose up -d
 `docker compose ps` should show the `postgres` service as `healthy`. It listens on
 `127.0.0.1:5432`.
 
-If you change `KAIZENT_DB_PASSWORD` after the first start, recreate the database volume
-with `docker compose down -v` (this deletes the local data), then start it again.
+The database volume keeps the password it was created with. If you change
+`KAIZENT_DB_PASSWORD` after the first start (or start over with a new `.env`), recreate
+the volume with `docker compose down -v` (this deletes the local data) and start it again;
+otherwise the application fails with "password authentication failed".
 
 ### 3. Build
 
@@ -87,18 +98,23 @@ with `docker compose down -v` (this deletes the local data), then start it again
 ./mvnw verify
 ```
 
+On Windows (PowerShell), use `.\mvnw.cmd verify`. `./mvnw` is the macOS and Linux (or Git
+Bash) script and does not run in PowerShell.
+
 This builds the console and the server and runs all the checks and tests. The tests start
 their own PostgreSQL with Testcontainers, so Docker must be running. The first build takes
-a few minutes while dependencies are downloaded. Use `./mvnw package -DskipTests` for a
-faster build without tests.
+a few minutes while dependencies are downloaded. Use `./mvnw package -DskipTests`
+(Windows: `.\mvnw.cmd package -DskipTests`) for a faster build without tests.
 
 ### 4. Run
 
-From the repository root (so that the application finds `.env`):
+From the repository root (so that the application finds `.env`), with the same JDK 25:
 
 ```bash
 java -jar kaizent-server/target/kaizent-server-0.1.0-SNAPSHOT.jar
 ```
+
+The same command works in PowerShell.
 
 Then open:
 
