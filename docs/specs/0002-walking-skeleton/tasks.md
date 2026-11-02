@@ -18,5 +18,5 @@
   when:* the Vitest tests pass. *Covers:* AC-8.
 - [x] **T8:** End-to-end test with the fake adapter. *Done when:* it is green in CI.
   *Covers:* AC-9.
-- [ ] **T9:** Manual run with `gemini-api`, documented in the README ("Run with a real
+- [x] **T9:** Manual run with `gemini-api`, documented in the README ("Run with a real
   model"). *Covers:* AC-10, EV-1.
