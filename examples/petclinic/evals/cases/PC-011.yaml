@@ -1,0 +1,10 @@
+ticket: PC-011
+expect:
+  subject: technical
+  problemType: BUG
+  citesAny: [knowledge/setup/databases.md]
+  mentionsAll: ["docker compose up postgres"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

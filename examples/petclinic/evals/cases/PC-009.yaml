@@ -1,0 +1,10 @@
+ticket: PC-009
+expect:
+  subject: visits
+  problemType: HOW_TO
+  citesAny: [knowledge/product/visits.md]
+  mentionsAll: ["not supported"]
+  mentionsNone: ["cancel button"]
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

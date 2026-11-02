@@ -1,0 +1,10 @@
+ticket: PC-006
+expect:
+  subject: pets
+  problemType: HOW_TO
+  citesAny: [knowledge/product/pets.md]
+  mentionsAll: ["administrator"]
+  mentionsNone: ["Add Pet Type"]
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

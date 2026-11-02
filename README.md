@@ -12,8 +12,8 @@ record improves.
 > **Status: wave 1 in progress.** The vision, the roadmap and the architecture decisions
 > are documented, and the first wave (the MVP) is broken down into approved
 > [specs](docs/specs/README.md). Specs 0001 (project foundation) and 0002 (the walking
-> skeleton, the first end-to-end cycle with a real model) are done; specs 0003 and 0004 are
-> next.
+> skeleton, the first end-to-end cycle with a real model) are done; spec 0003 (the
+> PetClinic demo workspace and the evaluation runner) is in progress.
 
 ## How it works (target for the MVP)
 
@@ -150,8 +150,8 @@ free tier is enough for the demo.
    ```
 
 3. Restart the application (`Ctrl+C`, then the `java -jar` command of step 4).
-4. Kaizent processes each ticket **once**. If `PC-001` was already processed (for example,
-   it failed before the key was set), start again with an empty database:
+4. Kaizent processes each ticket **once**. If the tickets were already processed (for
+   example, they failed before the key was set), start again with an empty database:
 
    ```bash
    docker compose down -v

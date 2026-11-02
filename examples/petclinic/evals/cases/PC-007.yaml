@@ -1,0 +1,10 @@
+ticket: PC-007
+expect:
+  subject: visits
+  problemType: HOW_TO
+  citesAny: [knowledge/product/visits.md]
+  mentionsAll: ["Add Visit"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

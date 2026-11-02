@@ -1,0 +1,10 @@
+ticket: PC-012
+expect:
+  subject: [owners, unknown]
+  problemType: OTHER
+  citesAny: []
+  mentionsAll: []
+  mentionsNone: ["turn it on in", "enable SMS"]
+  lowConfidence: true
+  ticketLanguage: en
+  replyLanguage: en

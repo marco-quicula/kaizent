@@ -1,0 +1,10 @@
+ticket: PC-004
+expect:
+  subject: pets
+  problemType: BUG
+  citesAny: [knowledge/known-issues/KI-002-future-birth-date.md, knowledge/product/pets.md]
+  mentionsAll: ["future"]
+  mentionsNone: ["will be fixed"]
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

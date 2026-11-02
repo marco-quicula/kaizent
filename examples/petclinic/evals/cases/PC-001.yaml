@@ -1,0 +1,10 @@
+ticket: PC-001
+expect:
+  subject: owners
+  problemType: BUG
+  citesAny: [knowledge/known-issues/KI-001-telephone-validation.md]
+  mentionsAll: ["10", "digits"]
+  mentionsNone: ["will be fixed"]
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

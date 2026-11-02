@@ -1,0 +1,10 @@
+ticket: PC-010
+expect:
+  subject: technical
+  problemType: BUG
+  citesAny: [knowledge/known-issues/KI-003-error-page-oups.md]
+  mentionsAll: ["on purpose"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

@@ -1,0 +1,10 @@
+ticket: PC-003
+expect:
+  subject: owners
+  problemType: HOW_TO
+  citesAny: [knowledge/product/owners.md]
+  mentionsAll: ["Edit Owner"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: pt
+  replyLanguage: pt

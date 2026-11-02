@@ -1,0 +1,10 @@
+ticket: PC-008
+expect:
+  subject: visits
+  problemType: BUG
+  citesAny: [knowledge/product/visits.md]
+  mentionsAll: ["future"]
+  mentionsNone: ["will be fixed"]
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

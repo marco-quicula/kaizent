@@ -1,0 +1,10 @@
+ticket: PC-005
+expect:
+  subject: pets
+  problemType: BUG
+  citesAny: [knowledge/product/pets.md]
+  mentionsAll: ["same name"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en
