@@ -26,6 +26,6 @@
   workflow is green on the PR. *Covers:* AC-9, AC-10 (part).
 - [x] **T10:** `CONTRIBUTING.md` (DCO, workflow, specs), `SECURITY.md`,
   `CODE_OF_CONDUCT.md`, and issue and PR templates. *Covers:* AC-10.
-- [ ] **T11:** README "Getting started" and a "Repository settings" checklist for the
+- [x] **T11:** README "Getting started" and a "Repository settings" checklist for the
   maintainer. *Done when:* the maintainer completes the walkthrough on a fresh clone.
   *Covers:* AC-11.
