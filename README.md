@@ -41,8 +41,8 @@ console) on your machine. The application picks up the demo ticket
 `examples/petclinic/inbox/PC-001.md`, asks a model for a proposed reply, and shows the run
 in the console, where you can approve it; the approved reply is written to
 `examples/petclinic/outbox/PC-001.reply.md`. Without a model configured, the run fails with
-"GEMINI_API_KEY is not set", which the console shows. Setting up a real model is described
-in the last part of spec 0002.
+"GEMINI_API_KEY is not set", which the console shows; see
+[Run with a real model](#run-with-a-real-model).
 
 ### Prerequisites
 
@@ -131,6 +131,57 @@ Then open:
 
 The application listens on `127.0.0.1` only. Stop it with `Ctrl+C`, and stop the
 database with `docker compose down`.
+
+## Run with a real model
+
+By default, Kaizent resolves tickets with the **Gemini API** (`gemini-api` adapter). Its
+free tier is enough for the demo.
+
+> **What leaves your machine:** the ticket title and body, and the prompt, are sent to the
+> model provider. The demo tickets are synthetic. Do not put real customer or personal data
+> in a ticket unless your agreement with the provider allows it.
+
+1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey).
+2. Add it to `.env` (never commit it):
+
+   ```
+   GEMINI_API_KEY=<your key>
+   ```
+
+3. Restart the application (`Ctrl+C`, then the `java -jar` command of step 4).
+4. Kaizent processes each ticket **once**. If `PC-001` was already processed (for example,
+   it failed before the key was set), start again with an empty database:
+
+   ```bash
+   docker compose down -v
+   ```
+
+   ```bash
+   docker compose up -d
+   ```
+
+   Then restart the application. Retrying a failed run from the console comes in a later
+   spec.
+5. Open <http://localhost:8080/>. After a few seconds, the run for `PC-001` is **Awaiting
+   review**. Open it, read the diagnosis and the suggested reply, and click **Approve**. The
+   reply is written to `examples/petclinic/outbox/PC-001.reply.md`.
+
+The model is set per pipeline step. The default for resolution is `gemini-3.6-flash`. To
+use another model, set it in `.env`, for example:
+
+```
+KAIZENT_LLM_RESOLUTION_MODEL=gemini-2.5-flash
+```
+
+Free tiers have rate limits. If a run fails with a quota or rate-limit error, wait a minute
+and start again as in item 4. Automatic retries come in a later spec.
+
+To try the cycle without any model, for example offline, use the scripted `fake` adapter,
+which returns a fixed reply:
+
+```
+KAIZENT_LLM_RESOLUTION_ADAPTER=fake
+```
 
 ## Read more
 

@@ -29,9 +29,10 @@ kaizent:
     poll-interval: 2s
   llm:
     profiles:
+      # Overridable from .env or the environment (see .env.example).
       resolution:
-        adapter: gemini-api
-        model: gemini-3.6-flash
+        adapter: ${KAIZENT_LLM_RESOLUTION_ADAPTER:gemini-api}
+        model: ${KAIZENT_LLM_RESOLUTION_MODEL:gemini-3.6-flash}
 
 # Two scheduler threads: the intake poller keeps polling while the run worker waits for a
 # model call. Each task still never runs concurrently with itself, so runs are processed one
