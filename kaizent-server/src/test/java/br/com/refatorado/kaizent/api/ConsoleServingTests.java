@@ -2,7 +2,7 @@ package br.com.refatorado.kaizent.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import br.com.refatorado.kaizent.TestcontainersConfiguration;
+import br.com.refatorado.kaizent.KaizentIntegrationTest;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -10,14 +10,10 @@ import java.net.http.HttpResponse;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.context.annotation.Import;
 
 /** The console is served at / with a fallback for client-side routes (spec 0001 AC-4, T8). */
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@Import(TestcontainersConfiguration.class)
+@KaizentIntegrationTest
 class ConsoleServingTests {
 
   private static final Pattern SCRIPT = Pattern.compile("src=\"(/assets/[^\"]+\\.js)\"");

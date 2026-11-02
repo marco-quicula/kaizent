@@ -18,8 +18,8 @@ resolution. The repository is `marco-quicula/kaizent` (it was created as "omniso
 
 **Current status: wave 1 in progress.** Wave 1 (the MVP) is broken down into specs
 0001–0012, all `Approved` (2026-11-01). Spec 0001 (project foundation) is `Done`; spec
-0002 (walking skeleton) is next. Progress is tracked in GitHub issues under the "Wave 1 –
-MVP" milestone.
+0002 (walking skeleton) is `In progress`. Progress is tracked in GitHub issues under the
+"Wave 1 – MVP" milestone.
 
 ## Language
 

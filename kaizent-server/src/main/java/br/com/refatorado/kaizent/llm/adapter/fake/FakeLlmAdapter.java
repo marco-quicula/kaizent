@@ -1,0 +1,68 @@
+package br.com.refatorado.kaizent.llm.adapter.fake;
+
+import br.com.refatorado.kaizent.llm.LlmAdapter;
+import br.com.refatorado.kaizent.llm.LlmException;
+import br.com.refatorado.kaizent.llm.LlmProfile;
+import br.com.refatorado.kaizent.llm.LlmRequest;
+import br.com.refatorado.kaizent.llm.LlmResponse;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
+
+/**
+ * Scripted responses for tests and offline runs (ADR-0020), with no network access. The script is
+ * {@code classpath:fake/<step>/<ticket-key>.json}, or {@code fake/<step>/default.json}. A script
+ * whose content is {@value #ERROR_MARKER} makes the call fail. Spec 0004 adds more markers.
+ */
+@Component
+public class FakeLlmAdapter implements LlmAdapter {
+
+  public static final String NAME = "fake";
+  static final String ERROR_MARKER = "__error__";
+
+  private final JsonMapper json;
+
+  public FakeLlmAdapter(JsonMapper json) {
+    this.json = json;
+  }
+
+  @Override
+  public String name() {
+    return NAME;
+  }
+
+  @Override
+  public <T> LlmResponse<T> complete(LlmRequest<T> request, LlmProfile profile) {
+    String script = script(request);
+    if (ERROR_MARKER.equals(script.strip())) {
+      throw new LlmException("Fake LLM error for step " + request.step());
+    }
+    try {
+      return new LlmResponse<>(json.readValue(script, request.outputType()), script);
+    } catch (JacksonException e) {
+      throw new LlmException("Fake script is not a valid " + request.outputType().getName(), e);
+    }
+  }
+
+  private String script(LlmRequest<?> request) {
+    Object ticketKey = request.attributes().get(LlmRequest.TICKET_KEY);
+    String folder = "fake/" + request.step() + "/";
+    ClassPathResource specific = new ClassPathResource(folder + ticketKey + ".json");
+    ClassPathResource resource =
+        ticketKey != null && specific.exists()
+            ? specific
+            : new ClassPathResource(folder + "default.json");
+    if (!resource.exists()) {
+      throw new LlmException("No fake script for step " + request.step());
+    }
+    try {
+      return resource.getContentAsString(StandardCharsets.UTF_8);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+}
