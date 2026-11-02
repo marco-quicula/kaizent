@@ -37,11 +37,12 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 ## Getting started
 
 The application runs locally: PostgreSQL in Docker, and the server (which also serves the
-console) on your machine. The console shows its shell and the System page so far. In the
-background, the application already picks up the demo ticket
-`examples/petclinic/inbox/PC-001.md` and tries to resolve it; without a model configured,
-that run fails with "GEMINI_API_KEY is not set" in the log. The run pages and the setup of
-a real model come with the rest of spec 0002.
+console) on your machine. The application picks up the demo ticket
+`examples/petclinic/inbox/PC-001.md`, asks a model for a proposed reply, and shows the run
+in the console, where you can approve it; the approved reply is written to
+`examples/petclinic/outbox/PC-001.reply.md`. Without a model configured, the run fails with
+"GEMINI_API_KEY is not set", which the console shows. Setting up a real model is described
+in the last part of spec 0002.
 
 ### Prerequisites
 
@@ -120,8 +121,9 @@ The same command works in PowerShell.
 
 Then open:
 
-- <http://localhost:8080/>: the console, with the Runs, Lessons, Subjects, Intake and
-  System pages (only System shows data for now);
+- <http://localhost:8080/>: the console. **Runs** lists the runs; open one to see the
+  ticket, the proposal and the **Approve** button. Lessons, Subjects and Intake come with
+  later specs;
 - <http://localhost:8080/actuator/health>: the health check, which reports `UP`
   including the database;
 - <http://localhost:8080/api/v1/system>: the REST API, described by

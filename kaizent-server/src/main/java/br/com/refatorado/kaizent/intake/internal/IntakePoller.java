@@ -6,10 +6,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/** Polls every {@link TicketSource} every {@code kaizent.intake.poll-interval}. */
+/** Reads every {@link TicketSource}; {@link IntakeSchedule} calls it periodically. */
 @Component
 public class IntakePoller {
 
@@ -24,7 +23,6 @@ public class IntakePoller {
   }
 
   /** Reads every source once and stores the new tickets. Returns how many were new. */
-  @Scheduled(fixedDelayString = "${kaizent.intake.poll-interval:10s}")
   public int poll() {
     int received = 0;
     for (TicketSource source : sources) {

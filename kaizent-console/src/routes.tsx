@@ -1,6 +1,8 @@
 import { Navigate, type RouteObject } from "react-router";
 import { Shell } from "./layout/Shell";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { RunDetailPage } from "./pages/RunDetailPage";
+import { RunsPage } from "./pages/RunsPage";
 import { SystemPage } from "./pages/SystemPage";
 
 /** Navigation entries of the console shell. Pages are filled in by later specs. */
@@ -18,7 +20,8 @@ export const routes: RouteObject[] = [
     element: <Shell />,
     children: [
       { index: true, element: <Navigate to="/runs" replace /> },
-      { path: "runs", element: <PlaceholderPage title="Runs" spec="0002" /> },
+      { path: "runs", element: <RunsPage /> },
+      { path: "runs/:id", element: <RunDetailPage /> },
       { path: "lessons", element: <PlaceholderPage title="Lessons" spec="0011" /> },
       { path: "subjects", element: <PlaceholderPage title="Subjects" spec="0012" /> },
       { path: "intake", element: <PlaceholderPage title="Intake" spec="0010" /> },

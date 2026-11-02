@@ -6,8 +6,10 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.data.repository.ListPagingAndSortingRepository;
 
-interface RunRepository extends ListCrudRepository<Run, UUID> {
+interface RunRepository
+    extends ListCrudRepository<Run, UUID>, ListPagingAndSortingRepository<Run, UUID> {
 
   /**
    * Locks the oldest run waiting to be processed, skipping runs locked by another worker
