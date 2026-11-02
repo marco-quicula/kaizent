@@ -29,6 +29,11 @@ kaizent:
         adapter: gemini-api
         model: gemini-3.6-flash
 
+# Two scheduler threads: the intake poller keeps polling while the run worker waits for a
+# model call. Each task still never runs concurrently with itself, so runs are processed one
+# at a time (ADR-0023).
+spring.task.scheduling.pool.size: 2
+
 # Read by the gemini-api adapter. Without a key the application still starts, and runs fail
 # with a clear message.
 spring.ai.google.genai.api-key: ${GEMINI_API_KEY:}
