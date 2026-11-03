@@ -96,17 +96,20 @@ class EvalRunnerTests {
 
   @Test
   void waitsTheCaseDelayBetweenCases() {
-    List<java.sql.Timestamp> created =
+    // From the end of one case's run to the start of the next one: without the delay, only the
+    // runner's polling (50 ms) separates them.
+    List<java.util.Map<String, Object>> runs =
         jdbc.queryForList(
-            "SELECT r.created_at FROM run r JOIN problem p ON p.id = r.problem_id"
+            "SELECT r.created_at, r.updated_at FROM run r JOIN problem p ON p.id = r.problem_id"
                 + " WHERE p.source = ("
                 + LATEST_SESSION
-                + ") ORDER BY r.created_at",
-            java.sql.Timestamp.class);
+                + ") ORDER BY r.created_at");
 
-    assertThat(created).hasSize(12);
-    for (int i = 1; i < created.size(); i++) {
-      assertThat(created.get(i).getTime() - created.get(i - 1).getTime())
+    assertThat(runs).hasSize(12);
+    for (int i = 1; i < runs.size(); i++) {
+      long previousFinished = ((java.sql.Timestamp) runs.get(i - 1).get("updated_at")).getTime();
+      long nextStarted = ((java.sql.Timestamp) runs.get(i).get("created_at")).getTime();
+      assertThat(nextStarted - previousFinished)
           .as("gap before case %d", i + 1)
           .isGreaterThanOrEqualTo(CASE_DELAY_MILLIS);
     }
