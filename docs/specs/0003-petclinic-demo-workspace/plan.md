@@ -72,6 +72,9 @@ the workspace.
 
 - `kaizent.eval.output-path` (default `target/eval`).
 - `kaizent.eval.case-timeout` (default 10 minutes).
+- `kaizent.eval.case-delay` (default none): how long to wait after a case before
+  starting the next one, whatever the adapter, to stay under a provider's per-minute rate
+  limit.
 - `kaizent.eval.poll-interval` (default 1 second): how often the runner checks whether a
   run has finished.
 - `kaizent.eval.exit-when-done` (default `true`): stop the application after the report.

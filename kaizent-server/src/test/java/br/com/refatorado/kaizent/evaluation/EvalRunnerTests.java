@@ -34,6 +34,7 @@ import org.springframework.util.FileSystemUtils;
       "kaizent.eval.output-path=" + EvalRunnerTests.OUTPUT,
       "kaizent.eval.poll-interval=50ms",
       "kaizent.eval.case-timeout=30s",
+      "kaizent.eval.case-delay=" + EvalRunnerTests.CASE_DELAY_MILLIS + "ms",
       "kaizent.eval.exit-when-done=false"
     })
 @Import(TestcontainersConfiguration.class)
@@ -42,6 +43,7 @@ import org.springframework.util.FileSystemUtils;
 class EvalRunnerTests {
 
   static final String OUTPUT = "target/eval-runner-tests";
+  static final int CASE_DELAY_MILLIS = 200;
 
   /** This class's session; other test classes may have run evaluations before. */
   private static final String LATEST_SESSION =
@@ -90,6 +92,27 @@ class EvalRunnerTests {
                     + " WHERE p.source LIKE 'evaluation-%' AND r.review_mode <> 'SKIP'",
                 Integer.class))
         .isZero();
+  }
+
+  @Test
+  void waitsTheCaseDelayBetweenCases() {
+    // From the end of one case's run to the start of the next one: without the delay, only the
+    // runner's polling (50 ms) separates them.
+    List<java.util.Map<String, Object>> runs =
+        jdbc.queryForList(
+            "SELECT r.created_at, r.updated_at FROM run r JOIN problem p ON p.id = r.problem_id"
+                + " WHERE p.source = ("
+                + LATEST_SESSION
+                + ") ORDER BY r.created_at");
+
+    assertThat(runs).hasSize(12);
+    for (int i = 1; i < runs.size(); i++) {
+      long previousFinished = ((java.sql.Timestamp) runs.get(i - 1).get("updated_at")).getTime();
+      long nextStarted = ((java.sql.Timestamp) runs.get(i).get("created_at")).getTime();
+      assertThat(nextStarted - previousFinished)
+          .as("gap before case %d", i + 1)
+          .isGreaterThanOrEqualTo(CASE_DELAY_MILLIS);
+    }
   }
 
   @Test
