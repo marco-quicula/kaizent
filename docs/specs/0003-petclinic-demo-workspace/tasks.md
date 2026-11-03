@@ -2,7 +2,7 @@
 
 - [x] **T1:** Write `kaizent-workspace.yaml`, the two roles and the workspace
   `README.md`. *Covers:* AC-2 (part).
-- [ ] **T2:** Write the 12 knowledge files. *Done when:* the maintainer has reviewed them
+- [x] **T2:** Write the 12 knowledge files. *Done when:* the maintainer has reviewed them
   for consistency. *Covers:* AC-2.
 - [x] **T3:** Write the four skills in the Agent Skills format. *Covers:* AC-1 (part).
 - [x] **T4:** Write the 12 tickets and the 12 evaluation cases. *Covers:* AC-3.
