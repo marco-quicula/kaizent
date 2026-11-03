@@ -8,6 +8,7 @@ import br.com.refatorado.kaizent.intake.IncomingTicket;
 import br.com.refatorado.kaizent.intake.Problem;
 import br.com.refatorado.kaizent.intake.internal.IntakeService;
 import br.com.refatorado.kaizent.resolution.Proposal;
+import br.com.refatorado.kaizent.run.ReviewMode;
 import br.com.refatorado.kaizent.run.Run;
 import br.com.refatorado.kaizent.run.RunStatus;
 import java.time.Instant;
@@ -19,7 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Spec 0002 T2: the run table, its jsonb proposal, optimistic locking and the worker claim. */
+/**
+ * Spec 0002 T2 and spec 0003 T6: the run table, its jsonb proposal, the review mode, optimistic
+ * locking and the worker claim.
+ */
 @KaizentIntegrationTest
 class RunRepositoryTests {
 
@@ -49,6 +53,20 @@ class RunRepositoryTests {
     assertThat(loaded.version()).isEqualTo(saved.version()).isEqualTo(1);
     assertThat(jdbc.queryForObject("SELECT proposal->>'suggestedReply' FROM run", String.class))
         .isEqualTo("Reply");
+  }
+
+  @Test
+  void storesTheReviewModeAndDefaultsToHuman() {
+    Run human = runFor("PC-203");
+    Run evaluation = runs.save(Run.received(human.problemId(), ReviewMode.SKIP, Instant.now()));
+
+    assertThat(runs.findById(human.id()).orElseThrow().reviewMode()).isEqualTo(ReviewMode.HUMAN);
+    assertThat(runs.findById(evaluation.id()).orElseThrow().reviewMode())
+        .isEqualTo(ReviewMode.SKIP);
+    assertThat(
+            jdbc.queryForObject(
+                "SELECT review_mode FROM run WHERE id = ?", String.class, evaluation.id()))
+        .isEqualTo("SKIP");
   }
 
   @Test

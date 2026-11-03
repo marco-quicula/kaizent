@@ -1,9 +1,12 @@
 package br.com.refatorado.kaizent.run.internal;
 
+import br.com.refatorado.kaizent.run.ReviewMode;
 import br.com.refatorado.kaizent.run.Run;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
 import org.springframework.data.repository.ListPagingAndSortingRepository;
@@ -26,4 +29,6 @@ interface RunRepository
   Optional<Run> lockNextReceived();
 
   List<Run> findByProblemId(UUID problemId);
+
+  Page<Run> findByReviewMode(ReviewMode reviewMode, Pageable pageable);
 }

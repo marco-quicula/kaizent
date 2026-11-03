@@ -14,9 +14,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Takes the next {@code RECEIVED} run through resolution (ADR-0017, ADR-0023). The model call runs
- * outside any transaction; each state change is committed on its own. Any error fails the run with
- * reason {@code ERROR}, and the worker moves on.
+ * Takes the next {@code RECEIVED} run through resolution (ADR-0017, ADR-0023). The proposal then
+ * waits for a verdict or, for an evaluation run ({@code ReviewMode.SKIP}), ends the run as {@code
+ * EVALUATED}, with no review and no delivery. The model call runs outside any transaction; each
+ * state change is committed on its own. Any error fails the run with reason {@code ERROR}, and the
+ * worker moves on.
  */
 @Component
 public class RunOrchestrator {
@@ -59,8 +61,8 @@ public class RunOrchestrator {
               .orElseThrow(
                   () -> new IllegalStateException("Problem not found: " + run.problemId()));
       Proposal proposal = resolver.resolve(problem);
-      result = run.awaitReview(proposal, clock.instant());
-      log.info("Run {} for {} awaits review", run.id(), problem.externalKey());
+      result = run.resolved(proposal, clock.instant());
+      log.info("Run {} for {} is {}", run.id(), problem.externalKey(), result.status());
     } catch (RuntimeException e) {
       log.warn("Run {} failed: {}", run.id(), e.getMessage());
       result = run.fail(FailureReason.ERROR, e.getMessage(), clock.instant());

@@ -19,6 +19,7 @@ paths:
       tags: [Runs]
       operationId: listRuns
       summary: List runs, newest first
+      description: Lists the runs reviewed by people. Evaluation runs are left out.
       parameters:
         - name: page
           in: query
@@ -125,7 +126,16 @@ components:
     RunStatus:
       type: string
       enum:
-        [RECEIVED, TRIAGING, RESOLVING, AWAITING_REVIEW, APPROVED, DELIVERED, REJECTED, FAILED]
+        - RECEIVED
+        - TRIAGING
+        - RESOLVING
+        - AWAITING_REVIEW
+        - APPROVED
+        - DELIVERED
+        - REJECTED
+        - FAILED
+        # Evaluation runs only (spec 0003); they are left out of GET /runs.
+        - EVALUATED
     FailureReason:
       type: string
       enum: [ERROR, BUDGET_EXCEEDED, TIMEOUT]

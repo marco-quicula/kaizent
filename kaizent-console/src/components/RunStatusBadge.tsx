@@ -11,6 +11,7 @@ const colors: Record<RunStatus, MantineColor> = {
   DELIVERED: "green",
   REJECTED: "orange",
   FAILED: "red",
+  EVALUATED: "violet",
 };
 
 /** A run status, for example "Awaiting review". */

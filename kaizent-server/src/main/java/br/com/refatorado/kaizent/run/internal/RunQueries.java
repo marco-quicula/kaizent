@@ -1,5 +1,6 @@
 package br.com.refatorado.kaizent.run.internal;
 
+import br.com.refatorado.kaizent.run.ReviewMode;
 import br.com.refatorado.kaizent.run.Run;
 import br.com.refatorado.kaizent.run.Runs;
 import java.util.Optional;
@@ -28,7 +29,8 @@ class RunQueries implements Runs {
 
   @Override
   public RunList list(int page, int size) {
-    Page<Run> result = runs.findAll(PageRequest.of(page, size, NEWEST_FIRST));
+    Page<Run> result =
+        runs.findByReviewMode(ReviewMode.HUMAN, PageRequest.of(page, size, NEWEST_FIRST));
     return new RunList(result.getContent(), result.getTotalElements());
   }
 }

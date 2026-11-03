@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
-/** The transitions of ADR-0023 used by spec 0002. */
+/** The transitions of ADR-0023 used by specs 0002 and 0003. */
 class RunTest {
 
   private static final Instant NOW = Instant.parse("2026-11-02T10:00:00Z");
@@ -28,6 +28,39 @@ class RunTest {
     assertThat(run.status()).isEqualTo(RunStatus.DELIVERED);
     assertThat(run.proposal()).isEqualTo(PROPOSAL);
     assertThat(run.verdict()).isEqualTo(APPROVED);
+  }
+
+  @Test
+  void anEvaluationRunEndsAsEvaluatedAndCannotBeApproved() {
+    Run run =
+        Run.received(UUID.randomUUID(), ReviewMode.SKIP, NOW)
+            .startResolving(NOW)
+            .resolved(PROPOSAL, NOW);
+
+    assertThat(run.status()).isEqualTo(RunStatus.EVALUATED);
+    assertThat(run.reviewMode()).isEqualTo(ReviewMode.SKIP);
+    assertThat(run.proposal()).isEqualTo(PROPOSAL);
+    assertThatExceptionOfType(RunStateException.class)
+        .isThrownBy(() -> run.approve(APPROVED, NOW))
+        .satisfies(e -> assertThat(e.status()).isEqualTo(RunStatus.EVALUATED));
+  }
+
+  @Test
+  void aHumanRunAwaitsReviewAndIsNeverEvaluated() {
+    Run resolving = Run.received(UUID.randomUUID(), NOW).startResolving(NOW);
+
+    assertThat(resolving.reviewMode()).isEqualTo(ReviewMode.HUMAN);
+    assertThat(resolving.resolved(PROPOSAL, NOW).status()).isEqualTo(RunStatus.AWAITING_REVIEW);
+    assertThatExceptionOfType(IllegalStateException.class)
+        .isThrownBy(() -> resolving.evaluated(PROPOSAL, NOW));
+  }
+
+  @Test
+  void anEvaluationRunNeverAwaitsReview() {
+    Run resolving = Run.received(UUID.randomUUID(), ReviewMode.SKIP, NOW).startResolving(NOW);
+
+    assertThatExceptionOfType(IllegalStateException.class)
+        .isThrownBy(() -> resolving.awaitReview(PROPOSAL, NOW));
   }
 
   @Test

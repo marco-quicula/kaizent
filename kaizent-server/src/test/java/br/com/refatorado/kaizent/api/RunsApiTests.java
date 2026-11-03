@@ -25,7 +25,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.FileSystemUtils;
 import tools.jackson.databind.JsonNode;
 
-/** Spec 0002 AC-5, AC-6 and AC-7. */
+/** Spec 0002 AC-5, AC-6 and AC-7, and the evaluation runs of spec 0003 T6. */
 @KaizentIntegrationTest
 class RunsApiTests {
 
@@ -62,6 +62,38 @@ class RunsApiTests {
     assertThat(page.at("/items/1/ticketKey").asString()).isEqualTo("PC-001");
     assertThat(page.at("/items/1/status").asString()).isEqualTo("AWAITING_REVIEW");
     assertThat(page.at("/items/1/title").asString()).isEqualTo("Title PC-001");
+  }
+
+  @Test
+  void leavesEvaluationRunsOutOfTheList() {
+    receive("PC-001", "2026-10-01T10:00:00Z");
+    receive("PC-002", "2026-10-01T11:00:00Z");
+    receive("PC-003", "2026-10-01T12:00:00Z");
+    Database.makeEvaluationRuns(jdbc, "PC-002");
+    Database.makeEvaluationRuns(jdbc, "PC-003");
+    orchestrator.processNext();
+
+    JsonNode page = Http.json(http.get("/api/v1/runs?size=10"));
+
+    assertThat(page.at("/totalItems").asLong()).isEqualTo(1);
+    assertThat(page.at("/items").size()).isEqualTo(1);
+    assertThat(page.at("/items/0/ticketKey").asString()).isEqualTo("PC-001");
+  }
+
+  @Test
+  void showsAnEvaluatedRunAndRejectsAVerdictOnIt() {
+    receive("PC-001", "2026-10-01T10:00:00Z");
+    Database.makeEvaluationRuns(jdbc, "PC-001");
+    Run evaluated = orchestrator.processNext().orElseThrow();
+
+    JsonNode detail = Http.json(http.get("/api/v1/runs/" + evaluated.id()));
+    HttpResponse<String> verdict =
+        http.postJson("/api/v1/runs/" + evaluated.id() + "/verdict", APPROVE);
+
+    assertThat(detail.at("/status").asString()).isEqualTo("EVALUATED");
+    assertThat(detail.at("/proposal/suggestedReply").asString()).isNotBlank();
+    assertThat(verdict.statusCode()).isEqualTo(409);
+    assertThat(workspace.outbox()).doesNotExist();
   }
 
   @Test
