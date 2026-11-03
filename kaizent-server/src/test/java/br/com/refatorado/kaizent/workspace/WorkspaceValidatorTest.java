@@ -134,7 +134,7 @@ class WorkspaceValidatorTest {
             mentionsNone: []
             lowConfidence: false
             ticketLanguage: english
-            replyLanguage: en
+            replyLanguage: zz
           """);
 
       assertThat(problems())
@@ -142,6 +142,8 @@ class WorkspaceValidatorTest {
               "evals/cases/T-1.yaml: ticket 'T-9' does not exist in inbox/",
               "evals/cases/T-1.yaml: expect.subject 'shipping' is not a declared subject or 'unknown'",
               "evals/cases/T-1.yaml: expect.problemType 'QUESTION' must be BUG, HOW_TO or OTHER",
+              "evals/cases/T-1.yaml: expect.replyLanguage 'zz' must be an ISO 639-1 code, such"
+                  + " as en or pt",
               "evals/cases/T-1.yaml: expect.ticketLanguage 'english' must be an ISO 639-1 code, such as en or pt",
               "evals/cases/T-1.yaml: expect.citesAny 'knowledge/guides/missing.md' does not exist",
               "evals/cases/T-1.yaml: expect.citesAny 'knowledge/setup.md' is outside the knowledgePaths of role agent",
@@ -175,10 +177,13 @@ class WorkspaceValidatorTest {
       write("skills/Bad--Name/SKILL.md", skill("Bad--Name"));
       Files.createDirectories(root.resolve("skills/empty"));
       write("evals/cases/T-2.yaml", "ticket: [unclosed\n");
+      write("inbox/T-3.md", "---\nid: T-3\n---not-a-delimiter\nBody\n");
 
       assertThat(problems())
           .containsExactlyInAnyOrder(
               "evals/cases/T-2.yaml: invalid YAML: while parsing a flow sequence",
+              "inbox/T-3.md: the ticket cannot be read, so intake skips it: the front matter is"
+                  + " not closed with a --- line",
               "roles/engineer.md: no front matter: the file must start with a --- line",
               "roles/typo.md: id 'tpyo' does not match the file name 'typo'",
               "roles/writer.md: the front matter is not closed with a --- line",

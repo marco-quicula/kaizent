@@ -69,7 +69,7 @@ public final class WorkspaceLoader {
     }
     Set<String> ticketIds = new TreeSet<>();
     for (Path file : files(workspace.inbox(), WorkspaceLoader::isMarkdown)) {
-      ticketIds.add(ticketId(file));
+      ticketId(file).ifPresent(ticketIds::add);
     }
     List<EvaluationCase> cases = new ArrayList<>();
     for (Path file : files(workspace.evaluationCases(), WorkspaceLoader::isYaml)) {
@@ -146,21 +146,25 @@ public final class WorkspaceLoader {
   }
 
   /**
-   * The ticket id, as intake reads it (ADR-0028): the {@code id} of the front matter, or else the
-   * file name. Ticket validation itself belongs to intake (spec 0005).
+   * The ticket id, as intake reads it (ADR-0028), with the same parser: the {@code id} of the front
+   * matter, or else the file name. A ticket that intake would skip has no id. Ticket validation
+   * itself belongs to intake (spec 0005).
    */
-  private static String ticketId(Path file) {
+  private Optional<String> ticketId(Path file) {
     String fileName = file.getFileName().toString();
     String fallback = fileName.substring(0, fileName.length() - ".md".length());
     try {
+      // Decoded as intake decodes it: malformed bytes are replaced, not rejected.
+      String text = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
       Object id =
-          YamlDocument.frontMatter(Files.readString(file, StandardCharsets.UTF_8))
-              .fields()
-              .get("id");
-      return id == null || id.toString().isBlank() ? fallback : id.toString().strip();
-    } catch (IOException | IllegalArgumentException e) {
-      return fallback;
+          YamlDocument.frontMatter(text).map(document -> document.fields().get("id")).orElse(null);
+      return Optional.of(id == null || id.toString().isBlank() ? fallback : id.toString().strip());
+    } catch (IOException e) {
+      problem(file, "cannot read the file: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      problem(file, "the ticket cannot be read, so intake skips it: " + e.getMessage());
     }
+    return Optional.empty();
   }
 
   private Optional<EvaluationCase> evaluationCase(Path file) {
@@ -190,7 +194,11 @@ public final class WorkspaceLoader {
     return read(file)
         .flatMap(text -> {
           try {
-            return Optional.of(YamlDocument.frontMatter(text));
+            Optional<YamlDocument.FrontMatter> document = YamlDocument.frontMatter(text);
+            if (document.isEmpty()) {
+              problem(file, "no front matter: the file must start with a --- line");
+            }
+            return document;
           } catch (IllegalArgumentException e) {
             problem(file, e.getMessage());
             return Optional.empty();

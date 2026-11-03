@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -29,7 +30,7 @@ public final class WorkspaceValidator {
   // Agent Skills: at most 64 lowercase letters, digits and single hyphens, not at either end.
   private static final int MAX_SKILL_NAME_LENGTH = 64;
   private static final int MAX_SKILL_DESCRIPTION_LENGTH = 1024;
-  private static final Pattern LANGUAGE = Pattern.compile("[a-z]{2}");
+  private static final Set<String> LANGUAGES = Set.of(Locale.getISOLanguages());
   private static final Path KNOWLEDGE = Path.of("knowledge");
 
   private final WorkspaceContent content;
@@ -232,7 +233,7 @@ public final class WorkspaceValidator {
   }
 
   private void language(Path file, String name, String value) {
-    if (value != null && !LANGUAGE.matcher(value).matches()) {
+    if (value != null && !LANGUAGES.contains(value)) {
       problem(file, name + " '" + value + "' must be an ISO 639-1 code, such as en or pt");
     }
   }

@@ -1,30 +1,47 @@
 package br.com.refatorado.kaizent.workspace;
 
 import java.util.Map;
+import java.util.Optional;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 import org.yaml.snakeyaml.error.YAMLException;
 
-/** Parses YAML files and Markdown front matter into plain maps, with the safe constructor. */
-final class YamlDocument {
+/**
+ * Parses workspace YAML files and the YAML front matter of Markdown files, with SnakeYAML's safe
+ * constructor. Intake and the workspace loader share it, so that both read a file the same way.
+ */
+public final class YamlDocument {
 
   private static final String DELIMITER = "---";
+  private static final char BYTE_ORDER_MARK = '﻿';
 
   private YamlDocument() {}
 
-  /** Markdown with a required YAML front matter block. */
-  record FrontMatter(Map<String, Object> fields, String body) {}
+  /**
+   * A Markdown file split into its front matter and its body.
+   *
+   * @param body the text after the closing {@code ---} line, without surrounding blank space
+   */
+  public record FrontMatter(Map<String, Object> fields, String body) {}
+
+  /** Removes a leading byte order mark and turns CRLF line endings into LF. */
+  public static String normalize(String text) {
+    String normalized = text.replace("\r\n", "\n");
+    return !normalized.isEmpty() && normalized.charAt(0) == BYTE_ORDER_MARK
+        ? normalized.substring(1)
+        : normalized;
+  }
 
   /**
    * Parses a YAML mapping.
    *
    * @throws IllegalArgumentException if the text is not valid YAML or not a mapping
    */
-  static Map<String, Object> mapping(String yaml) {
+  public static Map<String, Object> mapping(String yaml) {
     Object parsed;
     try {
-      parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(yaml);
+      parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(normalize(yaml));
     } catch (YAMLException e) {
       throw new IllegalArgumentException("invalid YAML: " + firstLine(e.getMessage()), e);
     }
@@ -40,27 +57,33 @@ final class YamlDocument {
   }
 
   /**
-   * Splits Markdown into its front matter, delimited by {@code ---} lines, and its body.
+   * Splits Markdown into its front matter and its body. The front matter starts with a {@code ---}
+   * first line and ends with the next line that is exactly {@code ---}.
    *
-   * @throws IllegalArgumentException if the front matter is missing, not closed or not valid
+   * @return empty if the file does not start with a {@code ---} line
+   * @throws IllegalArgumentException if the front matter is not closed or not a valid mapping
    */
-  static FrontMatter frontMatter(String markdown) {
-    String content = markdown.replace("\r\n", "\n");
-    if (content.startsWith("﻿")) {
-      content = content.substring(1);
-    }
+  public static Optional<FrontMatter> frontMatter(String markdown) {
+    String content = normalize(markdown);
     if (!content.startsWith(DELIMITER + "\n")) {
-      throw new IllegalArgumentException("no front matter: the file must start with a --- line");
+      return Optional.empty();
     }
-    int end = content.indexOf("\n" + DELIMITER, DELIMITER.length());
-    if (end < 0) {
-      throw new IllegalArgumentException("the front matter is not closed with a --- line");
+    int start = DELIMITER.length() + 1;
+    int line = start;
+    while (line <= content.length()) {
+      int end = content.indexOf('\n', line);
+      int lineEnd = end < 0 ? content.length() : end;
+      if (content.substring(line, lineEnd).stripTrailing().equals(DELIMITER)) {
+        Map<String, Object> fields = mapping(content.substring(start, line));
+        String body = end < 0 ? "" : content.substring(end + 1);
+        return Optional.of(new FrontMatter(fields, body.strip()));
+      }
+      if (end < 0) {
+        break;
+      }
+      line = end + 1;
     }
-    Map<String, Object> fields =
-        mapping(content.substring(DELIMITER.length() + 1, end + 1)); // keep the last newline
-    int bodyStart = content.indexOf('\n', end + 1);
-    String body = bodyStart < 0 ? "" : content.substring(bodyStart + 1);
-    return new FrontMatter(fields, body.strip());
+    throw new IllegalArgumentException("the front matter is not closed with a --- line");
   }
 
   private static String firstLine(String message) {
