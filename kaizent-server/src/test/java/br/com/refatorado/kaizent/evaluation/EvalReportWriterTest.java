@@ -56,7 +56,8 @@ class EvalReportWriterTest {
             START.plusSeconds(3),
             Path.of("/repo/examples/petclinic"),
             Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash")),
-            false);
+            false,
+            Duration.ofSeconds(15));
 
     Path report = EvalReportWriter.write(folder, session, cases);
 
@@ -67,6 +68,7 @@ class EvalReportWriterTest {
         .doesNotContain("Dry run")
         .contains("- **Duration:** 3.0 s\n")
         .contains("- **Step `resolution`:** adapter `gemini-api`, model `gemini-3.6-flash`\n")
+        .contains("- **Delay between cases:** 15.0 s\n")
         .contains("- **Tokens and cost:** not recorded yet")
         .contains("| `subject` | 0 | 0 | 2 |\n")
         .contains("| `mentionsAll` | 1 | 1 | 0 |\n")
@@ -88,7 +90,8 @@ class EvalReportWriterTest {
             Map.of(
                 "resolution", new LlmProfile("fake", null),
                 "triage", new LlmProfile("gemini-api", "gemini-3.6-flash")),
-            true);
+            true,
+            Duration.ZERO);
 
     assertThat(EvalReportWriter.render(session, List.of()))
         .contains(
@@ -104,10 +107,12 @@ class EvalReportWriterTest {
             START,
             Path.of("ws"),
             Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash")),
-            true);
+            true,
+            Duration.ZERO);
 
     assertThat(EvalReportWriter.render(session, List.of()))
         .contains("> **Dry run** (`--dry-run`), but every step used a real adapter")
+        .doesNotContain("Delay between cases")
         .doesNotContain("scripted");
   }
 }

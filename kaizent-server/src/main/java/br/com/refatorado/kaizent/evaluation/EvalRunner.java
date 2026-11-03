@@ -43,7 +43,9 @@ import org.springframework.stereotype.Component;
  * it, checks the expected properties and writes {@code report-<timestamp>.md}. Then it stops the
  * application. Cases run one after another, so each duration is the case's own. If a case does not
  * finish within {@code kaizent.eval.case-timeout}, the session stops: the single worker is still
- * busy with that run, so the remaining cases are reported as not run.
+ * busy with that run, so the remaining cases are reported as not run. {@code
+ * kaizent.eval.case-delay} spaces the cases out, whatever the adapter, for providers with low
+ * per-minute rate limits.
  *
  * <p>It refuses to start with the fake adapters, which say nothing about a model, unless {@code
  * --dry-run} is given (used by its own tests).
@@ -128,6 +130,10 @@ class EvalRunner implements ApplicationRunner {
         results.add(notRun(evaluationCase, stoppedAfter, checkers));
         continue;
       }
+      if (!results.isEmpty() && properties.caseDelay().isPositive()) {
+        // Spaces the model calls out, for providers with low per-minute rate limits.
+        Thread.sleep(properties.caseDelay());
+      }
       CaseResult result = evaluate(evaluationCase, source, checkers);
       results.add(result);
       if (TIMED_OUT.equals(result.runStatus())) {
@@ -143,7 +149,12 @@ class EvalRunner implements ApplicationRunner {
     return EvalReportWriter.write(
         properties.outputPath(),
         new EvalReportWriter.Session(
-            startedAt, clock.instant(), workspace.root(), profiles.byStep(), dryRun),
+            startedAt,
+            clock.instant(),
+            workspace.root(),
+            profiles.byStep(),
+            dryRun,
+            properties.caseDelay()),
         results);
   }
 

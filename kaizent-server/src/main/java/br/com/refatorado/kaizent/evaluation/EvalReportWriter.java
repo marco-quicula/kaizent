@@ -29,7 +29,8 @@ final class EvalReportWriter {
       Instant finishedAt,
       Path workspace,
       Map<String, LlmProfile> profiles,
-      boolean dryRun) {}
+      boolean dryRun,
+      Duration caseDelay) {}
 
   private EvalReportWriter() {}
 
@@ -80,6 +81,9 @@ final class EvalReportWriter {
                 .append("`, model `")
                 .append(entry.getValue().model())
                 .append("`\n"));
+    if (session.caseDelay().isPositive()) {
+      out.append("- **Delay between cases:** ").append(format(session.caseDelay())).append('\n');
+    }
     out.append("- **Tokens and cost:** not recorded yet; usage tracking arrives with specs 0004")
         .append(" and 0009.\n\n");
 

@@ -211,8 +211,10 @@ them does not change the results today.
    report and exits. Each case makes one model call today, so a full evaluation uses
    twelve calls of your quota. On the Gemini free tier, `gemini-3.6-flash` allowed 5
    requests per minute and 20 per day when this was written (see your limits in
-   [Google AI Studio](https://aistudio.google.com/)). So a full evaluation can exceed the
-   per-minute limit, and only one full evaluation fits in a day.
+   [Google AI Studio](https://aistudio.google.com/)). Limits are per model. So a full
+   evaluation can exceed the per-minute limit, and only one full evaluation fits in a day.
+   To stay under a per-minute limit, space the cases out (see "Delay between cases"
+   below).
 4. Open the report, `target/eval/report-<timestamp>.md`. It shows:
    - the adapter and model of each step;
    - the totals per property (pass, fail, skipped);
@@ -238,6 +240,10 @@ Good to know:
   pages of Google AI Studio show which one. A per-minute limit resets after a minute, a
   daily limit at midnight, Pacific time. Then run the evaluation again. Automatic retries
   come with spec 0004.
+- **Delay between cases:** `--kaizent.eval.case-delay=15s` waits 15 seconds after each
+  case before starting the next one, whatever the adapter. To stay under a limit of N
+  requests per minute, use a little more than 60/N seconds, for example `15s` for 5 per
+  minute. The default is no delay.
 - **Timeouts:** if a case does not finish within the timeout, the runner stops there and
   reports the remaining cases as `NOT RUN`. Change the timeout with
   `--kaizent.eval.case-timeout=20m`.
