@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.refatorado.kaizent.intake.IncomingTicket;
 import br.com.refatorado.kaizent.workspace.Workspace;
+import br.com.refatorado.kaizent.workspace.WorkspaceLoader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -76,6 +78,22 @@ class FileInboxTicketSourceTest {
     write("ok.md", "Body");
 
     assertThat(source.fetch()).extracting(IncomingTicket::externalKey).containsExactly("ok");
+  }
+
+  @Test
+  void readsTheSameTicketIdsAsTheWorkspaceLoader() throws IOException {
+    Files.write(
+        root.resolve("inbox").resolve("filename.md"),
+        "\uFEFF---\r\nid: T-1\r\n---\r\nInvoice question\r\n".getBytes(StandardCharsets.UTF_8));
+    write("plain.md", "No front matter.");
+    write("blank-id.md", "---\nid: \" \"\n---\nBody");
+    write("unclosed.md", "---\nid: T-4\n---not-a-delimiter\nBody");
+
+    List<String> received = source.fetch().stream().map(IncomingTicket::externalKey).toList();
+
+    assertThat(received).containsExactlyInAnyOrder("T-1", "plain", "blank-id");
+    assertThat(WorkspaceLoader.load(new Workspace(root)).ticketIds())
+        .containsExactlyInAnyOrderElementsOf(received);
   }
 
   @Test

@@ -15,6 +15,7 @@ import org.springframework.data.relational.core.mapping.Table;
 public record Run(
     @Id UUID id,
     UUID problemId,
+    ReviewMode reviewMode,
     RunStatus status,
     FailureReason failureReason,
     String failureMessage,
@@ -26,10 +27,25 @@ public record Run(
 
   static final int MAX_FAILURE_MESSAGE_LENGTH = 2000;
 
-  /** A new run for a received problem. */
+  /** A new run for a received problem, reviewed by a human. */
   public static Run received(UUID problemId, Instant now) {
+    return received(problemId, ReviewMode.HUMAN, now);
+  }
+
+  /** A new run for a received problem, with the given review mode. */
+  public static Run received(UUID problemId, ReviewMode reviewMode, Instant now) {
     return new Run(
-        UUID.randomUUID(), problemId, RunStatus.RECEIVED, null, null, null, null, now, now, null);
+        UUID.randomUUID(),
+        problemId,
+        reviewMode,
+        RunStatus.RECEIVED,
+        null,
+        null,
+        null,
+        null,
+        now,
+        now,
+        null);
   }
 
   public Run startResolving(Instant now) {
@@ -37,9 +53,25 @@ public record Run(
     return with(RunStatus.RESOLVING, null, null, proposal, now);
   }
 
+  /** The proposal of a {@link ReviewMode#HUMAN} run waits for a verdict. */
   public Run awaitReview(Proposal newProposal, Instant now) {
     requireStatus(RunStatus.RESOLVING);
+    requireReviewMode(ReviewMode.HUMAN);
     return with(RunStatus.AWAITING_REVIEW, null, null, newProposal, now);
+  }
+
+  /** The proposal of a {@link ReviewMode#SKIP} run ends it, with no review and no delivery. */
+  public Run evaluated(Proposal newProposal, Instant now) {
+    requireStatus(RunStatus.RESOLVING);
+    requireReviewMode(ReviewMode.SKIP);
+    return with(RunStatus.EVALUATED, null, null, newProposal, now);
+  }
+
+  /** Ends resolution: {@link #awaitReview} or {@link #evaluated}, by the review mode. */
+  public Run resolved(Proposal newProposal, Instant now) {
+    return reviewMode == ReviewMode.SKIP
+        ? evaluated(newProposal, now)
+        : awaitReview(newProposal, now);
   }
 
   /** Records an {@code APPROVED} verdict on a run awaiting review. */
@@ -51,6 +83,7 @@ public record Run(
     return new Run(
         id,
         problemId,
+        reviewMode,
         RunStatus.APPROVED,
         null,
         null,
@@ -82,12 +115,29 @@ public record Run(
       Proposal newProposal,
       Instant now) {
     return new Run(
-        id, problemId, newStatus, reason, message, newProposal, verdict, createdAt, now, version);
+        id,
+        problemId,
+        reviewMode,
+        newStatus,
+        reason,
+        message,
+        newProposal,
+        verdict,
+        createdAt,
+        now,
+        version);
   }
 
   private void requireStatus(RunStatus expected) {
     if (status != expected) {
       throw new RunStateException(id, status, expected);
+    }
+  }
+
+  private void requireReviewMode(ReviewMode expected) {
+    if (reviewMode != expected) {
+      throw new IllegalStateException(
+          "Run " + id + " has review mode " + reviewMode + ", expected " + expected);
     }
   }
 }

@@ -5,14 +5,16 @@
 | Location | Component | Responsibility |
 |---|---|---|
 | `examples/petclinic/` | Workspace files | Layout per ADR-0027, with the content listed in the spec |
-| `workspace` | `WorkspaceLoader`, `WorkspaceValidator` | Parse `kaizent-workspace.yaml`, roles, skills front matter and eval cases; report problems with file paths |
-| `evaluation` (new module) | `EvalRunner` (`@Profile("eval")`, `ApplicationRunner`), `EvalCase`, `PropertyChecker`s, `EvalReportWriter` | Load cases, submit each ticket as a run with `reviewMode = SKIP`, wait for completion, check properties, write the report |
+| `workspace` | `WorkspaceLoader`, `WorkspaceValidator`, `EvaluationCase` | Parse `kaizent-workspace.yaml`, roles, skills front matter and eval cases; report problems with file paths. At startup, the problems are logged as warnings and the application keeps running |
+| `evaluation` (new module) | `EvalRunner` (`@Profile("eval")`, `ApplicationRunner`), `PropertyChecker`s, `EvalReportWriter` | Load the cases through `WorkspaceLoader`, submit each ticket as a run with `reviewMode = SKIP`, wait for completion, check properties, write the report |
 | `run` | `ReviewMode` on `Run` | `HUMAN` (default) or `SKIP` (evaluation only); skipped runs end in `EVALUATED` and are never delivered |
 
 `EVALUATED` is a terminal status used only by evaluation runs. An evaluation run can also
 end in `FAILED`, so **`review_mode = SKIP` is the persistent marker of an evaluation
 run, whatever its status**. Every consumer that must exclude evaluation runs (the
-console lists, the metrics) filters on `review_mode`, never on the status.
+console lists, the metrics) filters on `review_mode`, never on the status. `GET /runs`
+lists only `HUMAN` runs; `GET /runs/{id}` still shows an evaluation run, and a verdict on
+it is rejected because it is not awaiting review.
 
 ## Data
 

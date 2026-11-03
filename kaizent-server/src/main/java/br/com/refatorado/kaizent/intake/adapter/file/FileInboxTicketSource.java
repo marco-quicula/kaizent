@@ -4,6 +4,7 @@ import br.com.refatorado.kaizent.intake.IncomingTicket;
 import br.com.refatorado.kaizent.intake.ProblemAttributes;
 import br.com.refatorado.kaizent.intake.TicketSource;
 import br.com.refatorado.kaizent.workspace.Workspace;
+import br.com.refatorado.kaizent.workspace.YamlDocument;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -19,13 +20,11 @@ import java.util.Date;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.yaml.snakeyaml.LoaderOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 /**
  * Reads {@code inbox/*.md} from the workspace (ADR-0028): Markdown with optional YAML front matter.
@@ -38,7 +37,6 @@ public class FileInboxTicketSource implements TicketSource {
   public static final String SOURCE_ID = "file-inbox";
 
   private static final Logger log = LoggerFactory.getLogger(FileInboxTicketSource.class);
-  private static final String FRONT_MATTER_DELIMITER = "---";
 
   private final Workspace workspace;
 
@@ -79,19 +77,16 @@ public class FileInboxTicketSource implements TicketSource {
 
   static IncomingTicket read(Path file) throws IOException {
     byte[] bytes = Files.readAllBytes(file);
-    String content = new String(bytes, StandardCharsets.UTF_8).replace("\r\n", "\n");
-    Map<String, Object> frontMatter = Map.of();
-    String body = content;
-    if (content.startsWith(FRONT_MATTER_DELIMITER + "\n")) {
-      int end = content.indexOf("\n" + FRONT_MATTER_DELIMITER, FRONT_MATTER_DELIMITER.length());
-      if (end < 0) {
-        throw new IllegalArgumentException("front matter is not closed with ---");
-      }
-      frontMatter = parseYaml(content.substring(FRONT_MATTER_DELIMITER.length() + 1, end));
-      int bodyStart = content.indexOf('\n', end + 1);
-      body = bodyStart < 0 ? "" : content.substring(bodyStart + 1);
-    }
-    body = body.strip();
+    String content = new String(bytes, StandardCharsets.UTF_8);
+    // The workspace loader reads ticket ids with the same parser (spec 0003).
+    Optional<YamlDocument.FrontMatter> document = YamlDocument.frontMatter(content);
+    Map<String, Object> frontMatter =
+        document.map(YamlDocument.FrontMatter::fields).orElse(Map.of());
+    String body =
+        document
+            .map(YamlDocument.FrontMatter::body)
+            .orElse(YamlDocument.normalize(content))
+            .strip();
 
     String fileName = file.getFileName().toString();
     String id = text(frontMatter.get("id"), fileName.substring(0, fileName.length() - 3));
@@ -108,19 +103,6 @@ public class FileInboxTicketSource implements TicketSource {
         labels(frontMatter.get("labels")),
         sha256(bytes),
         new ProblemAttributes(Map.of("file", fileName)));
-  }
-
-  private static Map<String, Object> parseYaml(String yaml) {
-    Object parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(yaml);
-    if (parsed == null) {
-      return Map.of();
-    }
-    if (!(parsed instanceof Map<?, ?> map)) {
-      throw new IllegalArgumentException("front matter is not a YAML mapping");
-    }
-    @SuppressWarnings("unchecked")
-    Map<String, Object> values = (Map<String, Object>) map;
-    return values;
   }
 
   private static String text(Object value, String fallback) {

@@ -42,7 +42,7 @@ class KaizentApplicationTests {
 
     assertThat(applied)
         .extracting(info -> info.getVersion().getVersion())
-        .containsExactly("1", "2");
+        .containsExactly("1", "2", "3");
     assertThat(applied).allMatch(info -> info.getState().isApplied());
   }
 
