@@ -209,7 +209,10 @@ them does not change the results today.
    The same command works in PowerShell. The runner starts no web server. It takes the
    cases one after another, waits for each run (at most 10 minutes per case), writes the
    report and exits. Each case makes one model call today, so a full evaluation uses
-   about twelve calls of your quota.
+   twelve calls of your quota. On the Gemini free tier, `gemini-3.6-flash` allowed 5
+   requests per minute and 20 per day when this was written (see your limits in
+   [Google AI Studio](https://aistudio.google.com/)). So a full evaluation can exceed the
+   per-minute limit, and only one full evaluation fits in a day.
 4. Open the report, `target/eval/report-<timestamp>.md`. It shows:
    - the adapter and model of each step;
    - the totals per property (pass, fail, skipped);
@@ -230,10 +233,11 @@ Good to know:
   to `outbox/`. They stay in the database, but the console's run list leaves them out.
 - **Failed calls:** a case whose model call fails fails all its checks, and the report
   shows the error; the other cases still run. The message can be generic, such as
-  "Gemini API call failed: Failed to generate content". If it names a
-  [Gemini rate limit](https://aistudio.google.com/docs/rate-limits), wait for that limit
-  to reset: a per-minute limit resets after a minute, a daily limit at midnight, Pacific
-  time. Then run the evaluation again. Automatic retries come with spec 0004.
+  "Gemini API call failed: Failed to generate content", even when a
+  [Gemini rate limit](https://aistudio.google.com/docs/rate-limits) was hit; the usage
+  pages of Google AI Studio show which one. A per-minute limit resets after a minute, a
+  daily limit at midnight, Pacific time. Then run the evaluation again. Automatic retries
+  come with spec 0004.
 - **Timeouts:** if a case does not finish within the timeout, the runner stops there and
   reports the remaining cases as `NOT RUN`. Change the timeout with
   `--kaizent.eval.case-timeout=20m`.
