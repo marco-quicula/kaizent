@@ -1,11 +1,11 @@
 # Tasks 0003: PetClinic demo workspace and evaluation runner
 
-- [ ] **T1:** Write `kaizent-workspace.yaml`, the two roles and the workspace
+- [x] **T1:** Write `kaizent-workspace.yaml`, the two roles and the workspace
   `README.md`. *Covers:* AC-2 (part).
-- [ ] **T2:** Write the 12 knowledge files. *Done when:* the maintainer has reviewed them
+- [x] **T2:** Write the 12 knowledge files. *Done when:* the maintainer has reviewed them
   for consistency. *Covers:* AC-2.
-- [ ] **T3:** Write the four skills in the Agent Skills format. *Covers:* AC-1 (part).
-- [ ] **T4:** Write the 12 tickets and the 12 evaluation cases. *Covers:* AC-3.
+- [x] **T3:** Write the four skills in the Agent Skills format. *Covers:* AC-1 (part).
+- [x] **T4:** Write the 12 tickets and the 12 evaluation cases. *Covers:* AC-3.
 - [ ] **T5:** `WorkspaceLoader` and `WorkspaceValidator`, with tests on the real
   workspace and on broken fixtures. *Covers:* AC-1.
 - [ ] **T6:** `ReviewMode` and the `EVALUATED` status (migration `V3`), with the

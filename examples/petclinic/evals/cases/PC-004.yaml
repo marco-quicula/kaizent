@@ -1,0 +1,12 @@
+ticket: PC-004
+expect:
+  subject: pets
+  problemType: BUG
+  citesAny: [knowledge/known-issues/KI-002-future-birth-date.md, knowledge/product/pets.md]
+  mentionsAll:
+    - ["in the future", "after today", "future date", "not yet born", "not born yet", "today or earlier", "today or before", "in the past"]
+    - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior", "normal validation"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

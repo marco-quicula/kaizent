@@ -50,8 +50,10 @@ expect:
   subject: visits
   problemType: HOW_TO
   citesAny: [knowledge/product/visits.md]
-  mentionsAll: ["not supported"]
-  mentionsNone: ["cancel button"]
+  mentionsAll:
+    # Each item is a phrase, or a list of alternatives of which one must appear.
+    - ["not supported", "not possible", "cannot be cancelled", "no way to cancel"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

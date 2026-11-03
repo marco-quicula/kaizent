@@ -1,0 +1,16 @@
+name: PetClinic demo
+description: Synthetic support workspace for Spring PetClinic.
+defaultRole: support-agent
+subjects:
+  - id: owners
+    name: Owners
+    description: Registering, finding and editing pet owners.
+  - id: pets
+    name: Pets
+    description: Registering and editing pets, and pet types.
+  - id: visits
+    name: Visits
+    description: Registering visits for pets.
+  - id: technical
+    name: Technical
+    description: Running, configuring and errors of the application itself.

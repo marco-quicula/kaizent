@@ -1,0 +1,14 @@
+ticket: PC-011
+expect:
+  subject: technical
+  problemType: BUG
+  citesAny: [knowledge/setup/databases.md]
+  mentionsAll:
+    - ["docker compose up", "docker-compose up"]
+    - "profile"
+    - ["PostgreSQL", "postgres"]
+    - ["POSTGRES_USER", "POSTGRES_PASS", "username", "user name", "password", "credentials"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

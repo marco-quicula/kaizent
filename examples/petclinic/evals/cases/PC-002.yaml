@@ -1,0 +1,12 @@
+ticket: PC-002
+expect:
+  subject: owners
+  problemType: HOW_TO
+  citesAny: [knowledge/product/owners.md, knowledge/faq.md]
+  mentionsAll:
+    - ["empty", "blank", "without typing", "without entering", "no last name"]
+    - ["Find Owner", "search"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

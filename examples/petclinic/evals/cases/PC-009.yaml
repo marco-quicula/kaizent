@@ -1,0 +1,11 @@
+ticket: PC-009
+expect:
+  subject: visits
+  problemType: HOW_TO
+  citesAny: [knowledge/product/visits.md]
+  mentionsAll:
+    - ["not supported", "not possible", "cannot be cancelled", "can't be cancelled", "no way to cancel", "cannot cancel", "can't cancel"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

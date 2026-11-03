@@ -1,0 +1,13 @@
+ticket: PC-008
+expect:
+  subject: visits
+  problemType: BUG
+  citesAny: [knowledge/product/visits.md]
+  mentionsAll:
+    - ["in the future", "after today", "future date", "later than today", "later than the current day", "after the current day"]
+    - "tomorrow"
+    - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior", "normal validation"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

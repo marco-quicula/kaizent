@@ -1,0 +1,14 @@
+ticket: PC-007
+expect:
+  subject: visits
+  problemType: HOW_TO
+  citesAny: [knowledge/product/visits.md]
+  mentionsAll:
+    - ["Find Owners", "owner record", "owner page", "owner's page", "owner details", "owner information"]
+    - "Add Visit"
+    - ["description", "reason for the visit"]
+    - "date"
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

@@ -1,0 +1,13 @@
+ticket: PC-003
+expect:
+  subject: owners
+  problemType: HOW_TO
+  citesAny: [knowledge/product/owners.md]
+  mentionsAll:
+    - ["Edit Owner", "Editar proprietário"]
+    - ["Update Owner", "Atualizar proprietário", "salvar", "salve"]
+    - "endereço"
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: pt
+  replyLanguage: pt

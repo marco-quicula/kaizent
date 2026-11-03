@@ -1,0 +1,11 @@
+ticket: PC-012
+expect:
+  subject: [owners, unknown]
+  problemType: OTHER
+  citesAny: []
+  mentionsAll:
+    - ["cannot confirm", "can't confirm", "unable to confirm", "not able to confirm", "don't have information", "do not have information", "no information", "not documented", "does not document", "doesn't document", "not sure"]
+  mentionsNone: []
+  lowConfidence: true
+  ticketLanguage: en
+  replyLanguage: en

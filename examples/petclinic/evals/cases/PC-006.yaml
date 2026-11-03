@@ -1,0 +1,13 @@
+ticket: PC-006
+expect:
+  subject: pets
+  problemType: HOW_TO
+  citesAny: [knowledge/product/pets.md]
+  mentionsAll:
+    - ["administrator", "admin"]
+    - ["database", "types table", "data change"]
+    - ["no screen", "no page", "no form", "no button", "no option", "no menu", "no UI", "no user interface", "not in the UI", "not available in the"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en

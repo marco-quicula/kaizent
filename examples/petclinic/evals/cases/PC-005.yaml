@@ -1,0 +1,13 @@
+ticket: PC-005
+expect:
+  subject: pets
+  problemType: BUG
+  citesAny: [knowledge/product/pets.md]
+  mentionsAll:
+    - ["same name", "duplicate", "unique", "share a name", "already in use"]
+    - ["same owner", "per owner", "each owner", "one owner", "that owner", "within an owner"]
+    - ["different owner", "other owner", "another owner", "other owners", "different owners"]
+  mentionsNone: []
+  lowConfidence: false
+  ticketLanguage: en
+  replyLanguage: en
