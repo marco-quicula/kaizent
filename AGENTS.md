@@ -63,8 +63,9 @@ Progress is tracked in GitHub issues under the "Wave 1 – MVP" milestone.
   resolution loop goes through `AgentRuntime`. Adapters are API (Spring AI), CLI (Codex,
   Claude Code, Antigravity, Gemini CLI presets, through `CliExecutor`) or fake, selected
   per pipeline step by configuration. Never call a provider SDK or a CLI from the core.
-  CLI tools always run read-only, inside the workspace, with a timeout. Record usage and
-  the cost type for every call, and respect the per-run budget.
+  CLI tools always run in a new container per call, with the workspace mounted read-only
+  and a timeout (ADR-0030). Record usage and the cost type for every call, and respect
+  the per-run budget.
 - The pipeline is orchestrated in our own code; only the resolution step is an agent loop
   (ADR-0017). Runs follow the state machine of ADR-0023.
 - Prompts are versioned resource files in `kaizent-server/src/main/resources/prompts/`,

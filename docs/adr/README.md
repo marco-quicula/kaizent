@@ -22,7 +22,7 @@ behind them. The format is described in [ADR-0001](0001-record-architecture-deci
 | [0013](0013-demo-domain-spring-petclinic.md) | Spring PetClinic as the demo domain, with synthetic data | Accepted |
 | [0014](0014-file-based-connectors-for-mvp.md) | File-based connectors and a canonical problem model for the MVP | Accepted |
 | [0015](0015-spec-driven-development.md) | Spec-driven development (spec, plan and tasks per slice) | Accepted |
-| [0016](0016-llm-access-api-and-cli-adapters.md) | LLM access through `LlmGateway` and `AgentRuntime`, with API, CLI and fake adapters | Accepted |
+| [0016](0016-llm-access-api-and-cli-adapters.md) | LLM access through `LlmGateway` and `AgentRuntime`, with API, CLI and fake adapters | Accepted; partly superseded by 0030 |
 | [0017](0017-pipeline-orchestration-in-own-code.md) | Pipeline orchestration in our own code on Spring AI (Embabel deferred) | Accepted |
 | [0018](0018-dependency-version-baseline.md) | Dependency version baseline and pinning policy | Accepted |
 | [0019](0019-repository-and-module-layout.md) | Repository and Maven module layout | Accepted |
@@ -36,6 +36,7 @@ behind them. The format is described in [ADR-0001](0001-record-architecture-deci
 | [0027](0027-workspace-layout.md) | Workspace layout; Kaizent never runs git commands in wave 1 | Accepted |
 | [0028](0028-ticket-file-format-and-canonical-problem.md) | Ticket file format and canonical problem model | Accepted |
 | [0029](0029-reply-language-follows-ticket.md) | Replies use the ticket's language | Accepted |
+| [0030](0030-cli-tools-run-in-containers.md) | CLI tools run in a new container per call, with the workspace read-only | Accepted |
 
 ## Open decisions
 
