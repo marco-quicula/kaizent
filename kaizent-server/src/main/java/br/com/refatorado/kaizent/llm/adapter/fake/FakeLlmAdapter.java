@@ -3,6 +3,7 @@ package br.com.refatorado.kaizent.llm.adapter.fake;
 import br.com.refatorado.kaizent.llm.LlmAdapter;
 import br.com.refatorado.kaizent.llm.LlmException;
 import br.com.refatorado.kaizent.llm.LlmProfile;
+import br.com.refatorado.kaizent.llm.LlmProfiles;
 import br.com.refatorado.kaizent.llm.LlmRequest;
 import br.com.refatorado.kaizent.llm.LlmResponse;
 import java.io.IOException;
@@ -21,7 +22,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class FakeLlmAdapter implements LlmAdapter {
 
-  public static final String NAME = "fake";
+  public static final String NAME = LlmProfiles.FAKE_ADAPTER;
   static final String ERROR_MARKER = "__error__";
 
   private final JsonMapper json;

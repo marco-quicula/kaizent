@@ -61,6 +61,12 @@
       <groupId>org.springframework.ai</groupId>
       <artifactId>spring-ai-google-genai</artifactId>
     </dependency>
+    <dependency>
+      <!-- Detects the language of suggested replies in evaluation reports, locally and
+           without a model (spec 0003 AC-6). -->
+      <groupId>com.github.pemistahl</groupId>
+      <artifactId>lingua</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
