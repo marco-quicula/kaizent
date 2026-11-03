@@ -43,6 +43,10 @@ class EvalRunnerTests {
 
   static final String OUTPUT = "target/eval-runner-tests";
 
+  /** This class's session; other test classes may have run evaluations before. */
+  private static final String LATEST_SESSION =
+      "SELECT max(source) FROM problem WHERE source LIKE 'evaluation-%'";
+
   @Autowired private JdbcTemplate jdbc;
 
   @BeforeAll
@@ -75,8 +79,9 @@ class EvalRunnerTests {
     assertThat(
             jdbc.queryForObject(
                 "SELECT count(*) FROM run r JOIN problem p ON p.id = r.problem_id"
-                    + " WHERE p.source LIKE 'evaluation-%' AND r.review_mode = 'SKIP'"
-                    + " AND r.status = 'EVALUATED'",
+                    + " WHERE p.source = ("
+                    + LATEST_SESSION
+                    + ") AND r.review_mode = 'SKIP' AND r.status = 'EVALUATED'",
                 Integer.class))
         .isEqualTo(12);
     assertThat(

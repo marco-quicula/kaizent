@@ -121,7 +121,8 @@ final class EvalReportWriter {
       }
       out.append('\n');
     }
-    out.append("\n✅ pass · ❌ fail · ⏭️ skipped (the pipeline does not produce it yet)\n\n");
+    out.append("\n✅ pass · ❌ fail · ⏭️ skipped (the pipeline does not produce it yet, or the case")
+        .append(" was not run)\n\n");
 
     out.append("## Details\n");
     for (CaseResult result : cases) {

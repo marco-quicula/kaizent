@@ -87,6 +87,9 @@ intake port that publishes no `ProblemReceived`, so no review run is created. It
 is unique per session (`evaluation-<timestamp>`), so each session reads the current
 ticket file. It then starts a `SKIP` run through `EvaluationRuns` and waits until the
 worker has finished it. Cases run one after another, so each duration is the case's own.
+If a case does not finish within `kaizent.eval.case-timeout`, the session stops and the
+remaining cases are reported as `NOT RUN`: the single worker is still busy with the slow
+run, so they would only time out behind it.
 
 Properties that the pipeline does not produce yet are reported as skipped, naming the
 spec that adds them: triage (subject, problem type, ticket language) in spec 0006, and

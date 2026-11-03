@@ -41,7 +41,9 @@ import org.springframework.stereotype.Component;
  * Runs every evaluation case of the workspace (spec 0003 AC-4, AC-5): stores the case's ticket as a
  * problem, starts an evaluation run ({@code ReviewMode.SKIP}), waits until the worker has finished
  * it, checks the expected properties and writes {@code report-<timestamp>.md}. Then it stops the
- * application. Cases run one after another, so each duration is the case's own.
+ * application. Cases run one after another, so each duration is the case's own. If a case does not
+ * finish within {@code kaizent.eval.case-timeout}, the session stops: the single worker is still
+ * busy with that run, so the remaining cases are reported as not run.
  *
  * <p>It refuses to start with the fake adapters, which say nothing about a model, unless {@code
  * --dry-run} is given (used by its own tests).
@@ -55,6 +57,8 @@ class EvalRunner implements ApplicationRunner {
 
   private static final Logger log = LoggerFactory.getLogger(EvalRunner.class);
   private static final Set<RunStatus> FINISHED = Set.of(RunStatus.EVALUATED, RunStatus.FAILED);
+  static final String TIMED_OUT = "TIMED OUT";
+  static final String NOT_RUN = "NOT RUN";
 
   private final Workspace workspace;
   private final LlmProfiles profiles;
@@ -118,8 +122,23 @@ class EvalRunner implements ApplicationRunner {
     log.info("Evaluating {} cases as {}", cases.size(), source);
 
     List<CaseResult> results = new ArrayList<>();
+    String stoppedAfter = null;
     for (EvaluationCase evaluationCase : cases) {
-      results.add(evaluate(evaluationCase, source, checkers));
+      if (stoppedAfter != null) {
+        results.add(notRun(evaluationCase, stoppedAfter, checkers));
+        continue;
+      }
+      CaseResult result = evaluate(evaluationCase, source, checkers);
+      results.add(result);
+      if (TIMED_OUT.equals(result.runStatus())) {
+        // The single worker is still busy with this run, so later cases would only wait behind
+        // it and time out without reaching the model. Stop instead of reporting them as failed.
+        stoppedAfter = evaluationCase.ticket();
+        log.warn(
+            "Case {} did not finish within {}; the remaining cases are not run",
+            stoppedAfter,
+            properties.caseTimeout());
+      }
     }
     return EvalReportWriter.write(
         properties.outputPath(),
@@ -144,7 +163,7 @@ class EvalRunner implements ApplicationRunner {
     }
     Run run = evaluationRuns.start(problem.get().id());
     Run finished = waitUntilFinished(run);
-    String status = FINISHED.contains(finished.status()) ? finished.status().name() : "TIMED OUT";
+    String status = FINISHED.contains(finished.status()) ? finished.status().name() : TIMED_OUT;
     Outcome outcome =
         FINISHED.contains(finished.status())
             ? Outcome.of(finished)
@@ -155,6 +174,24 @@ class EvalRunner implements ApplicationRunner {
                     + finished.status());
     log.info("Case {}: {}", evaluationCase.ticket(), status);
     return result(evaluationCase, Optional.of(run.id()), status, start, checkers, outcome);
+  }
+
+  /** A case after a timeout: reported as not run, with every property skipped. */
+  private CaseResult notRun(
+      EvaluationCase evaluationCase, String stoppedAfter, List<PropertyChecker> checkers) {
+    Map<String, CheckResult> checks = new LinkedHashMap<>();
+    for (PropertyChecker checker : checkers) {
+      checks.put(
+          checker.property(),
+          CheckResult.skipped("not run: the session stopped after " + stoppedAfter + " timed out"));
+    }
+    return new CaseResult(
+        evaluationCase.ticket(),
+        Optional.empty(),
+        NOT_RUN,
+        Duration.ZERO,
+        checks,
+        Optional.empty());
   }
 
   private Run waitUntilFinished(Run run) throws InterruptedException {
