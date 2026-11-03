@@ -3,9 +3,14 @@ package br.com.refatorado.kaizent.evaluation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import br.com.refatorado.kaizent.evaluation.CheckResult.Verdict;
+import br.com.refatorado.kaizent.resolution.Proposal;
+import br.com.refatorado.kaizent.run.ReviewMode;
+import br.com.refatorado.kaizent.run.Run;
 import br.com.refatorado.kaizent.workspace.EvaluationCase.Expectation;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 /** Spec 0003 AC-6: the property checkers. */
@@ -136,6 +141,24 @@ class PropertyCheckersTest {
       assertThat(result.verdict()).as(checker.property()).isEqualTo(Verdict.FAIL);
       assertThat(result.detail()).isEqualTo("the run is FAILED: Fake LLM error");
     }
+  }
+
+  @Test
+  void failsEveryPropertyOfAProposalWithoutAReply() {
+    Run evaluated =
+        Run.received(UUID.randomUUID(), ReviewMode.SKIP, Instant.now())
+            .startResolving(Instant.now())
+            .evaluated(new Proposal("diagnosis", null, 0.5), Instant.now());
+
+    Outcome outcome = Outcome.of(evaluated);
+
+    assertThat(outcome.failure()).hasValue("the proposal has no suggested reply");
+    for (PropertyChecker checker : PropertyCheckers.all(java.util.Set.of("en", "pt"))) {
+      assertThat(checker.check(EXPECT, outcome).verdict())
+          .as(checker.property())
+          .isEqualTo(Verdict.FAIL);
+    }
+    assertThat(Outcome.reply("  ").failure()).hasValue("the proposal has no suggested reply");
   }
 
   @Test

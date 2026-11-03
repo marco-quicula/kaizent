@@ -2,6 +2,7 @@ package br.com.refatorado.kaizent.evaluation;
 
 import br.com.refatorado.kaizent.evaluation.CheckResult.Verdict;
 import br.com.refatorado.kaizent.llm.LlmProfile;
+import br.com.refatorado.kaizent.llm.LlmProfiles;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -49,9 +50,20 @@ final class EvalReportWriter {
     cases.forEach(c -> properties.addAll(c.results().keySet()));
     StringBuilder out = new StringBuilder();
     out.append("# Evaluation report\n\n");
-    if (session.dryRun()) {
-      out.append("> **Dry run.** The fake adapters answered; the results say nothing about")
-          .append(" the quality of any model.\n\n");
+    List<String> fakeSteps =
+        session.profiles().entrySet().stream()
+            .filter(entry -> LlmProfiles.FAKE_ADAPTER.equals(entry.getValue().adapter()))
+            .map(Map.Entry::getKey)
+            .sorted()
+            .toList();
+    if (!fakeSteps.isEmpty()) {
+      out.append("> **Dry run.** These steps used the fake adapter, which answers with scripted")
+          .append(" replies: ")
+          .append(String.join(", ", fakeSteps))
+          .append(". Their results say nothing about the quality of any model.\n\n");
+    } else if (session.dryRun()) {
+      out.append("> **Dry run** (`--dry-run`), but every step used a real adapter, so these")
+          .append(" results come from the configured models.\n\n");
     }
     out.append("- **Started:** ").append(session.startedAt()).append('\n');
     out.append("- **Duration:** ")

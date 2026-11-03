@@ -79,10 +79,35 @@ class EvalReportWriterTest {
   }
 
   @Test
-  void marksADryRun() {
+  void namesTheStepsThatUsedTheFakeAdapter() {
     EvalReportWriter.Session session =
-        new EvalReportWriter.Session(START, START, Path.of("ws"), Map.of(), true);
+        new EvalReportWriter.Session(
+            START,
+            START,
+            Path.of("ws"),
+            Map.of(
+                "resolution", new LlmProfile("fake", null),
+                "triage", new LlmProfile("gemini-api", "gemini-3.6-flash")),
+            true);
 
-    assertThat(EvalReportWriter.render(session, List.of())).contains("> **Dry run.**");
+    assertThat(EvalReportWriter.render(session, List.of()))
+        .contains(
+            "> **Dry run.** These steps used the fake adapter, which answers with scripted"
+                + " replies: resolution.");
+  }
+
+  @Test
+  void doesNotClaimFakeAnswersInADryRunWithRealAdapters() {
+    EvalReportWriter.Session session =
+        new EvalReportWriter.Session(
+            START,
+            START,
+            Path.of("ws"),
+            Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash")),
+            true);
+
+    assertThat(EvalReportWriter.render(session, List.of()))
+        .contains("> **Dry run** (`--dry-run`), but every step used a real adapter")
+        .doesNotContain("scripted");
   }
 }
