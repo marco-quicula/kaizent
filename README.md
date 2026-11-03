@@ -184,6 +184,56 @@ which returns a fixed reply:
 KAIZENT_LLM_RESOLUTION_ADAPTER=fake
 ```
 
+## Running evaluations
+
+The evaluation runner sends the twelve PetClinic demo tickets through the pipeline with
+a real model, checks each reply against its expected outcome in
+`examples/petclinic/evals/cases/`, and writes a report. Use it to see whether a change to
+a prompt, a skill or the model made the replies better or worse
+([spec 0003](docs/specs/0003-petclinic-demo-workspace/spec.md)).
+
+1. Set up the application as in [Getting started](#getting-started) (steps 1 to 3) and
+   [Run with a real model](#run-with-a-real-model) (the API key). PostgreSQL must be
+   running.
+2. Stop the application if it is running. Otherwise its worker could take some of the
+   evaluation runs, with its own configuration.
+3. From the repository root, run:
+
+   ```bash
+   java -jar kaizent-server/target/kaizent-server-0.1.0-SNAPSHOT.jar --spring.profiles.active=eval
+   ```
+
+   The same command works in PowerShell. The runner starts no web server. It takes the
+   cases one after another, waits for each run (at most 10 minutes per case), writes the
+   report and exits. Each case makes one model call today, so a full evaluation uses
+   about twelve calls of your quota.
+4. Open the report, `target/eval/report-<timestamp>.md`. It shows:
+   - the adapter and model of each step;
+   - the totals per property (pass, fail, skipped);
+   - one row per case, with the run's status and duration;
+   - the details: why each check failed or was skipped, and the suggested reply.
+
+Today the runner checks `mentionsAll`, `mentionsNone` and `replyLanguage`. The language
+is detected from the reply itself, locally, with [Lingua](https://github.com/pemistahl/lingua).
+The other properties are reported as skipped, with the spec that adds them: triage in
+spec 0006, citations and confidence in spec 0008. Tokens and cost are not recorded yet.
+The results are reported, not enforced, in wave 1.
+
+Good to know:
+
+- **Data:** the demo tickets go to the model provider, as in
+  [Run with a real model](#run-with-a-real-model). They are synthetic.
+- **No review, no delivery:** evaluation runs never wait for a reviewer and never write
+  to `outbox/`. They stay in the database, but the console's run list leaves them out.
+- **Rate limits:** a case whose model call fails (for example, a quota error) fails all its
+  checks, and the report shows the error. Wait a minute and run the evaluation again.
+- **Timeouts:** if a case does not finish within the timeout, the runner stops there and
+  reports the remaining cases as `NOT RUN`. Change the timeout with
+  `--kaizent.eval.case-timeout=20m`.
+- **Fake adapter:** the runner refuses to start when a step uses the `fake` adapter,
+  because scripted replies say nothing about a model. Add `--dry-run` only to test the
+  runner itself.
+
 ## Read more
 
 | Document | What it covers |
