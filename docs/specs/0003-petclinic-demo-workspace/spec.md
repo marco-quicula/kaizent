@@ -1,6 +1,6 @@
 # Spec 0003: PetClinic demo workspace and evaluation runner
 
-- **Status:** In progress
+- **Status:** Done
 - **Wave:** 1
 - **Depends on:** 0002
 - **Related ADRs:** 0013, 0020, 0027, 0028, 0029

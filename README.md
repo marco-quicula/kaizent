@@ -11,9 +11,9 @@ record improves.
 
 > **Status: wave 1 in progress.** The vision, the roadmap and the architecture decisions
 > are documented, and the first wave (the MVP) is broken down into approved
-> [specs](docs/specs/README.md). Specs 0001 (project foundation) and 0002 (the walking
-> skeleton, the first end-to-end cycle with a real model) are done; spec 0003 (the
-> PetClinic demo workspace and the evaluation runner) is in progress.
+> [specs](docs/specs/README.md). Specs 0001 (project foundation), 0002 (the walking
+> skeleton, the first end-to-end cycle with a real model) and 0003 (the PetClinic demo
+> workspace and the evaluation runner) are done; spec 0004 (LLM access) is next.
 
 ## How it works (target for the MVP)
 
@@ -228,11 +228,12 @@ Good to know:
   [Run with a real model](#run-with-a-real-model). They are synthetic.
 - **No review, no delivery:** evaluation runs never wait for a reviewer and never write
   to `outbox/`. They stay in the database, but the console's run list leaves them out.
-- **Rate limits:** a case whose model call fails (for example, a quota error) fails all its
-  checks, and the report shows the error. Check in the error which
-  [Gemini rate limit](https://aistudio.google.com/docs/rate-limits) was hit: a per-minute
-  limit resets after a minute, but a daily limit only resets at midnight, Pacific time.
-  Then run the evaluation again.
+- **Failed calls:** a case whose model call fails fails all its checks, and the report
+  shows the error; the other cases still run. The message can be generic, such as
+  "Gemini API call failed: Failed to generate content". If it names a
+  [Gemini rate limit](https://aistudio.google.com/docs/rate-limits), wait for that limit
+  to reset: a per-minute limit resets after a minute, a daily limit at midnight, Pacific
+  time. Then run the evaluation again. Automatic retries come with spec 0004.
 - **Timeouts:** if a case does not finish within the timeout, the runner stops there and
   reports the remaining cases as `NOT RUN`. Change the timeout with
   `--kaizent.eval.case-timeout=20m`.

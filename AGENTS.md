@@ -17,9 +17,9 @@ resolution. The repository is `marco-quicula/kaizent` (it was created as "omniso
 - Decisions and open questions: `docs/adr/README.md`
 
 **Current status: wave 1 in progress.** Wave 1 (the MVP) is broken down into specs
-0001–0012, all `Approved` (2026-11-01). Specs 0001 (project foundation) and 0002 (walking
-skeleton) are `Done`; spec 0003 (demo workspace and evaluation
-runner) is `In progress`; spec 0004 can be worked on in parallel.
+0001–0012, all `Approved` (2026-11-01). Specs 0001 (project foundation), 0002 (walking
+skeleton) and 0003 (demo workspace and evaluation runner) are `Done`; spec 0004 (LLM
+access) is next.
 Progress is tracked in GitHub issues under the "Wave 1 – MVP" milestone.
 
 ## Language
