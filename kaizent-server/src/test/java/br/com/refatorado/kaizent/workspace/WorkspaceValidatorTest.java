@@ -156,6 +156,17 @@ class WorkspaceValidatorTest {
     }
 
     @Test
+    void reportsAnInvalidKnowledgePathWithoutFailing() throws IOException {
+      write("roles/agent.md", role("agent", "[billing]", "[answer]", "[\"guides\\0\"]"));
+
+      assertThat(problems())
+          .containsExactlyInAnyOrder(
+              "roles/agent.md: knowledge path 'guides\u0000' must stay inside knowledge/",
+              "evals/cases/T-1.yaml: expect.citesAny 'knowledge/guides/invoices.md' is outside"
+                  + " the knowledgePaths of role agent");
+    }
+
+    @Test
     void reportsFilesThatCannotBeRead() throws IOException {
       write("roles/engineer.md", "You are an engineer.\n");
       write("roles/writer.md", "---\nid: writer\nname: Writer\n");

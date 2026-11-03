@@ -196,12 +196,12 @@ public final class WorkspaceValidator {
       problem(file, "expect.citesAny '" + cite + "' does not exist");
       return;
     }
-    Path knowledgePath = KNOWLEDGE.relativize(path);
+    // Invalid knowledge paths are already reported with their role; they grant nothing.
     boolean readable =
         caseRoles.stream()
             .flatMap(role -> role.knowledgePaths().stream())
-            .map(Path::of)
-            .anyMatch(allowed -> knowledgePath.startsWith(allowed.normalize()));
+            .map(WorkspaceValidator::insideKnowledge)
+            .anyMatch(allowed -> allowed != null && path.startsWith(allowed));
     if (!caseRoles.isEmpty() && !readable) {
       problem(
           file,
