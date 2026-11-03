@@ -15,5 +15,5 @@
   AC-6.
 - [x] **T8:** `EvalRunner` and `EvalReportWriter`, including the dry-run mode and the
   refusal to run with fake adapters. *Covers:* AC-4, AC-5.
-- [ ] **T9:** README section "Running evaluations". *Done when:* the maintainer has run it
+- [x] **T9:** README section "Running evaluations". *Done when:* the maintainer has run it
   once with a real adapter.
