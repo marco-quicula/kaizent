@@ -3,8 +3,11 @@ expect:
   subject: visits
   problemType: BUG
   citesAny: [knowledge/product/visits.md]
-  mentionsAll: ["future"]
-  mentionsNone: ["will be fixed"]
+  mentionsAll:
+    - ["in the future", "after today", "future date"]
+    - "tomorrow"
+    - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior"]
+  mentionsNone: ["will be fixed", "fix is planned"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

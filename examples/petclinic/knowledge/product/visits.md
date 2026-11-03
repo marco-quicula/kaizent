@@ -10,18 +10,23 @@ A visit records that a pet will come to the clinic, with a date and a descriptio
 4. Click **Add Visit**. The owner's page opens with the message "Your visit has been
    booked", and the visit appears under the pet.
 
-## Visit dates are in the future
+## New visits are dated in the future
 
-Visits are booked ahead of time:
+When you add a new visit:
 
 - The visit form opens with **tomorrow's date** already filled in. You can change it.
-- The date **must be after today**. A visit dated today or in the past is rejected with the
-  message "Visit date must be in the future". This is by design: PetClinic records upcoming
-  visits, not past ones.
+- The date **must be after today**. A date of today or in the past is rejected with the
+  message "Visit date must be in the future". This is by design: the form books upcoming
+  visits, so a visit that already happened cannot be added with its real date.
+- If you clear the **Date** field, the visit is saved without a date.
+
+Older visits can still appear on an owner's page, for example in the sample data; the rule
+only applies when a new visit is added.
 
 ## What you cannot do with visits
 
 - **Cancel, delete or reschedule a visit: not supported.** Once booked, a visit cannot be
-  changed or removed in the application. Clinics usually add a new visit with the right date
-  and note the change in its description.
+  changed or removed in the application. Support guidance for this demo: book a new visit
+  with the right date and mention the change in its description. The original visit stays
+  on the owner's page as it was.
 - Book a time of day: visits have a date only.

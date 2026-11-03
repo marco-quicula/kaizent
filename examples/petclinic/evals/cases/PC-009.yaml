@@ -3,8 +3,9 @@ expect:
   subject: visits
   problemType: HOW_TO
   citesAny: [knowledge/product/visits.md]
-  mentionsAll: ["not supported"]
-  mentionsNone: ["cancel button"]
+  mentionsAll:
+    - ["not supported", "not possible", "cannot be cancelled", "can't be cancelled", "no way to cancel", "cannot cancel", "can't cancel"]
+  mentionsNone: ["click Cancel", "click Reschedule", "press Cancel"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

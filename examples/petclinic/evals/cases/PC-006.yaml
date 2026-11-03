@@ -3,8 +3,10 @@ expect:
   subject: pets
   problemType: HOW_TO
   citesAny: [knowledge/product/pets.md]
-  mentionsAll: ["administrator"]
-  mentionsNone: ["Add Pet Type"]
+  mentionsAll:
+    - ["administrator", "admin"]
+    - ["database", "types table", "data change"]
+  mentionsNone: ["click Add Pet Type", "go to Pet Types"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

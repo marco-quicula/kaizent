@@ -15,5 +15,6 @@ A pet's birth date cannot be in the future. The rule is intended; the message on
 
 ## Workaround
 
-Enter the actual birth date, today or earlier. If the exact date is unknown, use an
-estimate in the past.
+Enter the actual birth date, today or earlier. A pet that is not born yet cannot be
+registered. Support guidance for this demo: if the exact birth date is unknown, enter an
+estimated date in the past.

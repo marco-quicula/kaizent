@@ -3,8 +3,11 @@ expect:
   subject: owners
   problemType: BUG
   citesAny: [knowledge/known-issues/KI-001-telephone-validation.md]
-  mentionsAll: ["10", "digits"]
-  mentionsNone: ["will be fixed"]
+  # Each mentionsAll item is a phrase, or a list of alternatives of which one must appear.
+  mentionsAll:
+    - ["10 digits", "10-digit", "ten digits", "ten-digit"]
+    - ["2025550147", "without the +1", "without the country code", "drop the +1", "remove the +1"]
+  mentionsNone: ["up to 10", "will be fixed"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

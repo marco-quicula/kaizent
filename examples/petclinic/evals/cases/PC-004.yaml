@@ -3,8 +3,10 @@ expect:
   subject: pets
   problemType: BUG
   citesAny: [knowledge/known-issues/KI-002-future-birth-date.md, knowledge/product/pets.md]
-  mentionsAll: ["future"]
-  mentionsNone: ["will be fixed"]
+  mentionsAll:
+    - ["in the future", "after today", "future date", "not yet born", "not born yet"]
+    - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior"]
+  mentionsNone: ["will be fixed", "fix is planned", "future birth dates are supported"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

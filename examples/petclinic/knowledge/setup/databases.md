@@ -10,8 +10,11 @@ PetClinic supports three databases, chosen with a Spring profile:
 
 ## Run with PostgreSQL
 
-1. Start PostgreSQL. The repository's `docker-compose.yml` has a `postgres` service with the
-   right settings:
+Run these commands in the `spring-petclinic` folder (see
+[running-locally.md](running-locally.md)).
+
+1. Start PetClinic's PostgreSQL. The `docker-compose.yml` of the PetClinic repository has a
+   `postgres` service with the right settings:
 
    ```bash
    docker compose up postgres
@@ -38,7 +41,8 @@ not reach PostgreSQL:
 
 1. Check that the database is running: `docker compose ps` should show the `postgres`
    service as running. If not, start it with `docker compose up postgres`.
-2. Check that nothing else uses port 5432 and that the database listens on `localhost`.
+2. Check that no other PostgreSQL server on your machine already uses port 5432, and that
+   the database listens on `localhost`.
 3. If you changed the connection, check `POSTGRES_URL`, `POSTGRES_USER` and
    `POSTGRES_PASS`.
 4. Check that you meant to use PostgreSQL: without a profile, PetClinic uses H2 and needs

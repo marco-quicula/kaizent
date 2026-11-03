@@ -3,7 +3,10 @@ expect:
   subject: visits
   problemType: HOW_TO
   citesAny: [knowledge/product/visits.md]
-  mentionsAll: ["Add Visit"]
+  mentionsAll:
+    - "Find Owners"
+    - "Add Visit"
+    - ["description", "reason for the visit"]
   mentionsNone: []
   lowConfidence: false
   ticketLanguage: en

@@ -6,7 +6,7 @@ Each pet belongs to one owner. The owner's page lists the owner's pets and their
 
 | Field | Rule |
 |---|---|
-| Name | Required, up to 30 characters, and **unique per owner**: an owner cannot have two pets with the same name, whatever the upper or lower case. The message is "already exists" |
+| Name | Required, up to 30 characters, and **unique per owner**: an owner cannot have two pets with the same name, whatever the upper or lower case. The message is "is already in use" |
 | Birth Date | Required, in the format `yyyy-MM-dd`, and **not in the future** (see KI-002) |
 | Type | Required when the pet is added; chosen from the list of pet types |
 

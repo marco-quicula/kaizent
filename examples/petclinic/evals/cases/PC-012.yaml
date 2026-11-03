@@ -3,8 +3,9 @@ expect:
   subject: [owners, unknown]
   problemType: OTHER
   citesAny: []
-  mentionsAll: []
-  mentionsNone: ["turn it on in", "enable SMS"]
+  mentionsAll:
+    - ["cannot confirm", "can't confirm", "unable to confirm", "not able to confirm", "don't have information", "do not have information", "no information", "not documented", "not sure"]
+  mentionsNone: ["PetClinic sends SMS", "SMS reminders are available", "to enable SMS", "go to Settings"]
   lowConfidence: true
   ticketLanguage: en
   replyLanguage: en

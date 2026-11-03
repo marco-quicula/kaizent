@@ -3,8 +3,10 @@ expect:
   subject: owners
   problemType: HOW_TO
   citesAny: [knowledge/product/owners.md, knowledge/faq.md]
-  mentionsAll: ["last name", "empty"]
-  mentionsNone: []
+  mentionsAll:
+    - ["empty", "blank", "without typing", "without entering", "no last name"]
+    - ["Find Owner", "search"]
+  mentionsNone: ["cannot be empty", "must not be empty"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

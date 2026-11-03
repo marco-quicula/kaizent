@@ -7,7 +7,7 @@ Click **Find Owners**, leave **Last Name** empty and click **Find Owner**. See
 
 ## Which telephone format does PetClinic accept?
 
-Exactly 10 digits, with nothing else: for example `4799990000`. See
+Exactly 10 digits, with nothing else: for example `2025550147`. See
 [known-issues/KI-001-telephone-validation.md](known-issues/KI-001-telephone-validation.md).
 
 ## Can I delete an owner, a pet or a visit?
@@ -17,7 +17,9 @@ No. PetClinic has no delete actions. Visits also cannot be cancelled or reschedu
 
 ## Is there a login or user permissions?
 
-No. Everyone who can open PetClinic can see and change all data.
+No. There is no access control: everyone who can open PetClinic can use all of its screens.
+That does not add actions: what the screens cannot do, such as deleting records or managing
+pet types, nobody can do.
 
 ## Where do I report a bug?
 
