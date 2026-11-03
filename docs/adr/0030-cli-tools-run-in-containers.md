@@ -27,11 +27,16 @@ Docker is already required to run Kaizent locally (PostgreSQL) and its tests
   and removes the container when the call ends. It replaces `LocalProcessExecutor`.
   Kaizent calls the `docker` command line; it needs no Docker library.
 - **The container contract** is the same for every tool:
-  - the workspace is mounted **read-only** at a fixed path, and is the working
-    directory;
+  - **only the workspace paths that the call grants** are mounted, read-only, each at
+    its own relative path under a fixed `/workspace` folder, which is the working
+    directory. An agentic task gets only its role's knowledge roots and allowed skill
+    folders (spec 0008 AC-4); a single structured call gets none. The rest of the
+    workspace (`inbox/`, `outbox/`, `roles/`, other knowledge and skills, and the
+    evaluation cases in `evals/`) is never visible, so a tool cannot step outside its
+    role or read the expected answers of an evaluation;
   - one writable scratch folder per call holds the prompt, the output schema and the
     tool's output files, and is deleted afterwards;
-  - the tool's credential volume (below) is mounted at the tool's configuration path;
+  - the tool's credential volume (below) is mounted where the tool keeps its login;
   - no other host path is mounted, and the Docker socket is never mounted;
   - the environment holds only the variables that the preset declares;
   - the container runs as a non-root user, with configurable CPU and memory limits;
@@ -47,6 +52,11 @@ Docker is already required to run Kaizent locally (PostgreSQL) and its tests
   container, with a documented command such as `docker compose run --rm codex-cli login`.
   Kaizent mounts the volume but never reads, copies or logs its contents. A tool that
   accepts an API key reads it from `.env`, and only that tool's container receives it.
+  The volume is for the login only: a preset runs its tool in the tool's ephemeral or
+  no-history mode where it has one, and points the tool's other state (sessions,
+  history, caches) to the per-call scratch folder or a temporary file system, so that
+  nothing from one call is left for the next. Validating a preset includes checking that
+  the volume does not accumulate session files between calls.
 - **Docker is required only for the CLI adapters.** The API and fake adapters do not use
   it.
 - **Tests** use a small fake CLI image built from the test resources, so the

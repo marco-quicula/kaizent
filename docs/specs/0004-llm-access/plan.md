@@ -12,7 +12,7 @@ record LlmRequest<T>(String step, String system, String user, Class<T> outputTyp
 record LlmResponse<T>(T output, Usage usage, String rawOutput) {}
 
 interface CliExecutor {
-  CliResult execute(CliCommand command);   // command, args, stdin or prompt file, cwd, env allowlist, timeout
+  CliResult execute(CliCommand command);   // preset, args, stdin or prompt file, granted read-only paths, timeout
 }
 
 // resolution module (public API); the adapters live in llm/adapter/cli and resolution/adapter/*
@@ -43,9 +43,10 @@ its image, during implementation:
 name: codex
 image: kaizent-cli-codex       # built from docker/cli/codex/Dockerfile (ADR-0030)
 toolVersion: <pinned version>  # the version the preset was validated with
-credentials:                   # the tool's login volume and where the tool expects it
+credentials:                   # the tool's login volume and where the tool keeps its login
   volume: kaizent-cli-codex
-  path: /home/kaizent/.codex
+  path: /home/kaizent/.codex   # sessions and history are kept out of it (ephemeral mode,
+                               # or redirected to /scratch); checked when validating
 env: []                        # variables passed from .env, for tools that use API keys
 command: codex
 llm:   # single structured call, with tools disabled
@@ -70,9 +71,12 @@ with `ProcessBuilder`:
 - `--read-only` root file system with a `--tmpfs /tmp` (a preset can declare more
   temporary paths that its tool needs), `--user` non-root, `--cpus` and `--memory` from
   `kaizent.cli.limits`;
-- the workspace mounted read-only (`-v <workspace>:/workspace:ro`, `-w /workspace`), a
-  per-call scratch folder mounted writable at `/scratch` for the prompt, the schema file
-  and output files, and the preset's credential volume at the preset's path;
+- only the paths that the `CliCommand` grants, each mounted read-only at its relative
+  path (`-v <workspace>/knowledge/product:/workspace/knowledge/product:ro`, and so on),
+  with `-w /workspace`, so that citations keep their workspace-relative paths and nothing
+  else of the workspace is visible; a per-call scratch folder mounted writable at
+  `/scratch` for the prompt, the schema file, output files and the tool's other state;
+  and the preset's credential volume at the preset's path;
 - only the preset's `env` variables (`-e NAME`, with values from the environment or
   `.env`), never the whole host environment;
 - the prompt written to stdin or to `/scratch`, as the preset defines, and stdin closed
@@ -119,7 +123,7 @@ kaizent:
 | AC-3 | Conditional activation tests |
 | AC-4 | Retry tests with a stub that fails with 429 and then succeeds, honors a suggested wait, and keeps the provider's cause when it gives up |
 | AC-5 | Pricing computation tests |
-| AC-6 to AC-8 | `DockerCliExecutor` and CLI adapter tests against a fake CLI image built from `src/test/resources/fake-cli/` (prints canned JSONL, sleeps for timeouts, exits non-zero, tries to write to the workspace). They run the same on every operating system with Docker, like the Testcontainers tests |
+| AC-6 to AC-8 | `DockerCliExecutor` and CLI adapter tests against a fake CLI image built from `src/test/resources/fake-cli/` (prints canned JSONL, sleeps for timeouts, exits non-zero, tries to write to the workspace, and tries to read paths it was not granted, including `evals/`). They run the same on every operating system with Docker, like the Testcontainers tests |
 | AC-9 | Manual validation with the real Codex CLI in its image, recorded in the PR (EV-1) |
 | AC-10 | Fake adapter tests |
 | AC-11 | A log-capture test asserting no key or token appears |
@@ -136,6 +140,10 @@ kaizent:
 - A CLI tool writes outside its sandbox → the workspace is mounted read-only and nothing
   else of the host is mounted (ADR-0030); presets also keep the tool's own read-only
   mode.
+- A tool keeps sessions or history next to its login, so state could carry over between
+  calls → the preset uses the tool's ephemeral mode (for Codex, its documented
+  ephemeral option) or redirects that state to `/scratch`; EV-1 checks that the credential
+  volume does not grow with session files.
 - A tool's login does not work in a container (for example, it needs a local browser) →
   prefer the tool's device-code or token login; if a tool has none, its preset stays "not
   yet validated" and the README says so.

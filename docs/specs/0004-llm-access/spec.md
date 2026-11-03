@@ -54,9 +54,10 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
 - **AC-6:** `CliExecutor` runs each command in a new container through
   `DockerCliExecutor` (ADR-0030), with:
   - the preset's image, run as a non-root user, with configurable CPU and memory limits;
-  - the workspace mounted read-only as the working directory, a writable scratch folder
-    per call, and the tool's credential volume; no other host path and never the Docker
-    socket;
+  - only the workspace paths that the call grants, mounted read-only at their relative
+    paths under the working directory, so that nothing else of the workspace (including
+    `evals/`) is visible; a writable scratch folder per call; and the tool's credential
+    volume, used for the login only; no other host path and never the Docker socket;
   - only the environment variables that the preset declares;
   - the prompt passed by file or stdin, as the preset defines;
   - a mandatory timeout that stops the container and raises `TIMEOUT`;
@@ -64,9 +65,11 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   - a non-zero exit raised as an error, with a truncated stderr excerpt;
   - a clear error when Docker is not available.
 - **AC-7:** The CLI `LlmGateway` adapter disables the tool's own tools where the preset
-  supports it, and extracts the final JSON answer from the tool's output.
-- **AC-8:** The CLI `AgentRuntime` adapter gives the tool read-only access to the
-  workspace's `knowledge/` and `skills/` folders, asks for the proposal JSON schema, and
+  supports it, grants no workspace path, and extracts the final JSON answer from the
+  tool's output.
+- **AC-8:** The CLI `AgentRuntime` adapter gives the tool read-only access only to the
+  task's knowledge roots and skill folders (the role's, as spec 0008 AC-4 requires), asks
+  for the proposal JSON schema, and
   maps the tool's event stream (when available) to `TraceEvent`s through the `TraceSink`.
 - **AC-9:** The `codex` preset and its image are implemented and validated (read-only
   sandbox, JSON events, final message extraction). The `claude-code`, `antigravity` and

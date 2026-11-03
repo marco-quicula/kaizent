@@ -26,8 +26,8 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 
 - **Pluggable everywhere.** Ticket sources, reply sinks, skill repositories, knowledge
   sources, tools (MCP) and LLM access are ports with swappable adapters, chosen at setup.
-  Models can be reached through provider APIs or through locally installed agent CLI
-  tools such as Codex.
+  Models can be reached through provider APIs or through agent CLI tools such as Codex,
+  run in containers built locally.
 - **Human in the loop first.** At the start, a person confirms every answer. Human
   approvals, edits and rejections are both the safety net and the success metric.
 - **Graduated autonomy.** Each subject gets a level (Junior → Mid-level → Senior →

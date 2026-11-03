@@ -134,8 +134,9 @@ kaizent:
 - **CLI adapters**: presets `codex` (validated in wave 1), `claude-code`, `antigravity`
   and `gemini-cli` (provided as configuration examples, validated when someone has
   access), plus `generic` (command template). Commands run through `CliExecutor` →
-  `DockerCliExecutor`: a new container per call, with the workspace mounted read-only,
-  the tool's credential volume and a mandatory timeout (ADR-0030).
+  `DockerCliExecutor`: a new container per call, with only the granted workspace paths
+  (the role's knowledge and skills) mounted read-only, the tool's credential volume and a
+  mandatory timeout (ADR-0030).
 - **Fake adapters** (`fake`) return scripted responses from test resources.
 - **Pricing**: `kaizent.llm.pricing.<model>.input-per-million` and `output-per-million`.
   A missing price gives `costType = UNKNOWN` for API adapters.
