@@ -41,6 +41,8 @@
     <java.version>25</java.version>
     <spring-ai.version>2.0.2</spring-ai.version>
     <spring-modulith.version>2.1.2</spring-modulith.version>
+    <!-- Local language detection for evaluation reports (spec 0003, Apache-2.0) -->
+    <lingua.version>1.2.2</lingua.version>
 
     <!-- Build plugins -->
     <spotless-maven-plugin.version>3.10.4</spotless-maven-plugin.version>
@@ -67,6 +69,11 @@
         <version>${spring-modulith.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.github.pemistahl</groupId>
+        <artifactId>lingua</artifactId>
+        <version>${lingua.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

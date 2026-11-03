@@ -67,9 +67,35 @@ restricted to the languages declared in the evaluation cases for accuracy. It ru
 
 ## Configuration
 
-- `kaizent.eval.cases-path` (default `<workspace>/evals/cases`).
+The cases are read from the workspace's `evals/cases/`; `kaizent.workspace.path` chooses
+the workspace.
+
 - `kaizent.eval.output-path` (default `target/eval`).
 - `kaizent.eval.case-timeout` (default 10 minutes).
+- `kaizent.eval.poll-interval` (default 1 second): how often the runner checks whether a
+  run has finished.
+- `kaizent.eval.exit-when-done` (default `true`): stop the application after the report.
+
+The `eval` profile (`application-eval.yaml`) starts no HTTP server and turns intake
+polling off (`kaizent.intake.polling=false`), so the inbox is not queued for human review
+while the cases run.
+
+## How the runner submits a case
+
+The runner stores the case's ticket as a new problem through `EvaluationProblems`, an
+intake port that publishes no `ProblemReceived`, so no review run is created. Its source
+is unique per session (`evaluation-<timestamp>`), so each session reads the current
+ticket file. It then starts a `SKIP` run through `EvaluationRuns` and waits until the
+worker has finished it. Cases run one after another, so each duration is the case's own.
+If a case does not finish within `kaizent.eval.case-timeout`, the session stops and the
+remaining cases are reported as `NOT RUN`: the single worker is still busy with the slow
+run, so they would only time out behind it.
+
+Properties that the pipeline does not produce yet are reported as skipped, naming the
+spec that adds them: triage (subject, problem type, ticket language) in spec 0006, and
+citations and the adjusted confidence in spec 0008. A run that produced no proposal fails
+every property. Tokens and cost are reported as not recorded until usage tracking (specs
+0004 and 0009).
 
 ## Testing
 

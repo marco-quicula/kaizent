@@ -45,23 +45,35 @@ public class IntakeService {
     if (problems.existsBySourceAndExternalKey(source, ticket.externalKey())) {
       return Optional.empty();
     }
-    Problem problem =
-        aggregates.insert(
-            new Problem(
-                UUID.randomUUID(),
-                source,
-                ticket.externalKey(),
-                ticket.title(),
-                ticket.body(),
-                ticket.requester(),
-                ticket.channel(),
-                ticket.createdAt(),
-                clock.instant(),
-                ticket.labels(),
-                ticket.contentHash(),
-                ticket.attributes()));
+    Problem problem = insert(source, ticket);
     events.publishEvent(new ProblemReceived(problem.id(), source, problem.externalKey()));
     log.info("Received ticket {} from {}", problem.externalKey(), source);
     return Optional.of(problem);
+  }
+
+  /**
+   * Stores the ticket without publishing {@link ProblemReceived}, so no review run is created. Used
+   * for evaluation runs (spec 0003).
+   */
+  @Transactional
+  public Problem store(String source, IncomingTicket ticket) {
+    return insert(source, ticket);
+  }
+
+  private Problem insert(String source, IncomingTicket ticket) {
+    return aggregates.insert(
+        new Problem(
+            UUID.randomUUID(),
+            source,
+            ticket.externalKey(),
+            ticket.title(),
+            ticket.body(),
+            ticket.requester(),
+            ticket.channel(),
+            ticket.createdAt(),
+            clock.instant(),
+            ticket.labels(),
+            ticket.contentHash(),
+            ticket.attributes()));
   }
 }

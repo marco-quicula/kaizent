@@ -1,0 +1,11 @@
+# Profile for the evaluation runner (spec 0003): runs the workspace's evaluation cases against
+# the configured models, writes a report to kaizent.eval.output-path and exits.
+spring:
+  main:
+    # No HTTP server: nothing to serve while the cases run.
+    web-application-type: none
+
+kaizent:
+  intake:
+    # The runner reads the tickets itself; polling would queue them for human review.
+    polling: false
