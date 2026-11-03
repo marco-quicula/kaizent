@@ -6,7 +6,8 @@ expect:
   mentionsAll:
     - ["docker compose up", "docker-compose up"]
     - "profile"
-    - ["petclinic", "POSTGRES_USER", "credentials"]
+    - ["PostgreSQL", "postgres"]
+    - ["POSTGRES_USER", "POSTGRES_PASS", "username", "user name", "password", "credentials"]
   mentionsNone: []
   lowConfidence: false
   ticketLanguage: en

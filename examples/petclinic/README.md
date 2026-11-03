@@ -24,4 +24,5 @@ default (`kaizent.workspace.path=examples/petclinic`).
 ## Language
 
 Everything is in English, except the body of `PC-003`, which is in Brazilian Portuguese to
-check that replies follow the language of the ticket (ADR-0029).
+check that replies follow the language of the ticket (ADR-0029). Its evaluation case
+(`evals/cases/PC-003.yaml`) therefore expects Portuguese phrases.

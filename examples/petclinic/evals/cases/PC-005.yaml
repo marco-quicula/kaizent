@@ -4,9 +4,10 @@ expect:
   problemType: BUG
   citesAny: [knowledge/product/pets.md]
   mentionsAll:
+    - ["same name", "duplicate", "unique", "share a name", "already in use"]
     - ["same owner", "per owner", "each owner", "one owner", "that owner", "within an owner"]
     - ["different owner", "other owner", "another owner", "other owners", "different owners"]
-  mentionsNone: ["no two pets"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

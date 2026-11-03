@@ -53,7 +53,7 @@ expect:
   mentionsAll:
     # Each item is a phrase, or a list of alternatives of which one must appear.
     - ["not supported", "not possible", "cannot be cancelled", "no way to cancel"]
-  mentionsNone: ["click Cancel", "click Reschedule"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

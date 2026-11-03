@@ -81,9 +81,9 @@ the demo:
 - **AC-1:** The workspace loads without validation errors. Every role references existing
   subjects and skills. Every evaluation case references an existing ticket, and every
   "must cite" path exists.
-- **AC-2:** All demo content is in English, except the body of PC-003. All names and
-  contacts are synthetic; telephone numbers use ranges reserved for fiction (NANPA
-  `555-0100` to `555-0199`). A `README.md` in the workspace says that the data is synthetic.
+- **AC-2:** All demo content is in English, except the body of PC-003 and the Portuguese
+  phrases in its evaluation case. All names and contacts are synthetic; telephone numbers
+  use ranges reserved for fiction (NANPA `555-0100` to `555-0199`). A `README.md` in the workspace says that the data is synthetic.
 - **AC-3:** Evaluation cases are YAML files with the properties: `ticket`,
   `expect.subject` (one or a list), `expect.problemType`, `expect.citesAny`,
   `expect.mentionsAll`, `expect.mentionsNone`, `expect.lowConfidence`,

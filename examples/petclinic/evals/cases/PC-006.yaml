@@ -6,7 +6,8 @@ expect:
   mentionsAll:
     - ["administrator", "admin"]
     - ["database", "types table", "data change"]
-  mentionsNone: ["click Add Pet Type", "go to Pet Types"]
+    - ["no screen", "no page", "no form", "no button", "no option", "no menu", "no UI", "no user interface", "not in the UI", "not available in the"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

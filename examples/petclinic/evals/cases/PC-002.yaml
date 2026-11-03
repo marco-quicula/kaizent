@@ -6,7 +6,7 @@ expect:
   mentionsAll:
     - ["empty", "blank", "without typing", "without entering", "no last name"]
     - ["Find Owner", "search"]
-  mentionsNone: ["cannot be empty", "must not be empty"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

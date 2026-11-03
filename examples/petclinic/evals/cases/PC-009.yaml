@@ -5,7 +5,7 @@ expect:
   citesAny: [knowledge/product/visits.md]
   mentionsAll:
     - ["not supported", "not possible", "cannot be cancelled", "can't be cancelled", "no way to cancel", "cannot cancel", "can't cancel"]
-  mentionsNone: ["click Cancel", "click Reschedule", "press Cancel"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

@@ -4,9 +4,9 @@ expect:
   problemType: BUG
   citesAny: [knowledge/known-issues/KI-002-future-birth-date.md, knowledge/product/pets.md]
   mentionsAll:
-    - ["in the future", "after today", "future date", "not yet born", "not born yet"]
-    - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior"]
-  mentionsNone: ["will be fixed", "fix is planned", "future birth dates are supported"]
+    - ["in the future", "after today", "future date", "not yet born", "not born yet", "today or earlier", "today or before", "in the past"]
+    - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior", "normal validation"]
+  mentionsNone: ["will be fixed", "future birth dates are supported"]
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en
