@@ -6,7 +6,7 @@ expect:
   mentionsAll:
     - ["in the future", "after today", "future date", "not yet born", "not born yet", "today or earlier", "today or before", "in the past"]
     - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior", "normal validation"]
-  mentionsNone: ["will be fixed", "future birth dates are supported"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en

@@ -7,7 +7,7 @@ expect:
     - ["in the future", "after today", "future date", "later than today", "later than the current day", "after the current day"]
     - "tomorrow"
     - ["by design", "intended", "on purpose", "validation rule", "not a bug", "expected behavior", "normal validation"]
-  mentionsNone: ["will be fixed"]
+  mentionsNone: []
   lowConfidence: false
   ticketLanguage: en
   replyLanguage: en
