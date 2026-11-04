@@ -275,7 +275,14 @@ capabilities, CPU and memory limits and a timeout (5 minutes by default,
    docker compose --profile cli build codex-cli
    ```
 
-2. Log in once, with your ChatGPT account. The login uses a device code: the command
+2. Create the volume for the login, once. Docker Compose does not manage it, so
+   `docker compose down -v` (an empty database) keeps your login:
+
+   ```bash
+   docker volume create kaizent-cli-codex
+   ```
+
+3. Log in once, with your ChatGPT account. The login uses a device code: the command
    prints a URL and a code that you open in your browser. If it says that device code
    login is disabled, enable it in your ChatGPT security settings and try again.
 
@@ -286,7 +293,7 @@ capabilities, CPU and memory limits and a timeout (5 minutes by default,
    The login is kept in the `kaizent-cli-codex` Docker volume. To check it, run
    `docker compose --profile cli run --rm codex-cli kaizent-codex login status`.
 
-3. Select the preset for the resolution step in `.env`. A model is optional; without
+4. Select the preset for the resolution step in `.env`. A model is optional; without
    one, Codex uses its default:
 
    ```
@@ -295,7 +302,7 @@ capabilities, CPU and memory limits and a timeout (5 minutes by default,
    KAIZENT_LLM_RESOLUTION_MODEL=
    ```
 
-4. Check it with the `llm-check` command (above), then run the application as usual.
+5. Check it with the `llm-check` command (above), then run the application as usual.
    `GET /api/v1/system` shows the preset and the cost type `SUBSCRIPTION`. Tokens are
    recorded when the tool reports them; there is no price.
 

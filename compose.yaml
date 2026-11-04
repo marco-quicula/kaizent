@@ -22,6 +22,7 @@ services:
   # CLI tools for the cli adapter (ADR-0030), only with the "cli" profile. Kaizent runs each
   # call in a new container with docker run; these services build the images and run the
   # tools' own login. For example:
+  #   docker volume create kaizent-cli-codex
   #   docker compose --profile cli build codex-cli
   #   docker compose --profile cli run --rm codex-cli kaizent-codex login --device-auth
   codex-cli:
@@ -35,6 +36,8 @@ services:
 
 volumes:
   kaizent-postgres:
-  # The Codex login only; never read by Kaizent. Fixed name: the codex preset mounts it.
+  # The Codex login only; never read by Kaizent. The codex preset mounts it by this name.
+  # External: create it once with "docker volume create kaizent-cli-codex"; compose never
+  # creates or removes it, so "docker compose down -v" (an empty database) keeps the login.
   kaizent-cli-codex:
-    name: kaizent-cli-codex
+    external: true
