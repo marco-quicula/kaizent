@@ -9,7 +9,7 @@
 - [x] **T4:** Retry with backoff for transient and rate-limit errors, honoring a suggested
   wait, and keeping the provider's cause in the error. *Covers:* AC-4.
 - [x] **T5:** `Usage`, `CostType` and the pricing table. *Covers:* AC-5.
-- [ ] **T6:** `CliExecutor` and `DockerCliExecutor` (container contract, timeouts that stop
+- [x] **T6:** `CliExecutor` and `DockerCliExecutor` (container contract, timeouts that stop
   the container, output caps, environment allowlist), with a fake CLI image. *Covers:*
   AC-6.
 - [ ] **T7:** `PresetRegistry`, the `codex` preset and image, the `cli` compose profile
@@ -22,9 +22,9 @@
 - [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`, `gemini-cli`),
   the `generic` preset, and the documentation of the CLI mode and its setup. *Covers:*
   AC-9, AC-13.
-- [ ] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*
-  AC-11. (The API adapters' log-capture test is done; the environment allowlist comes
-  with T6.)
+- [x] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*
+  AC-11. (The API adapters' log-capture and redaction tests came with #38; the
+  environment allowlist and the redacted error excerpts of the CLI executor with T6.)
 - [x] **T12:** Add the profiles to `GET /system`. *Covers:* AC-12.
 - [ ] **T13:** Manual validation of the Codex preset and of `gemini-api`, recorded in the
   PR, and optionally of `openai` and `anthropic`. *Covers:* EV-1, EV-2, EV-3 (optional).
