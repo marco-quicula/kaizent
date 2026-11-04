@@ -37,6 +37,11 @@ copy the login file. ADR-0030 did not foresee that.
   (`docker/cli/codex/`).
 - **The volume holds the login only.** Validating a preset includes checking that the
   volume holds nothing but the login after calls.
+- **This is a narrow exception.** It covers only a CLI tool's own login file, moved by
+  that tool's image wrapper inside that tool's container, to and from a private temporary
+  folder that lives only for the call. It allows no other access to credentials: not by
+  Kaizent's application on the host, not by other containers, and not to API keys, which
+  keep reaching only the container of the tool that declares them.
 - Unchanged from ADR-0030: a new container per call, the read-only root file system, the
   non-root user, no Linux capabilities, the granted read-only paths, the declared
   environment variables, the timeout, and the per-call scratch folder.
