@@ -32,7 +32,7 @@ task. The CLI implementation reuses `CliExecutor` from the `llm` module.
 
 | Name | Port(s) | Notes |
 |---|---|---|
-| `gemini-api`, `openai`, `anthropic`, `ollama` | `LlmGateway` | Spring AI `ChatClient`, structured output through Spring AI's `BeanOutputConverter` (or the provider's native JSON schema mode when available), with our schema validation on top |
+| `gemini-api`, `openai`, `anthropic`, `ollama` | `LlmGateway` | A Spring AI `ChatModel` per model id, built on the first call (so the application starts without keys). The answer goes through `StructuredOutputs` (schema in the prompt, validation, one repair). Spring AI's and the SDKs' own retries are off; `Retrying` retries instead, and `ProviderErrors` turns each SDK's exception into an `LlmCallException` with the status, the provider's code and message, and the suggested wait. The configured key is removed from the message and the causes, since a provider may echo it. For Gemini, the SDK's own retries are set to one attempt, and an OkHttp interceptor keeps the JSON `error.status` that the SDK drops |
 | `cli` + preset | `LlmGateway`, `AgentRuntime` | `PresetRegistry` loads presets from `classpath:cli-presets/*.yaml`, overridable through `kaizent.cli.presets.*` |
 | `fake` | `LlmGateway`, `AgentRuntime` | `FakeScript` loaded from `classpath:fake/<step>/<ticket-key>.json`, with fallback to `default.json`; special markers `__error__`, `__timeout__`, `__invalid__` |
 
@@ -137,7 +137,10 @@ kaizent:
     profiles:
       triage:     { adapter: gemini-api, model: <id> }
       lesson:     { adapter: gemini-api, model: <id> }
-    retry: { max-attempts: 3, initial-backoff: 2s, multiplier: 2 }
+    retry: { max-attempts: 3, initial-backoff: 2s, multiplier: 2, max-wait: 60s }
+    openai: { api-key: ${OPENAI_API_KEY:}, base-url: ${OPENAI_BASE_URL:} }
+    anthropic: { api-key: ${ANTHROPIC_API_KEY:} }
+    ollama: { base-url: ${OLLAMA_BASE_URL:} }
     pricing:
       <model-id>: { input-per-million: 0.0, output-per-million: 0.0 }
   agent:
@@ -155,8 +158,8 @@ kaizent:
 |---|---|
 | AC-1 | Context tests with valid and invalid profiles |
 | AC-2 | Unit tests with a stubbed `ChatModel`: valid output, invalid then repaired, invalid twice |
-| AC-3 | Conditional activation tests |
-| AC-4 | Retry tests with a stub that fails with 429 and then succeeds, honors a suggested wait, and keeps the provider's cause when it gives up |
+| AC-3 | Tests of each adapter against a local stub of its API (answer and token counts), and a startup test with an unconfigured adapter |
+| AC-4 | Retry tests with a stub that fails with 429 and then succeeds, honors a suggested wait, and keeps the provider's cause when it gives up; error mapping tests for each SDK |
 | AC-5 | Pricing computation tests |
 | AC-6 to AC-8 | `DockerCliExecutor` and CLI adapter tests against a fake CLI image built from `src/test/resources/fake-cli/` (prints canned JSONL, sleeps for timeouts, exits non-zero, tries to write to the workspace, and tries to read paths it was not granted, including `evals/`). They run the same on every operating system with Docker, like the Testcontainers tests |
 | AC-9 | Manual validation with the real Codex CLI in its image, recorded in the PR (EV-1) |

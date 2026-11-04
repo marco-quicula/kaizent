@@ -41,10 +41,15 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   that record. On invalid output it makes **one** repair attempt (it sends back the
   validation error), and then fails with `LlmOutputException`.
 - **AC-3:** Spring AI adapters exist for `gemini-api`, `openai`, `anthropic` and
-  `ollama`. Only adapters whose credentials or URL are configured are activated.
+  `ollama`. An adapter is usable only when its key (or, for `ollama`, its URL) is
+  configured. The application still starts without them: a step that uses an
+  unconfigured adapter logs a warning at startup, and its calls fail with a message that
+  names the missing variable.
 - **AC-4:** Rate-limit and transient errors (HTTP 429 and 5xx) are retried with
   exponential backoff, up to a configurable number of attempts (default 3), and a wait
-  suggested by the provider is respected. Quotas are never hard-coded. A failed call keeps
+  suggested by the provider is respected. A suggested wait longer than a configurable
+  maximum (default 60 s, for example a daily quota) is not waited for: the call fails at
+  once. Quotas are never hard-coded. A failed call keeps
   the provider's cause: the HTTP status, the provider's error code and message, and the
   suggested wait when given. The run's failure message and the evaluation report show it,
   instead of a generic "failed to generate content".
