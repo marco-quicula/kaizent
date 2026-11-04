@@ -33,33 +33,51 @@ task. The CLI implementation reuses `CliExecutor` from the `llm` module.
 | Name | Port(s) | Notes |
 |---|---|---|
 | `gemini-api`, `openai`, `anthropic`, `ollama` | `LlmGateway` | A Spring AI `ChatModel` per model id, built on the first call (so the application starts without keys). The answer goes through `StructuredOutputs` (schema in the prompt, validation, one repair). Spring AI's and the SDKs' own retries are off; `Retrying` retries instead, and `ProviderErrors` turns each SDK's exception into an `LlmCallException` with the status, the provider's code and message, and the suggested wait. The configured key is removed from the message and the causes, since a provider may echo it. For Gemini, the SDK's own retries are set to one attempt, and an OkHttp interceptor keeps the JSON `error.status` that the SDK drops |
-| `cli` + preset | `LlmGateway`, `AgentRuntime` | `PresetRegistry` loads presets from `classpath:cli-presets/*.yaml`, overridable through `kaizent.cli.presets.*` |
+| `cli` + preset | `LlmGateway`, `AgentRuntime` | Presets from `kaizent.cli.presets.*`, bundled in `classpath:cli-presets.yaml` and overridable |
 | `fake` | `LlmGateway`, `AgentRuntime` | `FakeScript` loaded from `classpath:fake/<step>/<ticket-key>.json`, with fallback to `default.json`; special markers `__error__`, `__timeout__`, `__invalid__` |
 
-**Preset shape** (YAML). The exact flags are verified with the tool's `--help`, inside
-its image, during implementation:
+**Presets** are configuration, `kaizent.cli.presets.<name>`, bundled in
+`classpath:cli-presets.yaml` (imported by `application.yaml`) and overridable like any
+property. A step selects one with `adapter: cli` and `preset: <name>` in its profile
+(`LlmProfile.preset`, also shown by `GET /system`). An unknown or incomplete preset fails at
+startup. The exact flags were confirmed with the tool's `--help` inside its image (the
+maintainer's discovery run with Codex CLI 0.166.0):
 
 ```yaml
-name: codex
-image: kaizent-cli-codex       # built from docker/cli/codex/Dockerfile (ADR-0030)
-toolVersion: <pinned version>  # the version the preset was validated with
-credentials:                   # the tool's login volume and where the tool keeps its login
-  volume: kaizent-cli-codex
-  path: /home/kaizent/.codex   # sessions and history are kept out of it (ephemeral mode,
-                               # or redirected to /scratch); checked when validating
-env: []                        # variables passed from .env, for tools that use API keys
-command: codex
-llm:   # single structured call, with tools disabled
-  args: [exec, --json, --sandbox, read-only, --skip-git-repo-check, --output-schema, "{schemaFile}", "-"]
-  prompt: stdin
-  output: { format: jsonl-events, finalMessage: last-agent-message }
-agent: # agentic task
-  args: [exec, --json, --sandbox, read-only, --skip-git-repo-check, --cd, "{workspace}", --output-schema, "{schemaFile}", "-"]
-  prompt: stdin
-  output: { format: jsonl-events, finalMessage: last-agent-message, events: codex }
-costType: SUBSCRIPTION
-validated: true
+kaizent.cli.presets.codex:
+  image: kaizent-cli-codex         # built from docker/cli/codex/Dockerfile (ADR-0030)
+  tool-version: 0.166.0            # pinned in the Dockerfile
+  validated: false                 # true once EV-1 passes
+  cost-type: SUBSCRIPTION
+  credentials:                     # the login only (auth.json)
+    volume: kaizent-cli-codex
+    path: /home/kaizent/.codex-login
+  env: []                          # variables passed from .env, for tools that use API keys
+  tmpfs: []                        # writable paths the tool needs besides /tmp
+  llm:                             # single structured call
+    args: [kaizent-codex, exec, --json, --ephemeral, --sandbox, read-only,
+           --skip-git-repo-check, --output-schema, "{schemaFile}",
+           --output-last-message, "{outputFile}", "-"]
+    model-args: [--model, "{model}"]   # added only when the profile names a model
+    prompt: STDIN                      # or FILE: {promptFile} in /scratch
+    output: { source: FILE, events: codex }   # answer from {outputFile}; tokens from events
 ```
+
+The `agent` call (spec 0004 T8) is added to the presets with the `AgentRuntime`.
+
+**Tool state.** Codex keeps its login, sessions, logs, caches and plugins in the same
+folder (`CODEX_HOME`), and `--ephemeral` alone does not keep that folder unchanged (the
+discovery run counted 598 files after two calls). The image's `kaizent-codex` wrapper
+therefore runs `codex` with `CODEX_HOME` in a new folder under `/tmp` (a temporary file
+system per call), copies `auth.json` from the login volume before the call and copies it
+back only when the tool renewed it. The volume holds only the login, nothing is left
+from one call to the next (ADR-0030), and Kaizent's own code never reads the login.
+
+**Output readers (`CliEvents`).** `text` takes the standard output as the answer;
+`codex` reads `codex exec --json`: the answer is the last `item.completed` event of type
+`agent_message`, and the tokens are the sum of the `turn.completed` events' `usage`
+(`input_tokens`, `output_tokens`). The events carry no model id, so the usage records the
+profile's model, if any.
 
 **Event mapping:** a per-preset `EventMapper` turns JSONL events into `TraceEvent`s (tool
 call, file read, message). Unknown events are kept raw.

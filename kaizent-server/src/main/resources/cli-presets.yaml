@@ -11,19 +11,23 @@ kaizent:
     presets:
       codex:
         image: kaizent-cli-codex
-        tool-version: TO-BE-VALIDATED  # pinned in docker/cli/codex/Dockerfile (EV-1)
+        tool-version: 0.166.0           # pinned in docker/cli/codex/Dockerfile
         validated: false                # true once EV-1 passes with the real tool
         cost-type: SUBSCRIPTION
         credentials:
+          # Only the login (auth.json): kaizent-codex keeps the tool's other state (sessions,
+          # logs, caches, plugins) in a temporary CODEX_HOME under /tmp (ADR-0030).
           volume: kaizent-cli-codex
-          path: /home/kaizent/.codex
+          path: /home/kaizent/.codex-login
         llm:
-          # A single structured call: read-only sandbox, prompt from stdin, the final message
-          # written to a file. The exact flags are confirmed with codex exec --help (EV-1).
+          # A single structured call: read-only sandbox, no session files, the JSON schema
+          # enforced by codex, the prompt from stdin, the final message written to a file.
+          # Flags confirmed with codex exec --help (Codex CLI 0.166.0).
           args:
-            - codex
+            - kaizent-codex
             - exec
             - --json
+            - --ephemeral
             - --sandbox
             - read-only
             - --skip-git-repo-check
@@ -35,5 +39,6 @@ kaizent:
           model-args: [--model, "{model}"]
           prompt: STDIN
           output:
+            # The answer from the output file; the token usage from the JSON events.
             source: FILE
-            events: text
+            events: codex
