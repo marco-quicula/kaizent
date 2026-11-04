@@ -9,5 +9,7 @@
 - [ ] **T4:** `RoleSelector`, the orchestrator `TRIAGING` step, migration `V5` and the
   failure path. *Covers:* AC-5, AC-6.
 - [ ] **T5:** API fields and the subject filter. *Covers:* AC-7.
+- [ ] **T7:** `InjectionRiskDetector` (deterministic rules), the risk on the run and in
+  the API, and synthetic evaluation cases with injected tickets. *Covers:* AC-9.
 - [ ] **T6:** Run the evaluation for EV-1 to EV-4 with a real adapter, and record the
   results in the PR.

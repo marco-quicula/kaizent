@@ -67,6 +67,20 @@ Replace the skeleton's single prompt with the real Do step:
   output after the repair attempt moves the run to `FAILED` with reason `ERROR`.
 - **AC-10:** `SkeletonResolver` is removed, and the end-to-end test of spec 0002 passes
   with the fake `AgentRuntime`.
+- **AC-11:** **Suspicious tickets** (spec 0006 AC-9) follow
+  `kaizent.security.suspicious-tickets` (ADR-0032, layer 3):
+  - `api-runtime` (default): resolved by the native runtime through an API profile, never
+    by a CLI runtime. Without an API profile for resolution, the run waits as with
+    `hold`, with a message that says so;
+  - `hold`: the run stops before resolution until a person decides;
+  - `flag-only`: the run continues as configured, and the reviewer sees the risk.
+
+  Any value other than `api-runtime` logs a WARN at startup that names the setting and
+  the risk, and the README documents it as the operator's risk.
+- **AC-12:** **Output check** (ADR-0032, layer 4): before a proposal is stored, token and
+  key formats (for example `eyJ…` JWTs, `sk-…` keys), paths outside the granted ones and
+  URLs outside an allowlist are redacted; the proposal is flagged and the reviewer is
+  warned.
 
 ## Evaluation cases
 

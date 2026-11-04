@@ -41,6 +41,13 @@ in the workspace.
   type, language, role and triage rationale, and `GET /runs` can filter by subject.
 - **AC-8:** The triage prompt is a versioned resource file (`prompts/triage.md`) in
   English, and the run records which prompt version (content hash) was used.
+- **AC-9:** Every ticket gets an **injection risk**, `SAFE` or `SUSPICIOUS`, with the
+  matched reasons, from a deterministic detector that runs before the triage call and
+  costs no model call (ADR-0032, layer 2): instructions to ignore or reveal instructions;
+  requests for files, environment variables, tokens, keys or passwords; shell commands
+  such as `curl`, `wget` or reading home-folder files; long encoded blobs; URLs outside
+  the workspace's known hosts. The risk and the reasons are stored on the run and shown by
+  `GET /runs/{id}`. Synthetic evaluation cases with injected tickets check the detector.
 
 ## Evaluation cases
 

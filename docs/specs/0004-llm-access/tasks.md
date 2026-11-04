@@ -16,7 +16,9 @@
   with its login command, `CliLlmGateway` and the event mapper. *Covers:* AC-7, AC-9
   (part), AC-11 (part).
 - [ ] **T8:** The `AgentRuntime` port (in `resolution`), `CliAgentRuntime` and
-  `TraceSink`. *Covers:* AC-8.
+  `TraceSink`, with the read and network restrictions of ADR-0032 (layer 1) found in a
+  discovery with the real tool and validated with a synthetic injected ticket.
+  *Covers:* AC-8.
 - [ ] **T9:** Fake `LlmGateway` and `AgentRuntime` with scripts and error markers.
   *Covers:* AC-10.
 - [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`, `gemini-cli`),

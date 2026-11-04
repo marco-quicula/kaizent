@@ -37,6 +37,7 @@ behind them. The format is described in [ADR-0001](0001-record-architecture-deci
 | [0028](0028-ticket-file-format-and-canonical-problem.md) | Ticket file format and canonical problem model | Accepted |
 | [0029](0029-reply-language-follows-ticket.md) | Replies use the ticket's language | Accepted |
 | [0030](0030-cli-tools-run-in-containers.md) | CLI tools run in a new container per call, with only the granted workspace paths, read-only | Accepted |
+| [0032](0032-defense-against-prompt-injection.md) | Defense against prompt injection in layers: least capability, risk triage, a policy for suspicious tickets, an output check | Accepted |
 
 ## Open decisions
 

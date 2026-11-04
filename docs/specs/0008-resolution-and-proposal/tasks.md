@@ -9,5 +9,7 @@
   `ConfidencePolicy`. *Covers:* AC-5 to AC-8.
 - [ ] **T6:** `ResolutionService` and the orchestrator integration; remove
   `SkeletonResolver`. *Covers:* AC-9, AC-10.
+- [ ] **T8:** The suspicious-ticket policy with its startup warning, and the output
+  check with redaction and flags. *Covers:* AC-11, AC-12.
 - [ ] **T7:** Run EV-1 to EV-6 with the native runtime and with Codex, and record the
   results in the PR.
