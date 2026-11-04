@@ -76,6 +76,31 @@ class ProviderErrorsTest {
   }
 
   @Test
+  void removesTheKeyFromTheMessageAndTheCauses() {
+    String key = "sk-synthetic-review-secret-000000";
+    RuntimeException wrapped =
+        new RuntimeException(
+            "Call failed for " + key,
+            new com.google.genai.errors.ApiException(
+                429, "RESOURCE_EXHAUSTED", "Request for API key " + key + " exceeded quota"));
+
+    LlmCallException error = ProviderErrors.describe("Gemini API", wrapped, List.of(key, ""));
+
+    assertThat(error.getMessage())
+        .isEqualTo(
+            "Gemini API call failed: HTTP 429 RESOURCE_EXHAUSTED:"
+                + " Request for API key [REDACTED] exceeded quota");
+    assertThat(error.status()).isEqualTo(429);
+    assertThat(error.retryable()).isTrue();
+    for (Throwable t = error; t != null; t = t.getCause()) {
+      assertThat(t.getMessage()).doesNotContain(key);
+      assertThat(t.toString()).doesNotContain(key);
+    }
+    assertThat(error.getCause())
+        .hasMessageContaining("RuntimeException: Call failed for [REDACTED]");
+  }
+
+  @Test
   void keepsTheMessageOfAnUnknownError() {
     LlmCallException error =
         ProviderErrors.describe("OpenAI API", new IllegalStateException("Unexpected"));

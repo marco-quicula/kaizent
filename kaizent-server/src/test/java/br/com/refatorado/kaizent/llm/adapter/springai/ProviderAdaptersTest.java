@@ -64,6 +64,30 @@ class ProviderAdaptersTest {
   static Stream<Provider> providers() {
     return Stream.of(
         new Provider(
+            "gemini-api",
+            "/v1beta/models/m:generateContent",
+            s ->
+                new GeminiApiLlmAdapter(KEY, s.url(), TestStructuredOutputs.create(), s.retrying()),
+            """
+            {"candidates":[{"content":{"role":"model","parts":[{"text":"%s"}]},
+               "finishReason":"STOP","index":0}],
+             "usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":7,"totalTokenCount":19},
+             "modelVersion":"m","responseId":"r1"}
+            """
+                .formatted(ANSWER),
+            """
+            {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",
+              "message":"Quota exceeded for key %s",
+              "details":[{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"5s"}]}}
+            """
+                .formatted(KEY),
+            """
+            {"error":{"code":401,"status":"UNAUTHENTICATED","message":"API key %s not valid"}}
+            """
+                .formatted(KEY),
+            "X-goog-api-key",
+            KEY),
+        new Provider(
             "openai",
             "/v1/chat/completions",
             s ->
@@ -77,11 +101,13 @@ class ProviderAdaptersTest {
             """
                 .formatted(ANSWER),
             """
-            {"error":{"message":"Rate limit reached","type":"requests","code":"rate_limit_exceeded"}}
-            """,
+            {"error":{"message":"Rate limit reached for %s","type":"requests","code":"rate_limit_exceeded"}}
             """
-            {"error":{"message":"Incorrect API key","type":"invalid_request_error","code":"invalid_api_key"}}
-            """,
+                .formatted(KEY),
+            """
+            {"error":{"message":"Incorrect API key provided: %s","type":"invalid_request_error","code":"invalid_api_key"}}
+            """
+                .formatted(KEY),
             "Authorization",
             "Bearer " + KEY),
         new Provider(
@@ -97,11 +123,13 @@ class ProviderAdaptersTest {
             """
                 .formatted(ANSWER),
             """
-            {"type":"error","error":{"type":"rate_limit_error","message":"Rate limit reached"}}
-            """,
+            {"type":"error","error":{"type":"rate_limit_error","message":"Rate limit reached for %s"}}
             """
-            {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}
-            """,
+                .formatted(KEY),
+            """
+            {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key %s"}}
+            """
+                .formatted(KEY),
             "x-api-key",
             KEY),
         new Provider(
@@ -188,7 +216,57 @@ class ProviderAdaptersTest {
           assertThat(e.getMessage()).contains("HTTP 401").doesNotContain(KEY);
         });
     assertThat(waits).hasSize(2);
+    // One request per attempt: the SDKs' own retries are off.
+    assertThat(stub.received()).hasSize(3);
     assertThat(output).contains("Model call failed").contains("HTTP 429").doesNotContain(KEY);
+  }
+
+  @Test
+  void keepsTheGeminiErrorStatusAndMakesOneRequestPerAttempt() {
+    Provider gemini = providers().filter(p -> p.name().equals("gemini-api")).findFirst().get();
+    String quota =
+        """
+        {"error":{"code":429,"status":"RESOURCE_EXHAUSTED","message":"Quota exceeded"}}
+        """;
+    stub.answer(429, quota).answer(429, quota).answer(429, quota);
+
+    assertThatExceptionOfType(LlmCallException.class)
+        .isThrownBy(() -> complete(gemini))
+        .satisfies(e -> assertThat(e.providerCode()).isEqualTo("RESOURCE_EXHAUSTED"))
+        .withMessage(
+            "Gemini API call failed: HTTP 429 RESOURCE_EXHAUSTED: Quota exceeded"
+                + " (gave up after 3 attempts)");
+    assertThat(stub.received()).hasSize(3);
+  }
+
+  @Test
+  void makesASingleGeminiRequestWithOneAttempt() {
+    stub.answer(503, "{\"error\":{\"code\":503,\"status\":\"UNAVAILABLE\",\"message\":\"x\"}}");
+    GeminiApiLlmAdapter adapter =
+        new GeminiApiLlmAdapter(
+            KEY, stub.url(), TestStructuredOutputs.create(), TestRetrying.none());
+
+    assertThatExceptionOfType(LlmCallException.class)
+        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", "m")))
+        .satisfies(e -> assertThat(e.providerCode()).isEqualTo("UNAVAILABLE"));
+    assertThat(stub.received()).hasSize(1);
+  }
+
+  @Test
+  void doesNotWaitForADailyGeminiQuota() {
+    Provider gemini = providers().filter(p -> p.name().equals("gemini-api")).findFirst().get();
+    stub.answer(
+        429,
+        """
+        {"error":{"code":429,"status":"RESOURCE_EXHAUSTED","message":"Daily quota exceeded",
+          "details":[{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"7200s"}]}}
+        """);
+
+    assertThatExceptionOfType(LlmCallException.class)
+        .isThrownBy(() -> complete(gemini))
+        .withMessageContaining("not retried: the wait is longer than kaizent.llm.retry.max-wait");
+    assertThat(stub.received()).hasSize(1);
+    assertThat(waits).isEmpty();
   }
 
   @Test

@@ -4,6 +4,8 @@ import br.com.refatorado.kaizent.llm.CostType;
 import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.Retrying;
 import br.com.refatorado.kaizent.llm.adapter.StructuredOutputs;
+import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -49,6 +51,20 @@ public class OllamaLlmAdapter extends SpringAiLlmAdapter {
   @Override
   String provider() {
     return "Ollama";
+  }
+
+  /** Credentials in the URL ({@code http://user:password@host}), if any. */
+  @Override
+  List<String> secrets() {
+    if (baseUrl == null) {
+      return List.of();
+    }
+    try {
+      String userInfo = URI.create(baseUrl).getRawUserInfo();
+      return userInfo == null ? List.of() : List.of(userInfo);
+    } catch (IllegalArgumentException e) {
+      return List.of(baseUrl);
+    }
   }
 
   @Override

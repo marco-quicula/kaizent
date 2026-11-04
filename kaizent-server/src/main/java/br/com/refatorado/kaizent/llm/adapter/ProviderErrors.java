@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,6 +26,30 @@ public final class ProviderErrors {
           "\"retryDelay\"\\s*:\\s*\"(\\d+(?:\\.\\d+)?)s\"|retry in (\\d+(?:\\.\\d+)?)\\s*s");
 
   private ProviderErrors() {}
+
+  private static final String REDACTED = "[REDACTED]";
+
+  /**
+   * Describes a failed call, with the given credentials removed from its message and from its
+   * causes (spec 0004 AC-11): a provider may echo a key in an error message.
+   */
+  public static LlmCallException describe(
+      String provider, Throwable error, Collection<String> secrets) {
+    List<String> present =
+        secrets.stream().filter(secret -> secret != null && !secret.isBlank()).toList();
+    LlmCallException described = describe(provider, error);
+    if (present.isEmpty() || !mentions(described, present)) {
+      return described;
+    }
+    return new LlmCallException(
+        provider,
+        described.status(),
+        redact(described.providerCode(), present),
+        redact(described.providerMessage(), present),
+        described.retryAfter(),
+        described.retryable(),
+        redacted(described.getCause(), present));
+  }
 
   /**
    * Describes a failed call; {@code provider} names it in the message, for example "OpenAI API".
@@ -104,6 +129,44 @@ public final class ProviderErrors {
     boolean retryable = status == 429 || status >= 500;
     return new LlmCallException(
         provider, status, code, shorten(message), retryAfter, retryable, error);
+  }
+
+  private static boolean mentions(Throwable error, List<String> secrets) {
+    for (Throwable t = error; t != null; t = t.getCause() == t ? null : t.getCause()) {
+      String message = t.getMessage();
+      if (message != null && secrets.stream().anyMatch(message::contains)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static String redact(String text, List<String> secrets) {
+    if (text == null) {
+      return null;
+    }
+    String result = text;
+    for (String secret : secrets) {
+      result = result.replace(secret, REDACTED);
+    }
+    return result;
+  }
+
+  /** A copy of the cause chain with the secrets removed from the messages. */
+  private static Throwable redacted(Throwable error, List<String> secrets) {
+    if (error == null) {
+      return null;
+    }
+    Throwable cause = error.getCause() == error ? null : redacted(error.getCause(), secrets);
+    return new RedactedException(error, redact(error.getMessage(), secrets), cause);
+  }
+
+  /** Stands for a provider exception whose message held a credential. */
+  static final class RedactedException extends RuntimeException {
+    RedactedException(Throwable original, String message, Throwable cause) {
+      super(original.getClass().getName() + (message == null ? "" : ": " + message), cause);
+      setStackTrace(original.getStackTrace());
+    }
   }
 
   /** {@code Retry-After} in seconds or as an HTTP date, or {@code retry-after-ms}. */

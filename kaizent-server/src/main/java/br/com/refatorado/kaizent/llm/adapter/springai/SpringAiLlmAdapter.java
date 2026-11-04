@@ -46,6 +46,14 @@ abstract class SpringAiLlmAdapter implements LlmAdapter {
   /** The provider's name in messages, for example {@code Gemini API}. */
   abstract String provider();
 
+  /**
+   * The configured credentials, removed from every error message and cause (spec 0004 AC-11); none
+   * by default.
+   */
+  List<String> secrets() {
+    return List.of();
+  }
+
   /** Builds the chat model for a model id; called once per model. */
   abstract ChatModel createModel(String modelId);
 
@@ -76,7 +84,7 @@ abstract class SpringAiLlmAdapter implements LlmAdapter {
     try {
       response = models.computeIfAbsent(modelId, this::createModel).call(prompt);
     } catch (RuntimeException e) {
-      throw ProviderErrors.describe(provider(), e);
+      throw ProviderErrors.describe(provider(), e, secrets());
     }
     String text =
         response == null || response.getResult() == null

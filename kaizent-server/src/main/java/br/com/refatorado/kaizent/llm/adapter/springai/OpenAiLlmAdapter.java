@@ -59,6 +59,11 @@ public class OpenAiLlmAdapter extends SpringAiLlmAdapter {
   }
 
   @Override
+  List<String> secrets() {
+    return List.of(apiKey);
+  }
+
+  @Override
   ChatModel createModel(String modelId) {
     // Spring AI's builder also makes an async client; both get the key and no SDK retries.
     return OpenAiChatModel.builder()

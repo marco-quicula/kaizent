@@ -5,6 +5,7 @@ import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.Retrying;
 import br.com.refatorado.kaizent.llm.adapter.StructuredOutputs;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.ai.anthropic.AnthropicChatModel;
@@ -56,6 +57,11 @@ public class AnthropicLlmAdapter extends SpringAiLlmAdapter {
   @Override
   String provider() {
     return "Anthropic API";
+  }
+
+  @Override
+  List<String> secrets() {
+    return List.of(apiKey);
   }
 
   @Override

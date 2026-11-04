@@ -5,12 +5,19 @@ import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.Retrying;
 import br.com.refatorado.kaizent.llm.adapter.StructuredOutputs;
 import com.google.genai.Client;
+import com.google.genai.types.ClientOptions;
 import com.google.genai.types.GenerateContentResponseUsageMetadata;
+import com.google.genai.types.HttpOptions;
+import com.google.genai.types.HttpRetryOptions;
+import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
+import okhttp3.OkHttpClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.google.genai.GoogleGenAiChatModel;
 import org.springframework.ai.google.genai.GoogleGenAiChatOptions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -23,14 +30,25 @@ public class GeminiApiLlmAdapter extends SpringAiLlmAdapter {
 
   public static final String NAME = "gemini-api";
 
-  private final String apiKey;
+  private static final Duration TIMEOUT = Duration.ofMinutes(5);
 
+  private final String apiKey;
+  private final String baseUrl;
+
+  @Autowired
   public GeminiApiLlmAdapter(
       @Value("${spring.ai.google.genai.api-key:}") String apiKey,
       StructuredOutputs structuredOutputs,
       Retrying retrying) {
+    this(apiKey, null, structuredOutputs, retrying);
+  }
+
+  /** With another endpoint, for tests against a local stub. */
+  GeminiApiLlmAdapter(
+      String apiKey, String baseUrl, StructuredOutputs structuredOutputs, Retrying retrying) {
     super(structuredOutputs, retrying);
     this.apiKey = apiKey == null ? "" : apiKey.strip();
+    this.baseUrl = isBlank(baseUrl) ? null : baseUrl.strip();
   }
 
   @Override
@@ -51,15 +69,41 @@ public class GeminiApiLlmAdapter extends SpringAiLlmAdapter {
   }
 
   @Override
+  List<String> secrets() {
+    return List.of(apiKey);
+  }
+
+  @Override
   ChatModel createModel(String modelId) {
     return GoogleGenAiChatModel.builder()
-        .genAiClient(Client.builder().apiKey(apiKey).build())
+        .genAiClient(client())
         .options(
             GoogleGenAiChatOptions.builder()
                 .model(modelId)
                 .responseMimeType("application/json")
                 .build())
         .retryTemplate(NO_RETRY)
+        .build();
+  }
+
+  private Client client() {
+    HttpOptions.Builder http =
+        HttpOptions.builder()
+            .timeout(Math.toIntExact(TIMEOUT.toMillis()))
+            // The SDK retries 429 and 5xx five times by default; Retrying retries instead.
+            .retryOptions(HttpRetryOptions.builder().attempts(1).build());
+    if (baseUrl != null) {
+      http.baseUrl(baseUrl);
+    }
+    OkHttpClient okHttp =
+        new OkHttpClient.Builder()
+            .readTimeout(TIMEOUT)
+            .addInterceptor(new GeminiErrorStatus())
+            .build();
+    return Client.builder()
+        .apiKey(apiKey)
+        .httpOptions(http.build())
+        .clientOptions(ClientOptions.builder().customHttpClient(okHttp).build())
         .build();
   }
 
