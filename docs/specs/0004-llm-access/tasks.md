@@ -22,9 +22,9 @@
 - [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`, `gemini-cli`),
   the `generic` preset, and the documentation of the CLI mode and its setup. *Covers:*
   AC-9, AC-13.
-- [ ] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*
-  AC-11. (The API adapters' log-capture test is done; the environment allowlist comes
-  with T6.)
+- [x] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*
+  AC-11. (The API adapters' log-capture and redaction tests came with #38; the
+  environment allowlist and the redacted error excerpts of the CLI executor with T6.)
 - [x] **T12:** Add the profiles to `GET /system`. *Covers:* AC-12.
 - [ ] **T13:** Manual validation of the Codex preset and of `gemini-api`, recorded in the
   PR, and optionally of `openai` and `anthropic`. *Covers:* EV-1, EV-2, EV-3 (optional).
