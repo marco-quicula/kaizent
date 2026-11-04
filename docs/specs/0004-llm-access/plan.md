@@ -176,6 +176,15 @@ kaizent:
 | AC-12 | API test |
 | EV-3 | Optional manual check with `openai` and `anthropic` keys, recorded in the PR when run |
 
+**`llm-check` command (T13).** The manual validations run one triage-shaped structured call
+on one ticket, before triage exists (spec 0006), with the `llm-check` profile:
+`java -jar ... --spring.profiles.active=llm-check --kaizent.llm-check.ticket=PC-002`. It uses
+the profile of `kaizent.llm-check.step` (default `resolution`), so any adapter, model or CLI
+preset; prints the answer, the tokens, the cost and the cost type; stores and delivers
+nothing; and exits with code 0, or 1 with the provider's cause when the call fails. It also
+lets a user check a key, a model or a CLI login before running the pipeline. Like the
+`eval` profile, it needs PostgreSQL running.
+
 ## Risks and mitigations
 
 - CLI flags change between versions → presets are data, not code; the preset declares
