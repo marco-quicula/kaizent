@@ -9,7 +9,7 @@
 - [ ] **T4:** Retry with backoff for transient and rate-limit errors, honoring a suggested
   wait, and keeping the provider's cause in the error. *Covers:* AC-4.
 - [x] **T5:** `Usage`, `CostType` and the pricing table. *Covers:* AC-5.
-- [ ] **T6:** `CliExecutor` and `DockerCliExecutor` (container contract, timeouts that stop
+- [x] **T6:** `CliExecutor` and `DockerCliExecutor` (container contract, timeouts that stop
   the container, output caps, environment allowlist), with a fake CLI image. *Covers:*
   AC-6.
 - [ ] **T7:** `PresetRegistry`, the `codex` preset and image, the `cli` compose profile

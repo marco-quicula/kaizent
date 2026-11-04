@@ -69,7 +69,9 @@ with `ProcessBuilder`:
 
 - a unique container name per call, so that a timeout can `docker kill` it;
 - `--read-only` root file system with a `--tmpfs /tmp` (a preset can declare more
-  temporary paths that its tool needs), `--user` non-root, `--cpus` and `--memory` from
+  temporary paths that its tool needs), `--user` non-root (`kaizent.cli.user`, default
+  `10001:10001`, the user that every CLI image creates), `--cap-drop ALL`,
+  `--security-opt no-new-privileges`, and `--cpus`, `--memory` and `--pids-limit` from
   `kaizent.cli.limits`;
 - only the paths that the `CliCommand` grants, each mounted read-only at its relative
   path (`-v <workspace>/knowledge/product:/workspace/knowledge/product:ro`, and so on),
@@ -77,12 +79,22 @@ with `ProcessBuilder`:
   else of the workspace is visible; a per-call scratch folder mounted writable at
   `/scratch` for the prompt, the schema file, output files and the tool's other state;
   and the preset's credential volume at the preset's path;
-- only the preset's `env` variables (`-e NAME`, with values from the environment or
-  `.env`), never the whole host environment;
+- only the preset's `env` variables (`--env NAME`, with values from the environment or
+  `.env`), never the whole host environment. The values reach `docker` through its own
+  process environment, never on its command line, and an error excerpt replaces them with
+  `[REDACTED]`;
 - the prompt written to stdin or to `/scratch`, as the preset defines, and stdin closed
   afterwards;
-- capped output buffers, and a clear error when `docker` is missing or the daemon is not
-  running.
+- capped output buffers (`kaizent.cli.max-output`, also for the output files read back
+  from `/scratch`), and a clear error when `docker` is missing or Docker cannot start the
+  container (exit code 125 with Docker's own message, for example when the daemon is not
+  running).
+
+Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
+`NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a
+normalized workspace-relative path that stays inside the workspace after resolving
+symbolic links. A CLI image creates the folder that its credential volume is mounted on,
+owned by the tool's user, so that a new volume takes that ownership.
 
 **Images and setup:** `docker/cli/<tool>/Dockerfile` installs the tool at a pinned
 version on an official base image and adds a non-root user. `compose.yaml` gets a `cli`
@@ -129,8 +141,10 @@ kaizent:
   agent:
     resolution: { runtime: cli, preset: codex, timeout: 5m }
   cli:
+    docker: docker            # the docker command
     max-output: 2MB
-    limits: { cpus: 2, memory: 2g }
+    user: "10001:10001"       # non-root; created by every CLI image
+    limits: { cpus: 2, memory: 2g, pids: 256 }
 ```
 
 ## Testing
