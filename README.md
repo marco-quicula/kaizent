@@ -174,8 +174,36 @@ use another model, set it in `.env`, for example:
 KAIZENT_LLM_RESOLUTION_MODEL=gemini-2.5-flash
 ```
 
-Free tiers have rate limits. If a run fails with a quota or rate-limit error, wait a minute
-and start again as in item 4. Automatic retries come in a later spec.
+Free tiers have rate limits. A model call that hits a rate limit (HTTP 429) or a
+transient server error (5xx) is retried up to 3 times, waiting 2, then 4 seconds, or
+longer when the provider asks for it. When the provider asks for more than 60 seconds
+(for example, a daily quota), Kaizent does not wait and the run fails at once. The
+failure shows the provider's cause: the HTTP status, the provider's error code and
+message, and the wait it asked for. Change these limits under `kaizent.llm.retry`
+(`max-attempts`, `initial-backoff`, `multiplier`, `max-wait`). If a run fails, wait as
+the message says and start again as in item 4.
+
+### Other providers
+
+Besides `gemini-api`, Kaizent has the `openai`, `anthropic` and `ollama` adapters. Each
+needs its own key (or, for Ollama, its URL) in `.env`; see `.env.example`:
+
+| Adapter | In `.env` |
+|---|---|
+| `openai` | `OPENAI_API_KEY` (and `OPENAI_BASE_URL` for another OpenAI-compatible endpoint) |
+| `anthropic` | `ANTHROPIC_API_KEY` |
+| `ollama` | `OLLAMA_BASE_URL`, for example `http://localhost:11434` |
+
+Then choose the adapter and the model for the step, with a model id from the provider:
+
+```
+KAIZENT_LLM_RESOLUTION_ADAPTER=openai
+KAIZENT_LLM_RESOLUTION_MODEL=<model id>
+```
+
+The application starts even when an adapter has no key. If a step uses it, the startup
+log warns about it, and the step's model calls fail with a message that names the
+missing variable. Keys are never logged.
 
 Each run records the tokens of its model calls. To record their cost too, give Kaizent the
 model's price in US dollars per million tokens, in a git-ignored `config/application.yaml`
@@ -248,13 +276,14 @@ Good to know:
   [Run with a real model](#run-with-a-real-model). They are synthetic.
 - **No review, no delivery:** evaluation runs never wait for a reviewer and never write
   to `outbox/`. They stay in the database, but the console's run list leaves them out.
-- **Failed calls:** a case whose model call fails fails all its checks, and the report
-  shows the error; the other cases still run. The message can be generic, such as
-  "Gemini API call failed: Failed to generate content", even when a
-  [Gemini rate limit](https://aistudio.google.com/docs/rate-limits) was hit; the usage
-  pages of Google AI Studio show which one. A per-minute limit resets after a minute, a
-  daily limit at midnight, Pacific time. Then run the evaluation again. Automatic retries
-  come with spec 0004.
+- **Failed calls:** rate limits and transient errors are retried first (see
+  [Run with a real model](#run-with-a-real-model)). A case whose model call still fails
+  fails all its checks, and the report shows the provider's cause, for example
+  "Gemini API call failed: HTTP 429 RESOURCE_EXHAUSTED: … (the provider asks to wait
+  41s)"; the other cases still run. On the Gemini API, a per-minute limit resets after a
+  minute and a daily limit at midnight, Pacific time
+  ([rate limits](https://aistudio.google.com/docs/rate-limits)). Then run the evaluation
+  again.
 - **Delay between cases:** `--kaizent.eval.case-delay=15s` waits 15 seconds after each
   case before starting the next one, whatever the adapter. To stay under a limit of N
   requests per minute, use a little more than 60/N seconds, for example `15s` for 5 per

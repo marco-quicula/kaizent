@@ -26,7 +26,8 @@ class RoutingLlmGatewayTest {
                 Map.of(
                     "resolution", new LlmProfile("a", "model-1"),
                     "triage", new LlmProfile("b", "model-2")),
-                Map.of()),
+                Map.of(),
+                null),
             List.of(new EchoAdapter("a"), new EchoAdapter("b")));
 
     assertThat(gateway.complete(request("resolution")).output()).isEqualTo("a:model-1");
@@ -41,7 +42,8 @@ class RoutingLlmGatewayTest {
                 Map.of("resolution", new LlmProfile("a", "model-1")),
                 Map.of(
                     "model-1",
-                    new LlmProperties.Price(new BigDecimal("0.75"), new BigDecimal("3.75")))),
+                    new LlmProperties.Price(new BigDecimal("0.75"), new BigDecimal("3.75"))),
+                null),
             List.of(new EchoAdapter("a")));
 
     assertThat(gateway.complete(request("resolution")).usage().cost()).isEqualByComparingTo("0.75");
@@ -50,9 +52,25 @@ class RoutingLlmGatewayTest {
   }
 
   @Test
+  void startsWithAnUnconfiguredAdapterAndLeavesTheFailureToItsCalls() {
+    LlmAdapter unconfigured =
+        new EchoAdapter("a") {
+          @Override
+          public java.util.Optional<String> unavailableReason() {
+            return java.util.Optional.of("A_KEY is not set");
+          }
+        };
+
+    new RoutingLlmGateway(
+        new LlmProperties(Map.of("resolution", new LlmProfile("a", "m")), Map.of(), null),
+        List.of(unconfigured));
+  }
+
+  @Test
   void failsForAStepWithoutProfile() {
     RoutingLlmGateway gateway =
-        new RoutingLlmGateway(new LlmProperties(Map.of(), Map.of()), List.of(new EchoAdapter("a")));
+        new RoutingLlmGateway(
+            new LlmProperties(Map.of(), Map.of(), null), List.of(new EchoAdapter("a")));
 
     assertThatExceptionOfType(LlmException.class)
         .isThrownBy(() -> gateway.complete(request("resolution")))
@@ -62,7 +80,7 @@ class RoutingLlmGatewayTest {
   @Test
   void rejectsAnUnknownAdapterAtStartup() {
     LlmProperties properties =
-        new LlmProperties(Map.of("resolution", new LlmProfile("missing", "m")), Map.of());
+        new LlmProperties(Map.of("resolution", new LlmProfile("missing", "m")), Map.of(), null);
 
     assertThatIllegalStateException()
         .isThrownBy(() -> new RoutingLlmGateway(properties, List.of(new EchoAdapter("a"))))
@@ -73,7 +91,18 @@ class RoutingLlmGatewayTest {
     return new LlmRequest<>(step, "system", "user", String.class, Map.of());
   }
 
-  private record EchoAdapter(String name) implements LlmAdapter {
+  private static class EchoAdapter implements LlmAdapter {
+    private final String name;
+
+    EchoAdapter(String name) {
+      this.name = name;
+    }
+
+    @Override
+    public String name() {
+      return name;
+    }
+
     @Override
     public <T> LlmResponse<T> complete(LlmRequest<T> request, LlmProfile profile) {
       String text = name + ":" + profile.model();

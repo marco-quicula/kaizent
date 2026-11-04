@@ -1,5 +1,7 @@
 package br.com.refatorado.kaizent.llm;
 
+import java.util.Optional;
+
 /**
  * An implementation of {@link LlmGateway} for one technology, registered under {@link #name()} and
  * selected per step by {@code kaizent.llm.profiles.<step>.adapter}.
@@ -17,4 +19,12 @@ public interface LlmAdapter {
 
   /** How this adapter's calls are paid for. */
   CostType costType();
+
+  /**
+   * Why the adapter cannot serve calls, for example a missing API key; empty when it is configured.
+   * A step that uses an unconfigured adapter logs this at startup, and its calls fail with it.
+   */
+  default Optional<String> unavailableReason() {
+    return Optional.empty();
+  }
 }
