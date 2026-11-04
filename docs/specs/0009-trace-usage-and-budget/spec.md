@@ -62,6 +62,9 @@ None. The evaluation report (spec 0003) uses the usage totals.
 
 - Trace retention or purge policies, and export to OpenTelemetry (wave 5).
 - Dataset export for fine-tuning (wave 6).
+- Reconciling the estimated cost with the providers' usage or billing APIs (an idea for
+  wave 5, in the roadmap). This spec records the estimate only, from the tokens of each
+  response and the configured prices, with no extra provider calls.
 
 ## Open questions
 
