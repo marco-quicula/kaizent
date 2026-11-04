@@ -72,7 +72,8 @@ discovery run counted 598 files after two calls). The image's `kaizent-codex` wr
 therefore runs `codex` with `CODEX_HOME` in a new folder under `/tmp` (a temporary file
 system per call), copies `auth.json` from the login volume before the call and copies it
 back only when the tool renewed it. The volume holds only the login, nothing is left
-from one call to the next (ADR-0030), and Kaizent's own code never reads the login.
+from one call to the next (ADR-0030), and Kaizent's application never reads the login
+(ADR-0031).
 
 **Output readers (`CliEvents`).** `text` takes the standard output as the answer;
 `codex` reads `codex exec --json`: the answer is the last `item.completed` event of type

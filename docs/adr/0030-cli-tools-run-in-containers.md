@@ -1,6 +1,7 @@
 # ADR-0030: CLI tools run in containers
 
-- **Status:** Accepted
+- **Status:** Accepted; the credentials part ("never reads, copies or logs") is superseded
+  by [ADR-0031](0031-cli-tool-state-and-login-in-the-container.md)
 - **Date:** 2026-11-03
 - **Supersedes:** the `LocalProcessExecutor` part of [ADR-0016](0016-llm-access-api-and-cli-adapters.md)
 

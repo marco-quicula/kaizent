@@ -253,8 +253,10 @@ other tools follow.
 > - Use your **own** account, on your **own** machine, for your **own** work. Do not use a
 >   subscription to serve other people's requests or to run a shared service: for that,
 >   use the API adapters with an API key.
-> - The tool's login stays in a Docker volume on your machine. Kaizent mounts it into the
->   tool's container but never reads, copies or logs it.
+> - The tool's login stays in a Docker volume on your machine. Kaizent's application
+>   mounts it into the tool's container but never reads, copies or logs it. Inside that
+>   container, the image's wrapper keeps the tool's sessions and caches in a temporary
+>   folder and moves only the login file between it and the volume (ADR-0031).
 > - You build the tool's image yourself from this repository; the project publishes no
 >   images or tool binaries.
 > - The tool's own read-only sandbox stays on; the container adds a second boundary
