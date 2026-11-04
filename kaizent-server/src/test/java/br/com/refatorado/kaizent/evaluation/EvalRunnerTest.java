@@ -12,8 +12,8 @@ class EvalRunnerTest {
 
   private static final Map<String, LlmProfile> FAKE =
       Map.of(
-          "resolution", new LlmProfile("fake", null),
-          "triage", new LlmProfile("gemini-api", "gemini-3.6-flash"));
+          "resolution", new LlmProfile("fake", null, null),
+          "triage", new LlmProfile("gemini-api", "gemini-3.6-flash", null));
 
   @Test
   void refusesTheFakeAdapters() {
@@ -33,7 +33,8 @@ class EvalRunnerTest {
   void acceptsRealAdapters() {
     assertThatCode(() ->
             EvalRunner.refuseFakeAdapters(
-                Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash")), false))
+                Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash", null)),
+                false))
         .doesNotThrowAnyException();
   }
 }

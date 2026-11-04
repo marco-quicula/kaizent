@@ -1,0 +1,39 @@
+# The bundled CLI presets (ADR-0016, ADR-0030, spec 0004 AC-9). Each runs its tool in a new
+# container from an image built locally from docker/cli/<tool>/ (docker compose --profile cli
+# build). Select one for a step with adapter "cli" and the preset's name, for example:
+#   kaizent.llm.profiles.resolution: { adapter: cli, preset: codex }
+# Any value can be overridden under kaizent.cli.presets.<name> in the configuration.
+#
+# Placeholders in the arguments: {schemaFile}, {promptFile} and {outputFile} are files in the
+# call's /scratch folder; {model} is the profile's model, used only in modelArgs.
+kaizent:
+  cli:
+    presets:
+      codex:
+        image: kaizent-cli-codex
+        tool-version: TO-BE-VALIDATED  # pinned in docker/cli/codex/Dockerfile (EV-1)
+        validated: false                # true once EV-1 passes with the real tool
+        cost-type: SUBSCRIPTION
+        credentials:
+          volume: kaizent-cli-codex
+          path: /home/kaizent/.codex
+        llm:
+          # A single structured call: read-only sandbox, prompt from stdin, the final message
+          # written to a file. The exact flags are confirmed with codex exec --help (EV-1).
+          args:
+            - codex
+            - exec
+            - --json
+            - --sandbox
+            - read-only
+            - --skip-git-repo-check
+            - --output-schema
+            - "{schemaFile}"
+            - --output-last-message
+            - "{outputFile}"
+            - "-"
+          model-args: [--model, "{model}"]
+          prompt: STDIN
+          output:
+            source: FILE
+            events: text

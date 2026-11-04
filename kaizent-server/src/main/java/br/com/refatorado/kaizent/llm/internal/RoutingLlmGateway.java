@@ -44,6 +44,11 @@ class RoutingLlmGateway implements LlmGateway {
                 + profile.adapter());
       }
       adapter
+          .invalidProfile(profile)
+          .ifPresent(reason -> {
+            throw new IllegalStateException("kaizent.llm.profiles." + step + ": " + reason);
+          });
+      adapter
           .unavailableReason()
           .ifPresent(reason ->
               log.warn(
@@ -68,6 +73,6 @@ class RoutingLlmGateway implements LlmGateway {
   /** The cost type of a profile's calls (spec 0004 AC-12). */
   CostType costType(LlmProfile profile) {
     LlmAdapter adapter = adapters.get(profile.adapter());
-    return pricing.costType(adapter.costType(), profile.model());
+    return pricing.costType(adapter.costType(profile), profile.model());
   }
 }

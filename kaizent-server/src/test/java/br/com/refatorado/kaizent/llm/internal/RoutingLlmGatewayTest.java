@@ -24,8 +24,8 @@ class RoutingLlmGatewayTest {
         new RoutingLlmGateway(
             new LlmProperties(
                 Map.of(
-                    "resolution", new LlmProfile("a", "model-1"),
-                    "triage", new LlmProfile("b", "model-2")),
+                    "resolution", new LlmProfile("a", "model-1", null),
+                    "triage", new LlmProfile("b", "model-2", null)),
                 Map.of(),
                 null),
             List.of(new EchoAdapter("a"), new EchoAdapter("b")));
@@ -39,7 +39,7 @@ class RoutingLlmGatewayTest {
     RoutingLlmGateway gateway =
         new RoutingLlmGateway(
             new LlmProperties(
-                Map.of("resolution", new LlmProfile("a", "model-1")),
+                Map.of("resolution", new LlmProfile("a", "model-1", null)),
                 Map.of(
                     "model-1",
                     new LlmProperties.Price(new BigDecimal("0.75"), new BigDecimal("3.75"))),
@@ -47,8 +47,8 @@ class RoutingLlmGatewayTest {
             List.of(new EchoAdapter("a")));
 
     assertThat(gateway.complete(request("resolution")).usage().cost()).isEqualByComparingTo("0.75");
-    assertThat(gateway.costType(new LlmProfile("a", "model-1"))).isEqualTo(CostType.API);
-    assertThat(gateway.costType(new LlmProfile("a", "model-2"))).isEqualTo(CostType.UNKNOWN);
+    assertThat(gateway.costType(new LlmProfile("a", "model-1", null))).isEqualTo(CostType.API);
+    assertThat(gateway.costType(new LlmProfile("a", "model-2", null))).isEqualTo(CostType.UNKNOWN);
   }
 
   @Test
@@ -62,7 +62,7 @@ class RoutingLlmGatewayTest {
         };
 
     new RoutingLlmGateway(
-        new LlmProperties(Map.of("resolution", new LlmProfile("a", "m")), Map.of(), null),
+        new LlmProperties(Map.of("resolution", new LlmProfile("a", "m", null)), Map.of(), null),
         List.of(unconfigured));
   }
 
@@ -80,7 +80,8 @@ class RoutingLlmGatewayTest {
   @Test
   void rejectsAnUnknownAdapterAtStartup() {
     LlmProperties properties =
-        new LlmProperties(Map.of("resolution", new LlmProfile("missing", "m")), Map.of(), null);
+        new LlmProperties(
+            Map.of("resolution", new LlmProfile("missing", "m", null)), Map.of(), null);
 
     assertThatIllegalStateException()
         .isThrownBy(() -> new RoutingLlmGateway(properties, List.of(new EchoAdapter("a"))))

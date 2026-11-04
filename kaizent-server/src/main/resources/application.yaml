@@ -2,8 +2,11 @@ spring:
   application:
     name: kaizent
   config:
-    # Loads a local .env file (git-ignored) from the working directory, if present.
-    import: optional:file:.env[.properties]
+    import:
+      # The bundled CLI presets (spec 0004, ADR-0030); any value can be overridden.
+      - classpath:cli-presets.yaml
+      # Loads a local .env file (git-ignored) from the working directory, if present.
+      - optional:file:.env[.properties]
   mvc:
     # Errors use RFC 9457 problem details (application/problem+json).
     problemdetails:
@@ -33,6 +36,8 @@ kaizent:
       resolution:
         adapter: ${KAIZENT_LLM_RESOLUTION_ADAPTER:gemini-api}
         model: ${KAIZENT_LLM_RESOLUTION_MODEL:gemini-3.6-flash}
+        # For the cli adapter only: the CLI preset, for example codex (cli-presets.yaml).
+        preset: ${KAIZENT_LLM_RESOLUTION_PRESET:}
     # Credentials of the other API adapters (spec 0004). An adapter without them is not
     # configured: the application starts, and the calls of a step that uses it fail.
     openai:

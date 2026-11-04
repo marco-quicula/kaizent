@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 class FakeLlmAdapterTest {
 
   private final FakeLlmAdapter fake = new FakeLlmAdapter(TestStructuredOutputs.create());
-  private final LlmProfile profile = new LlmProfile("fake", null);
+  private final LlmProfile profile = new LlmProfile("fake", null, null);
 
   @Test
   void returnsATypedResolutionOutputFromTheDefaultScript() {
