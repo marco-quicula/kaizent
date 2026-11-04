@@ -43,6 +43,8 @@
     <spring-modulith.version>2.1.2</spring-modulith.version>
     <!-- Local language detection for evaluation reports (spec 0003, Apache-2.0) -->
     <lingua.version>1.2.2</lingua.version>
+    <!-- JSON schema generation (spec 0004 AC-2, Apache-2.0); the version Spring AI uses -->
+    <victools-jsonschema.version>5.0.0</victools-jsonschema.version>
 
     <!-- Build plugins -->
     <spotless-maven-plugin.version>3.10.4</spotless-maven-plugin.version>
@@ -74,6 +76,16 @@
         <groupId>com.github.pemistahl</groupId>
         <artifactId>lingua</artifactId>
         <version>${lingua.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.victools</groupId>
+        <artifactId>jsonschema-generator</artifactId>
+        <version>${victools-jsonschema.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.victools</groupId>
+        <artifactId>jsonschema-module-jackson</artifactId>
+        <version>${victools-jsonschema.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -15,7 +15,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** {@code GET /api/v1/system} and the published contract (spec 0001 AC-8). */
+/** {@code GET /api/v1/system} and the published contract (spec 0001 AC-8, spec 0004 AC-12). */
 @KaizentIntegrationTest
 class SystemApiTests {
 
@@ -35,8 +35,17 @@ class SystemApiTests {
         .isEqualTo(buildProperties.getVersion())
         .isNotBlank();
     assertThat(system.at("/workspace").asString()).isEqualTo(workspace.root().toString());
-    assertThat(system.at("/profiles").isArray()).isTrue();
-    assertThat(system.at("/profiles").isEmpty()).isTrue();
+  }
+
+  @Test
+  void listsTheProfileOfEachStep() throws Exception {
+    JsonNode profiles = JsonMapper.shared().readTree(get("/api/v1/system").body()).at("/profiles");
+
+    assertThat(profiles.isArray()).isTrue();
+    assertThat(profiles.size()).isEqualTo(1);
+    assertThat(profiles.at("/0/step").asString()).isEqualTo("resolution");
+    assertThat(profiles.at("/0/adapter").asString()).isEqualTo("fake");
+    assertThat(profiles.at("/0/costType").asString()).isEqualTo("UNKNOWN");
   }
 
   @Test

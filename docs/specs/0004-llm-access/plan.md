@@ -91,6 +91,19 @@ the images and `docker compose run --rm <tool>-cli <login command>` fills the to
 credential volume. The exact login command of each tool is verified during
 implementation and documented in the README.
 
+## Structured output
+
+`StructuredOutputs` (in `llm.adapter`, shared by every adapter) appends the instructions
+and the JSON schema generated from the output record (victools, Draft 2020-12, every
+property required, no additional properties) to the user prompt. An answer is valid when
+it maps to the record with strict Jackson settings (no missing, null or unknown
+properties, possibly inside a Markdown code fence) and the record's Bean Validation
+constraints hold, which is what the schema requires, plus the constraints. On an invalid
+answer it calls the model once more with the validation error and the previous answer,
+and then fails with `LlmOutputException`. The usage of both calls is added up. The
+pipeline's output records (for example `ResolutionOutput`) are separate from the stored
+records (`Proposal`), which also carry the usage.
+
 ## Data
 
 No new tables. `Usage` is persisted per trace event in spec 0009. In this spec, the

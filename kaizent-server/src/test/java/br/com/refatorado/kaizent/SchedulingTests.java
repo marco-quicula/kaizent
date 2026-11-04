@@ -2,11 +2,13 @@ package br.com.refatorado.kaizent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import br.com.refatorado.kaizent.llm.CostType;
 import br.com.refatorado.kaizent.llm.LlmAdapter;
 import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmRequest;
 import br.com.refatorado.kaizent.llm.LlmResponse;
-import br.com.refatorado.kaizent.resolution.Proposal;
+import br.com.refatorado.kaizent.llm.Usage;
+import br.com.refatorado.kaizent.resolution.ResolutionOutput;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -111,6 +113,11 @@ class SchedulingTests {
     }
 
     @Override
+    public CostType costType() {
+      return CostType.UNKNOWN;
+    }
+
+    @Override
     public <T> LlmResponse<T> complete(LlmRequest<T> request, LlmProfile profile) {
       entered.countDown();
       try {
@@ -118,7 +125,10 @@ class SchedulingTests {
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
       }
-      return new LlmResponse<>(request.outputType().cast(new Proposal("d", "r", 0.1)), "{}");
+      return new LlmResponse<>(
+          request.outputType().cast(new ResolutionOutput("d", "r", 0.1)),
+          Usage.unknown(name(), profile.model()),
+          "{}");
     }
   }
 }

@@ -1,23 +1,26 @@
 package br.com.refatorado.kaizent.llm.adapter.fake;
 
+import br.com.refatorado.kaizent.llm.CostType;
 import br.com.refatorado.kaizent.llm.LlmAdapter;
 import br.com.refatorado.kaizent.llm.LlmException;
 import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmProfiles;
 import br.com.refatorado.kaizent.llm.LlmRequest;
 import br.com.refatorado.kaizent.llm.LlmResponse;
+import br.com.refatorado.kaizent.llm.Usage;
+import br.com.refatorado.kaizent.llm.adapter.ModelCall;
+import br.com.refatorado.kaizent.llm.adapter.StructuredOutputs;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Scripted responses for tests and offline runs (ADR-0020), with no network access. The script is
- * {@code classpath:fake/<step>/<ticket-key>.json}, or {@code fake/<step>/default.json}. A script
- * whose content is {@value #ERROR_MARKER} makes the call fail. Spec 0004 adds more markers.
+ * {@code classpath:fake/<step>/<ticket-key>.json}, or {@code fake/<step>/default.json}, and goes
+ * through the same structured output mapping and repair as a model's answer. A script whose content
+ * is {@value #ERROR_MARKER} makes the call fail. Spec 0004 T9 adds more markers.
  */
 @Component
 public class FakeLlmAdapter implements LlmAdapter {
@@ -25,10 +28,10 @@ public class FakeLlmAdapter implements LlmAdapter {
   public static final String NAME = LlmProfiles.FAKE_ADAPTER;
   static final String ERROR_MARKER = "__error__";
 
-  private final JsonMapper json;
+  private final StructuredOutputs structuredOutputs;
 
-  public FakeLlmAdapter(JsonMapper json) {
-    this.json = json;
+  public FakeLlmAdapter(StructuredOutputs structuredOutputs) {
+    this.structuredOutputs = structuredOutputs;
   }
 
   @Override
@@ -37,16 +40,19 @@ public class FakeLlmAdapter implements LlmAdapter {
   }
 
   @Override
+  public CostType costType() {
+    return CostType.UNKNOWN;
+  }
+
+  @Override
   public <T> LlmResponse<T> complete(LlmRequest<T> request, LlmProfile profile) {
     String script = script(request);
     if (ERROR_MARKER.equals(script.strip())) {
       throw new LlmException("Fake LLM error for step " + request.step());
     }
-    try {
-      return new LlmResponse<>(json.readValue(script, request.outputType()), script);
-    } catch (JacksonException e) {
-      throw new LlmException("Fake script is not a valid " + request.outputType().getName(), e);
-    }
+    return structuredOutputs.complete(
+        request,
+        (system, user) -> new ModelCall.Reply(script, Usage.unknown(NAME, profile.model())));
   }
 
   private String script(LlmRequest<?> request) {

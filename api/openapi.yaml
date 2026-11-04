@@ -237,6 +237,30 @@ components:
           description: The path of the active workspace, or null when none is configured.
         profiles:
           type: array
-          description: The adapter configured for each pipeline step (defined by spec 0004).
+          description: The adapter, model and cost type of each pipeline step (spec 0004).
           items:
-            type: object
+            $ref: "#/components/schemas/StepProfile"
+    StepProfile:
+      type: object
+      required: [step, adapter, costType]
+      properties:
+        step:
+          type: string
+          description: The pipeline step, for example resolution.
+          examples: ["resolution"]
+        adapter:
+          type: string
+          description: The adapter that serves the step.
+          examples: ["gemini-api"]
+        model:
+          type: [string, "null"]
+          description: The model id, if the adapter uses one.
+          examples: ["gemini-3.6-flash"]
+        costType:
+          $ref: "#/components/schemas/CostType"
+    CostType:
+      type: string
+      description: >-
+        How the step's calls are paid for. API is priced per token; UNKNOWN means that no
+        price is configured for the model, or that the adapter reports no cost.
+      enum: [API, SUBSCRIPTION, UNKNOWN]

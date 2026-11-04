@@ -2,13 +2,13 @@
 
 - [ ] **T1:** Profile configuration (`kaizent.llm.profiles`, `kaizent.agent`) and adapter
   resolution with startup validation. *Covers:* AC-1.
-- [ ] **T2:** JSON schema generation from records, validation, and the one-shot repair
-  flow in a shared `StructuredOutputSupport`. *Covers:* AC-2.
+- [x] **T2:** JSON schema generation from records, validation, and the one-shot repair
+  flow in a shared `StructuredOutputs`. *Covers:* AC-2.
 - [ ] **T3:** Generalize `SpringAiLlmGateway` to `gemini-api`, `openai`, `anthropic` and
   `ollama`, with conditional activation. *Covers:* AC-3.
 - [ ] **T4:** Retry with backoff for transient and rate-limit errors, honoring a suggested
   wait, and keeping the provider's cause in the error. *Covers:* AC-4.
-- [ ] **T5:** `Usage`, `CostType` and the pricing table. *Covers:* AC-5.
+- [x] **T5:** `Usage`, `CostType` and the pricing table. *Covers:* AC-5.
 - [ ] **T6:** `CliExecutor` and `DockerCliExecutor` (container contract, timeouts that stop
   the container, output caps, environment allowlist), with a fake CLI image. *Covers:*
   AC-6.
@@ -24,6 +24,6 @@
   AC-9, AC-13.
 - [ ] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*
   AC-11.
-- [ ] **T12:** Add the profiles to `GET /system`. *Covers:* AC-12.
+- [x] **T12:** Add the profiles to `GET /system`. *Covers:* AC-12.
 - [ ] **T13:** Manual validation of the Codex preset and of `gemini-api`, recorded in the
   PR, and optionally of `openai` and `anthropic`. *Covers:* EV-1, EV-2, EV-3 (optional).

@@ -1,9 +1,10 @@
 package br.com.refatorado.kaizent.llm;
 
 /**
- * The result of a structured call. Spec 0004 adds the token usage and cost.
+ * The result of a structured call.
  *
- * @param output the mapped result
- * @param rawOutput the model's text output, as received
+ * @param output the mapped and validated result
+ * @param usage the usage of the call, including a repair attempt, if any
+ * @param rawOutput the model's last text output, as received
  */
-public record LlmResponse<T>(T output, String rawOutput) {}
+public record LlmResponse<T>(T output, Usage usage, String rawOutput) {}

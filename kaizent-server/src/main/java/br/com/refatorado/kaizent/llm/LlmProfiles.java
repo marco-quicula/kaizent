@@ -10,4 +10,7 @@ public interface LlmProfiles {
 
   /** The profiles by step name, for example {@code resolution}. */
   Map<String, LlmProfile> byStep();
+
+  /** How the calls of a profile are paid for, from its adapter. */
+  CostType costType(LlmProfile profile);
 }
