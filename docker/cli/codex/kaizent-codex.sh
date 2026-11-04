@@ -21,8 +21,11 @@ status=0
 codex "$@" || status=$?
 
 if [ -f "$CODEX_HOME/auth.json" ] && ! cmp -s "$CODEX_HOME/auth.json" "$LOGIN/auth.json"; then
-  (umask 077 && cp "$CODEX_HOME/auth.json" "$LOGIN/auth.json.new")
-  mv "$LOGIN/auth.json.new" "$LOGIN/auth.json"
+  # A unique temporary file (mktemp creates it private), then an atomic rename: two calls
+  # that renew the login at the same time cannot clash; the last one wins.
+  renewed=$(mktemp "$LOGIN/auth.json.XXXXXX")
+  cp "$CODEX_HOME/auth.json" "$renewed"
+  mv "$renewed" "$LOGIN/auth.json"
 fi
 rm -rf "$CODEX_HOME"
 exit "$status"

@@ -20,8 +20,8 @@ kaizent:
           volume: kaizent-cli-codex
           path: /home/kaizent/.codex-login
         llm:
-          # A single structured call: read-only sandbox, no session files, the JSON schema
-          # enforced by codex, the prompt from stdin, the final message written to a file.
+          # A single structured call: read-only sandbox, no tools, no session files, the JSON
+          # schema enforced by codex, the prompt from stdin, the final message written to a file.
           # Flags confirmed with codex exec --help (Codex CLI 0.166.0).
           args:
             - kaizent-codex
@@ -31,6 +31,11 @@ kaizent:
             - --sandbox
             - read-only
             - --skip-git-repo-check
+            # No tools in a single structured call (spec 0004 AC-7): no shell, no web search.
+            - --disable
+            - shell_tool
+            - -c
+            - web_search="disabled"
             - --output-schema
             - "{schemaFile}"
             - --output-last-message

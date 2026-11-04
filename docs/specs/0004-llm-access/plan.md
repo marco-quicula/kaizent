@@ -56,7 +56,8 @@ kaizent.cli.presets.codex:
   tmpfs: []                        # writable paths the tool needs besides /tmp
   llm:                             # single structured call
     args: [kaizent-codex, exec, --json, --ephemeral, --sandbox, read-only,
-           --skip-git-repo-check, --output-schema, "{schemaFile}",
+           --skip-git-repo-check, --disable, shell_tool, -c, 'web_search="disabled"',
+           --output-schema, "{schemaFile}",
            --output-last-message, "{outputFile}", "-"]
     model-args: [--model, "{model}"]   # added only when the profile names a model
     prompt: STDIN                      # or FILE: {promptFile} in /scratch
