@@ -111,9 +111,10 @@ Wave 1 is broken down into 12 specs, listed in implementation order in
 ## Wave 5: operations, Kubernetes and incident handling
 
 - Helm chart and Kubernetes deployment (on-premise first).
-- Agent runner: a service (pod) with the CLI tools installed that runs headless tasks for
-  Kaizent through `RemoteRunnerExecutor`, plus a how-to covering isolation, credentials
-  and the providers' terms of use.
+- Agent runner: runs headless CLI tasks for Kaizent through `RemoteRunnerExecutor`, as
+  one Kubernetes Job or Pod per call, with the same images and container contract as the
+  wave 1 `DockerCliExecutor` (ADR-0030), plus a how-to covering isolation, credentials and
+  the providers' terms of use.
 - Observability with OpenTelemetry (traces, metrics, LLM usage).
 - Authentication, multiple users and roles for reviewers.
 - A third problem type: operational incidents (alerts, failing workloads), with MCP
