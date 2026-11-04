@@ -134,14 +134,20 @@ class DockerCliExecutorTest {
   }
 
   @Test
-  void rejectsAGrantedPathOutsideTheWorkspace() throws IOException {
+  void rejectsAGrantedPathOutsideTheWorkspaceOrIntoTheEvaluationCases() throws IOException {
     Path outside = Files.createTempDirectory("kaizent-outside-");
     try {
       Files.createSymbolicLink(workspace.resolve("link"), outside);
     } catch (UnsupportedOperationException | IOException e) {
       // No symbolic links here (Windows without the privilege): the other cases still run.
     }
-    for (Path path : List.of(Path.of("..", "x"), outside, Path.of("knowledge", "..", "evals"))) {
+    for (Path path :
+        List.of(
+            Path.of("..", "x"),
+            outside,
+            Path.of("knowledge", "..", "evals"),
+            Path.of("evals"),
+            Path.of("evals", "cases"))) {
       assertThatIllegalArgumentException()
           .isThrownBy(() ->
               executor.execute(
@@ -150,6 +156,23 @@ class DockerCliExecutorTest {
                       .grant(path)
                       .args("fake-cli", "id")
                       .build()));
+    }
+    try {
+      Files.createSymbolicLink(
+          workspace.resolve("knowledge").resolve("answers"), workspace.resolve("evals"));
+    } catch (UnsupportedOperationException | IOException e) {
+      // As above.
+    }
+    if (Files.isSymbolicLink(workspace.resolve("knowledge").resolve("answers"))) {
+      assertThatIllegalArgumentException()
+          .isThrownBy(() ->
+              executor.execute(
+                  CliCommand.builder(IMAGE, TIMEOUT)
+                      .workspace(workspace)
+                      .grant(Path.of("knowledge", "answers"))
+                      .args("fake-cli", "id")
+                      .build()))
+          .withMessageContaining("evaluation cases");
     }
     if (Files.isSymbolicLink(workspace.resolve("link"))) {
       assertThatIllegalArgumentException()
@@ -193,15 +216,46 @@ class DockerCliExecutorTest {
   }
 
   @Test
+  void neverReadsAnOutputFileThatIsASymbolicLink() throws IOException {
+    Path hostOnly = Files.createTempFile("kaizent-host-only-", ".txt");
+    Files.writeString(hostOnly, "host-only content");
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            executor.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .args(
+                        "fake-cli",
+                        "link",
+                        hostOnly.toAbsolutePath().toString(),
+                        "/scratch/answer.json")
+                    .outputFile("answer.json")
+                    .build()))
+        .withMessageContaining("is a symbolic link")
+        .withMessageNotContaining("host-only content");
+  }
+
+  @Test
   void passesOnlyTheDeclaredEnvironmentVariables() {
-    CliResult result =
+    List<String> baseline = variableNames(run("fake-cli", "env"));
+    CliResult declared =
         executor.execute(
             CliCommand.builder(IMAGE, TIMEOUT).env("DECLARED_VAR").args("fake-cli", "env").build());
 
-    assertThat(result.stdout()).contains("DECLARED_VAR=declared-text");
-    // Only the declared variable, plus what the image and the shell set themselves.
-    assertThat(result.stdout().lines().map(line -> line.substring(0, line.indexOf('='))))
-        .containsExactlyInAnyOrder("DECLARED_VAR", "HOME", "HOSTNAME", "PATH", "PWD", "SHLVL");
+    assertThat(declared.stdout()).contains("DECLARED_VAR=declared-text");
+    // Besides the declared variable, only what the image and the shell set themselves.
+    assertThat(variableNames(declared))
+        .containsExactlyInAnyOrderElementsOf(
+            java.util.stream.Stream.concat(
+                    baseline.stream(), java.util.stream.Stream.of("DECLARED_VAR"))
+                .toList());
+    assertThat(baseline)
+        .doesNotContain("UNDECLARED_VAR", "JAVA_HOME", "MAVEN_OPTS")
+        .hasSizeLessThan(8);
+  }
+
+  private static List<String> variableNames(CliResult result) {
+    return result.stdout().lines().map(line -> line.substring(0, line.indexOf('='))).toList();
   }
 
   @Test

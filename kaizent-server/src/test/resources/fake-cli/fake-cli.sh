@@ -7,6 +7,7 @@ case "$1" in
   ls) find "$2" | sort ;;
   cat) cat "$2" ;;
   write) printf '%s' "$3" > "$2" ;;
+  link) ln -s "$2" "$3" ;;
   sleep) sleep "$2" ;;
   fail) echo "$3" >&2; exit "$2" ;;
   big) head -c "$2" /dev/zero | tr '\0' 'x' ;;

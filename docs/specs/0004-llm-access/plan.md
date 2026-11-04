@@ -93,7 +93,9 @@ with `ProcessBuilder`:
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a
 normalized workspace-relative path that stays inside the workspace after resolving
-symbolic links. A CLI image creates the folder that its credential volume is mounted on,
+symbolic links, and it can neither be nor contain `evals/` nor resolve into it. An output
+file that the tool left in `/scratch` is read only when it is a regular file: a symbolic
+link fails the call, so that it cannot point to a host file that was never mounted. A CLI image creates the folder that its credential volume is mounted on,
 owned by the tool's user, so that a new volume takes that ownership.
 
 **Images and setup:** `docker/cli/<tool>/Dockerfile` installs the tool at a pinned

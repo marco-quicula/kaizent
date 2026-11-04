@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
@@ -44,6 +45,7 @@ public final class DockerCliExecutor implements CliExecutor {
   private static final Pattern VOLUME = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]*");
   private static final Pattern FILE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]*");
   private static final Pattern CONTAINER_PATH = Pattern.compile("/[A-Za-z0-9_./-]*");
+  private static final String EVALS = "evals";
   private static final int DOCKER_ERROR = 125;
   private static final int STDERR_EXCERPT = 1000;
   private static final Duration KILL_TIMEOUT = Duration.ofSeconds(20);
@@ -131,7 +133,15 @@ public final class DockerCliExecutor implements CliExecutor {
       boolean truncated = stdout.truncated() || stderr.truncated();
       for (String name : command.outputFiles()) {
         Path file = scratch.resolve(name);
-        if (Files.isRegularFile(file)) {
+        if (Files.isSymbolicLink(file)) {
+          // The tool could point it at a host file that was never mounted.
+          throw new CliException(
+              Kind.FAILED,
+              null,
+              "CLI output file " + name + " is a symbolic link; only regular files are read",
+              null);
+        }
+        if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
           byte[] bytes = readCapped(file);
           truncated |= bytes.length > settings.maxOutputBytes();
           int length = (int) Math.min(bytes.length, settings.maxOutputBytes());
@@ -240,6 +250,13 @@ public final class DockerCliExecutor implements CliExecutor {
       Path source = root.resolve(relative).toRealPath();
       if (!source.startsWith(root)) {
         throw new IllegalArgumentException("A granted path leaves the workspace: " + relative);
+      }
+      // The evaluation cases hold the expected answers: never visible to a tool (ADR-0030).
+      Path evals = root.resolve(EVALS);
+      Path realEvals = Files.exists(evals) ? evals.toRealPath() : evals;
+      if (source.startsWith(realEvals) || realEvals.startsWith(source)) {
+        throw new IllegalArgumentException(
+            "A granted path cannot include the evaluation cases (" + EVALS + "/): " + relative);
       }
       StringBuilder target = new StringBuilder(WORKSPACE);
       for (Path name : relative) {
@@ -405,7 +422,7 @@ public final class DockerCliExecutor implements CliExecutor {
   }
 
   private byte[] readCapped(Path file) {
-    try (InputStream in = Files.newInputStream(file)) {
+    try (InputStream in = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {
       return in.readNBytes((int) Math.min(Integer.MAX_VALUE - 8, settings.maxOutputBytes() + 1));
     } catch (IOException e) {
       throw new CliException(Kind.FAILED, null, "Could not read the CLI output file " + file, e);
