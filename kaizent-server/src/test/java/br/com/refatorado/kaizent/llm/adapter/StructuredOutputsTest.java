@@ -95,6 +95,26 @@ class StructuredOutputsTest {
     assertThat(outputs.map(" ", Answer.class).error()).isEqualTo("the answer is empty");
   }
 
+  /** A small output type with every scalar kind. */
+  record Scalars(String text, int count, double ratio, boolean flag) {}
+
+  @Test
+  void rejectsValuesOfTheWrongJsonType() {
+    String valid = "{\"text\": \"a\", \"count\": 1, \"ratio\": 0.5, \"flag\": true}";
+    assertThat(outputs.map(valid, Scalars.class).value()).isEqualTo(new Scalars("a", 1, 0.5, true));
+
+    for (String invalid :
+        List.of(
+            "{\"text\": \"a\", \"count\": 1, \"ratio\": \"0.5\", \"flag\": true}",
+            "{\"text\": \"a\", \"count\": \"1\", \"ratio\": 0.5, \"flag\": true}",
+            "{\"text\": \"a\", \"count\": 1.5, \"ratio\": 0.5, \"flag\": true}",
+            "{\"text\": \"a\", \"count\": 1, \"ratio\": 0.5, \"flag\": \"true\"}",
+            "{\"text\": 5, \"count\": 1, \"ratio\": 0.5, \"flag\": true}",
+            "{\"text\": true, \"count\": 1, \"ratio\": 0.5, \"flag\": true}")) {
+      assertThat(outputs.map(invalid, Scalars.class).error()).as(invalid).isNotNull();
+    }
+  }
+
   @Test
   void generatesASchemaThatRequiresEveryPropertyAndForbidsOthers() {
     String schema = outputs.schema(Answer.class);

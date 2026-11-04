@@ -21,7 +21,12 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.cfg.CoercionAction;
+import tools.jackson.databind.cfg.CoercionInputShape;
+import tools.jackson.databind.cfg.MutableCoercionConfig;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.type.LogicalType;
 
 /**
  * Structured output for every adapter (spec 0004 AC-2): asks the model for JSON that matches the
@@ -30,8 +35,9 @@ import tools.jackson.databind.json.JsonMapper;
  * {@link LlmOutputException}.
  *
  * <p>An answer is valid when it is a JSON object, possibly inside a Markdown code fence, with every
- * property of the record, of the right type and with no unknown property, and when the record's
- * Bean Validation constraints hold.
+ * property of the record, each of the right JSON type (no conversion from strings or between
+ * numbers and strings), with no unknown property, and when the record's Bean Validation constraints
+ * hold.
  */
 @Component
 public class StructuredOutputs {
@@ -48,6 +54,24 @@ public class StructuredOutputs {
             .enable(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES)
             .enable(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES)
             .enable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+            // A value of the wrong JSON type fails instead of being converted, as the schema
+            // requires: "0.8" is not a number, 5 is not a string, 1.5 is not an integer.
+            .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
+            .withCoercionConfig(LogicalType.Float, StructuredOutputs::failFromString)
+            .withCoercionConfig(
+                LogicalType.Integer,
+                config -> {
+                  failFromString(config);
+                  config.setCoercion(CoercionInputShape.Float, CoercionAction.Fail);
+                })
+            .withCoercionConfig(LogicalType.Boolean, StructuredOutputs::failFromString)
+            .withCoercionConfig(
+                LogicalType.Textual,
+                config -> {
+                  config.setCoercion(CoercionInputShape.Integer, CoercionAction.Fail);
+                  config.setCoercion(CoercionInputShape.Float, CoercionAction.Fail);
+                  config.setCoercion(CoercionInputShape.Boolean, CoercionAction.Fail);
+                })
             .build();
     this.validator = validator;
     SchemaGeneratorConfigBuilder config =
@@ -129,6 +153,11 @@ public class StructuredOutputs {
               .collect(Collectors.joining("; ")));
     }
     return new Mapping<>(value, null);
+  }
+
+  private static void failFromString(MutableCoercionConfig config) {
+    config.setCoercion(CoercionInputShape.String, CoercionAction.Fail);
+    config.setCoercion(CoercionInputShape.EmptyString, CoercionAction.Fail);
   }
 
   private static String withoutCodeFence(String text) {
