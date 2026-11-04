@@ -35,7 +35,7 @@ class DockerCliExecutorTest {
   private static final String VOLUME = "kaizent-cli-test-" + UUID.randomUUID();
 
   private final Map<String, String> configuration =
-      Map.of("ALLOWED_KEY", "allowed-value", "OTHER_KEY", "other-secret-value");
+      Map.of("DECLARED_VAR", "declared-text", "UNDECLARED_VAR", "undeclared-text");
   private DockerCliExecutor executor;
 
   @TempDir Path workspace;
@@ -196,12 +196,12 @@ class DockerCliExecutorTest {
   void passesOnlyTheDeclaredEnvironmentVariables() {
     CliResult result =
         executor.execute(
-            CliCommand.builder(IMAGE, TIMEOUT).env("ALLOWED_KEY").args("fake-cli", "env").build());
+            CliCommand.builder(IMAGE, TIMEOUT).env("DECLARED_VAR").args("fake-cli", "env").build());
 
-    assertThat(result.stdout()).contains("ALLOWED_KEY=allowed-value");
+    assertThat(result.stdout()).contains("DECLARED_VAR=declared-text");
     // Only the declared variable, plus what the image and the shell set themselves.
     assertThat(result.stdout().lines().map(line -> line.substring(0, line.indexOf('='))))
-        .containsExactlyInAnyOrder("ALLOWED_KEY", "HOME", "HOSTNAME", "PATH", "PWD", "SHLVL");
+        .containsExactlyInAnyOrder("DECLARED_VAR", "HOME", "HOSTNAME", "PATH", "PWD", "SHLVL");
   }
 
   @Test
@@ -245,14 +245,14 @@ class DockerCliExecutorTest {
         .isThrownBy(() ->
             executor.execute(
                 CliCommand.builder(IMAGE, TIMEOUT)
-                    .env("ALLOWED_KEY")
-                    .args("fake-cli", "fail", "3", "bad key allowed-value rejected")
+                    .env("DECLARED_VAR")
+                    .args("fake-cli", "fail", "3", "tool echoed declared-text here")
                     .build()))
         .satisfies(e -> {
           assertThat(e.kind()).isEqualTo(Kind.NON_ZERO_EXIT);
           assertThat(e.exitCode()).isEqualTo(3);
         })
-        .withMessage("CLI call in " + IMAGE + " exited with code 3: bad key [REDACTED] rejected");
+        .withMessage("CLI call in " + IMAGE + " exited with code 3: tool echoed [REDACTED] here");
   }
 
   @Test
