@@ -11,12 +11,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@link LlmGateway} used by the core: sends each request to the adapter configured for its
  * step and prices the usage. Unknown adapters fail at startup (spec 0004 AC-1).
  */
 class RoutingLlmGateway implements LlmGateway {
+
+  private static final Logger log = LoggerFactory.getLogger(RoutingLlmGateway.class);
 
   private final Map<String, LlmProfile> profiles;
   private final Map<String, LlmAdapter> adapters;
@@ -29,7 +33,8 @@ class RoutingLlmGateway implements LlmGateway {
         adapters.stream()
             .collect(Collectors.toUnmodifiableMap(LlmAdapter::name, Function.identity()));
     this.profiles.forEach((step, profile) -> {
-      if (profile.adapter() == null || !this.adapters.containsKey(profile.adapter())) {
+      LlmAdapter adapter = profile.adapter() == null ? null : this.adapters.get(profile.adapter());
+      if (adapter == null) {
         throw new IllegalStateException(
             "kaizent.llm.profiles."
                 + step
@@ -38,6 +43,14 @@ class RoutingLlmGateway implements LlmGateway {
                 + ", but is "
                 + profile.adapter());
       }
+      adapter
+          .unavailableReason()
+          .ifPresent(reason ->
+              log.warn(
+                  "Step {} uses the {} adapter, which is not configured: {}. Its calls fail until it is.",
+                  step,
+                  profile.adapter(),
+                  reason));
     });
   }
 

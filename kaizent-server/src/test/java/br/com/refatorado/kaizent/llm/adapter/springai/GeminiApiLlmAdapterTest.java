@@ -8,6 +8,7 @@ import br.com.refatorado.kaizent.llm.LlmException;
 import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmRequest;
 import br.com.refatorado.kaizent.llm.Usage;
+import br.com.refatorado.kaizent.llm.adapter.TestRetrying;
 import br.com.refatorado.kaizent.llm.adapter.TestStructuredOutputs;
 import br.com.refatorado.kaizent.resolution.ResolutionOutput;
 import com.google.genai.types.GenerateContentResponseUsageMetadata;
@@ -22,7 +23,8 @@ class GeminiApiLlmAdapterTest {
 
   @Test
   void failsClearlyWithoutAnApiKey() {
-    GeminiApiLlmAdapter adapter = new GeminiApiLlmAdapter("  ", TestStructuredOutputs.create());
+    GeminiApiLlmAdapter adapter =
+        new GeminiApiLlmAdapter("  ", TestStructuredOutputs.create(), TestRetrying.none());
 
     assertThatExceptionOfType(LlmException.class)
         .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", "gemini-x")))
@@ -31,7 +33,8 @@ class GeminiApiLlmAdapterTest {
 
   @Test
   void failsClearlyWithoutAModel() {
-    GeminiApiLlmAdapter adapter = new GeminiApiLlmAdapter("key", TestStructuredOutputs.create());
+    GeminiApiLlmAdapter adapter =
+        new GeminiApiLlmAdapter("key", TestStructuredOutputs.create(), TestRetrying.none());
 
     assertThatExceptionOfType(LlmException.class)
         .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", " ")))
@@ -41,7 +44,7 @@ class GeminiApiLlmAdapterTest {
   @Test
   void billsTheThinkingTokensAsOutput() {
     Usage usage =
-        GeminiApiLlmAdapter.usage(
+        GeminiApiLlmAdapter.fromMetadata(
             GenerateContentResponseUsageMetadata.builder()
                 .promptTokenCount(100)
                 .candidatesTokenCount(20)
@@ -55,7 +58,7 @@ class GeminiApiLlmAdapterTest {
   @Test
   void countsOnlyTheAnswerWhenNoThinkingIsReported() {
     Usage usage =
-        GeminiApiLlmAdapter.usage(
+        GeminiApiLlmAdapter.fromMetadata(
             GenerateContentResponseUsageMetadata.builder()
                 .promptTokenCount(100)
                 .candidatesTokenCount(20)
@@ -68,7 +71,7 @@ class GeminiApiLlmAdapterTest {
   @Test
   void keepsZeroCountsThatTheApiReported() {
     Usage usage =
-        GeminiApiLlmAdapter.usage(
+        GeminiApiLlmAdapter.fromMetadata(
             GenerateContentResponseUsageMetadata.builder()
                 .promptTokenCount(0)
                 .candidatesTokenCount(0)
@@ -81,11 +84,11 @@ class GeminiApiLlmAdapterTest {
 
   @Test
   void leavesCountsThatTheApiDidNotReportUnknown() {
-    assertThat(GeminiApiLlmAdapter.usage(null, "gemini-x"))
+    assertThat(GeminiApiLlmAdapter.fromMetadata(null, "gemini-x"))
         .satisfies(u -> assertThat(u.inputTokens()).isNull())
         .satisfies(u -> assertThat(u.outputTokens()).isNull());
     Usage partial =
-        GeminiApiLlmAdapter.usage(
+        GeminiApiLlmAdapter.fromMetadata(
             GenerateContentResponseUsageMetadata.builder().promptTokenCount(100).build(),
             "gemini-x");
     assertThat(partial.inputTokens()).isEqualTo(100);

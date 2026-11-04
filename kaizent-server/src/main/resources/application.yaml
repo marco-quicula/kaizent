@@ -33,6 +33,15 @@ kaizent:
       resolution:
         adapter: ${KAIZENT_LLM_RESOLUTION_ADAPTER:gemini-api}
         model: ${KAIZENT_LLM_RESOLUTION_MODEL:gemini-3.6-flash}
+    # Credentials of the other API adapters (spec 0004). An adapter without them is not
+    # configured: the application starts, and the calls of a step that uses it fail.
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:}
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:}
 
 # Two scheduler threads: the intake poller keeps polling while the run worker waits for a
 # model call. Each task still never runs concurrently with itself, so runs are processed one
