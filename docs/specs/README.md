@@ -60,7 +60,7 @@ Implement in this order. Each spec lists its dependencies.
 | [0001](0001-project-foundation/spec.md) | Project foundation | Done |
 | [0002](0002-walking-skeleton/spec.md) | Walking skeleton (end-to-end thin slice) | Done |
 | [0003](0003-petclinic-demo-workspace/spec.md) | PetClinic demo workspace and evaluation runner | Done |
-| [0004](0004-llm-access/spec.md) | LLM access: API, CLI and fake adapters | Approved |
+| [0004](0004-llm-access/spec.md) | LLM access: API, CLI and fake adapters | In progress |
 | [0005](0005-problem-intake/spec.md) | Problem intake and canonical model | Approved |
 | [0006](0006-triage-and-roles/spec.md) | Triage and roles | Approved |
 | [0007](0007-skills-and-knowledge/spec.md) | Skills and knowledge | Approved |

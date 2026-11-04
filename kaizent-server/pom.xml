@@ -62,6 +62,21 @@
       <artifactId>spring-ai-google-genai</artifactId>
     </dependency>
     <dependency>
+      <!-- JSON schemas generated from output records (spec 0004 AC-2). Spring AI uses the
+           same library; the parent POM pins the version it uses. -->
+      <groupId>com.github.victools</groupId>
+      <artifactId>jsonschema-generator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.victools</groupId>
+      <artifactId>jsonschema-module-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <!-- Validates model output against the generated schema (spec 0004 AC-2). -->
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
+    </dependency>
+    <dependency>
       <!-- Detects the language of suggested replies in evaluation reports, locally and
            without a model (spec 0003 AC-6). -->
       <groupId>com.github.pemistahl</groupId>

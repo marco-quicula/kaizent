@@ -13,7 +13,7 @@ record improves.
 > are documented, and the first wave (the MVP) is broken down into approved
 > [specs](docs/specs/README.md). Specs 0001 (project foundation), 0002 (the walking
 > skeleton, the first end-to-end cycle with a real model) and 0003 (the PetClinic demo
-> workspace and the evaluation runner) are done; spec 0004 (LLM access) is next.
+> workspace and the evaluation runner) are done; spec 0004 (LLM access) is in progress.
 
 ## How it works (target for the MVP)
 
@@ -176,6 +176,21 @@ KAIZENT_LLM_RESOLUTION_MODEL=gemini-2.5-flash
 
 Free tiers have rate limits. If a run fails with a quota or rate-limit error, wait a minute
 and start again as in item 4. Automatic retries come in a later spec.
+
+Each run records the tokens of its model calls. To record their cost too, give Kaizent the
+model's price in US dollars per million tokens, in a git-ignored `config/application.yaml`
+in the repository root (model ids with dots need brackets):
+
+```yaml
+kaizent:
+  llm:
+    pricing:
+      "[gemini-3.6-flash]": { input-per-million: 0.75, output-per-million: 3.75 }
+```
+
+Take the prices from the provider's pricing page; Kaizent ships none, because they
+change. Without a price, the cost type is `UNKNOWN`. `GET /api/v1/system` shows the
+adapter, model and cost type of each step.
 
 To try the cycle without any model, for example offline, use the scripted `fake` adapter,
 which returns a fixed reply:

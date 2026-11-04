@@ -30,3 +30,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local configuration overrides, such as model prices (see README)
+/config/

@@ -3,6 +3,7 @@ package br.com.refatorado.kaizent.resolution;
 import br.com.refatorado.kaizent.intake.Problem;
 import br.com.refatorado.kaizent.llm.LlmGateway;
 import br.com.refatorado.kaizent.llm.LlmRequest;
+import br.com.refatorado.kaizent.llm.LlmResponse;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -38,14 +39,17 @@ public class SkeletonResolver {
         %s
         """
             .formatted(problem.externalKey(), problem.title(), problem.body());
-    return llm.complete(
+    LlmResponse<ResolutionOutput> response =
+        llm.complete(
             new LlmRequest<>(
                 STEP,
                 systemPrompt,
                 user,
-                Proposal.class,
-                Map.of(LlmRequest.TICKET_KEY, problem.externalKey())))
-        .output();
+                ResolutionOutput.class,
+                Map.of(LlmRequest.TICKET_KEY, problem.externalKey())));
+    ResolutionOutput output = response.output();
+    return new Proposal(
+        output.diagnosis(), output.suggestedReply(), output.rawConfidence(), response.usage());
   }
 
   private static String load(String path) {
