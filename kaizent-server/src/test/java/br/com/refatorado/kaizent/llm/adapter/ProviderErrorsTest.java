@@ -1,6 +1,7 @@
 package br.com.refatorado.kaizent.llm.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import br.com.refatorado.kaizent.llm.LlmCallException;
 import java.io.IOException;
@@ -8,11 +9,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
 /** Spec 0004 AC-4: a failed call keeps the provider's cause. */
+@ExtendWith(OutputCaptureExtension.class)
 class ProviderErrorsTest {
 
   @Test
@@ -98,6 +103,30 @@ class ProviderErrorsTest {
     }
     assertThat(error.getCause())
         .hasMessageContaining("RuntimeException: Call failed for [REDACTED]");
+  }
+
+  @Test
+  void removesAKeyThatCrossesTheCutOfTheMessage(CapturedOutput output) {
+    String key = "sk-synthetic-review-secret-000000";
+    String message = "x".repeat(468) + key + " exceeded quota";
+    RuntimeException wrapped =
+        new RuntimeException(
+            new com.google.genai.errors.ApiException(429, "RESOURCE_EXHAUSTED", message));
+    LlmCallException error = ProviderErrors.describe("Gemini API", wrapped, List.of(key));
+
+    assertThat(error.providerMessage()).doesNotContain(key.substring(0, 12)).contains("[REDACTED]");
+    assertThat(error.getMessage()).doesNotContain(key.substring(0, 12));
+    for (Throwable t = error.getCause(); t != null; t = t.getCause()) {
+      assertThat(t.toString()).doesNotContain(key.substring(0, 12));
+    }
+
+    Retrying twoAttempts = new Retrying(2, Duration.ZERO, 1, Duration.ofMinutes(1), d -> {});
+    assertThatExceptionOfType(LlmCallException.class)
+        .isThrownBy(() ->
+            twoAttempts.call(() -> {
+              throw ProviderErrors.describe("Gemini API", wrapped, List.of(key));
+            }));
+    assertThat(output).contains("Model call failed").doesNotContain(key.substring(0, 12));
   }
 
   @Test

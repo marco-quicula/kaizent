@@ -37,26 +37,31 @@ public final class ProviderErrors {
       String provider, Throwable error, Collection<String> secrets) {
     List<String> present =
         secrets.stream().filter(secret -> secret != null && !secret.isBlank()).toList();
-    LlmCallException described = describe(provider, error);
-    if (present.isEmpty() || !mentions(described, present)) {
+    // The texts are redacted before they are shortened, so a cut never leaves part of a key.
+    LlmCallException described = describe(provider, error, present);
+    if (present.isEmpty() || !mentions(error, present)) {
       return described;
     }
     return new LlmCallException(
         provider,
         described.status(),
-        redact(described.providerCode(), present),
-        redact(described.providerMessage(), present),
+        described.providerCode(),
+        described.providerMessage(),
         described.retryAfter(),
         described.retryable(),
-        redacted(described.getCause(), present));
+        redacted(error, present));
   }
 
   /**
    * Describes a failed call; {@code provider} names it in the message, for example "OpenAI API".
    */
   public static LlmCallException describe(String provider, Throwable error) {
+    return describe(provider, error, List.of());
+  }
+
+  private static LlmCallException describe(String provider, Throwable error, List<String> secrets) {
     for (Throwable cause = error; cause != null; cause = cause.getCause()) {
-      LlmCallException described = describeOne(provider, cause, error);
+      LlmCallException described = describeOne(provider, cause, error, secrets);
       if (described != null) {
         return described;
       }
@@ -65,16 +70,17 @@ public final class ProviderErrors {
       }
     }
     return new LlmCallException(
-        provider, null, null, shorten(rootMessage(error)), null, false, error);
+        provider, null, null, shorten(rootMessage(error), secrets), null, false, error);
   }
 
-  private static LlmCallException describeOne(String provider, Throwable cause, Throwable error) {
+  private static LlmCallException describeOne(
+      String provider, Throwable cause, Throwable error, List<String> secrets) {
     if (cause instanceof LlmCallException known) {
       return known;
     }
     if (cause instanceof com.google.genai.errors.ApiException api) {
       String message = api.message();
-      return call(provider, api.code(), api.status(), message, retryDelay(message), error);
+      return call(provider, api.code(), api.status(), message, retryDelay(message), error, secrets);
     }
     if (cause instanceof com.openai.errors.OpenAIServiceException openAi) {
       return call(
@@ -84,7 +90,8 @@ public final class ProviderErrors {
           openAi.getMessage(),
           retryAfter(
               openAi.headers().values("retry-after"), openAi.headers().values("retry-after-ms")),
-          error);
+          error,
+          secrets);
     }
     if (cause instanceof com.anthropic.errors.AnthropicServiceException anthropic) {
       return call(
@@ -93,7 +100,8 @@ public final class ProviderErrors {
           null,
           anthropic.getMessage(),
           retryAfter(anthropic.headers().values("retry-after"), List.of()),
-          error);
+          error,
+          secrets);
     }
     if (cause instanceof RestClientResponseException rest) {
       String retry =
@@ -107,14 +115,15 @@ public final class ProviderErrors {
           null,
           body.isBlank() ? rest.getStatusText() : body,
           retryAfter(retry == null ? List.of() : List.of(retry), List.of()),
-          error);
+          error,
+          secrets);
     }
     if (cause instanceof IOException
         || cause instanceof com.openai.errors.OpenAIIoException
         || cause instanceof com.anthropic.errors.AnthropicIoException) {
       // A network error before any answer: transient.
       return new LlmCallException(
-          provider, null, null, shorten(rootMessage(cause)), null, true, error);
+          provider, null, null, shorten(rootMessage(cause), secrets), null, true, error);
     }
     return null;
   }
@@ -125,12 +134,20 @@ public final class ProviderErrors {
       String code,
       String message,
       Duration retryAfter,
-      Throwable error) {
+      Throwable error,
+      List<String> secrets) {
     boolean retryable = status == 429 || status >= 500;
     return new LlmCallException(
-        provider, status, code, shorten(message), retryAfter, retryable, error);
+        provider,
+        status,
+        shorten(code, secrets),
+        shorten(message, secrets),
+        retryAfter,
+        retryable,
+        error);
   }
 
+  /** Whether a message in the cause chain holds a secret. */
   private static boolean mentions(Throwable error, List<String> secrets) {
     for (Throwable t = error; t != null; t = t.getCause() == t ? null : t.getCause()) {
       String message = t.getMessage();
@@ -218,11 +235,12 @@ public final class ProviderErrors {
     return root.getMessage() != null ? root.getMessage() : root.getClass().getSimpleName();
   }
 
-  private static String shorten(String message) {
+  /** Redacts the secrets first, then puts the message on one line and cuts it. */
+  private static String shorten(String message, List<String> secrets) {
     if (message == null) {
       return null;
     }
-    String oneLine = message.strip().replaceAll("\\s+", " ");
+    String oneLine = redact(message, secrets).strip().replaceAll("\\s+", " ");
     return oneLine.length() <= MAX_MESSAGE ? oneLine : oneLine.substring(0, MAX_MESSAGE) + "…";
   }
 }
