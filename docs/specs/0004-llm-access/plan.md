@@ -69,8 +69,9 @@ with `ProcessBuilder`:
 
 - a unique container name per call, so that a timeout can `docker kill` it;
 - `--read-only` root file system with a `--tmpfs /tmp` (a preset can declare more
-  temporary paths that its tool needs), `--user` non-root (`kaizent.cli.user`, default
-  `10001:10001`, the user that every CLI image creates), `--cap-drop ALL`,
+  temporary paths that its tool needs), `--user` non-root (`kaizent.cli.user`, a numeric
+  `uid:gid` with neither id zero, default `10001:10001`, the user that every CLI image
+  creates; user names such as `root` are refused), `--cap-drop ALL`,
   `--security-opt no-new-privileges`, and `--cpus`, `--memory` and `--pids-limit` from
   `kaizent.cli.limits`;
 - only the paths that the `CliCommand` grants, each mounted read-only at its relative
@@ -82,13 +83,19 @@ with `ProcessBuilder`:
 - only the preset's `env` variables (`--env NAME`, with values from the environment or
   `.env`), never the whole host environment. The values reach `docker` through its own
   process environment, never on its command line, and an error excerpt replaces them with
-  `[REDACTED]`;
+  `[REDACTED]`, longest first and before any cut, including a value that the output cap
+  cut off at the end;
 - the prompt written to stdin or to `/scratch`, as the preset defines, and stdin closed
   afterwards;
 - capped output buffers (`kaizent.cli.max-output`, also for the output files read back
   from `/scratch`), and a clear error when `docker` is missing or Docker cannot start the
   container (exit code 125 with Docker's own message, for example when the daemon is not
   running).
+
+When a call does not end normally (timeout, interruption or any other failure after the
+container was started), the executor stops the container with `docker kill`: the container
+belongs to the Docker daemon and keeps running when only its client is stopped. An
+interruption is kept for the caller.
 
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a

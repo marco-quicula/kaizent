@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -47,6 +48,8 @@ public final class DockerCliExecutor implements CliExecutor {
   private static final Pattern CONTAINER_PATH = Pattern.compile("/[A-Za-z0-9_./-]*");
   private static final String EVALS = "evals";
   private static final int DOCKER_ERROR = 125;
+  private static final String REDACTED = "[REDACTED]";
+  private static final Pattern USER = Pattern.compile("([0-9]+):([0-9]+)");
   private static final int STDERR_EXCERPT = 1000;
   private static final Duration KILL_TIMEOUT = Duration.ofSeconds(20);
 
@@ -65,8 +68,14 @@ public final class DockerCliExecutor implements CliExecutor {
 
     public Settings {
       Objects.requireNonNull(docker, "docker");
-      if (user == null || user.isBlank() || user.startsWith("0:") || user.equals("0")) {
-        throw new IllegalArgumentException("kaizent.cli.user must be a non-root uid:gid");
+      Matcher ids = user == null ? null : USER.matcher(user);
+      // Numeric only: Docker also takes names, and "root" or "00" would run the tool as root.
+      if (ids == null
+          || !ids.matches()
+          || new java.math.BigInteger(ids.group(1)).signum() == 0
+          || new java.math.BigInteger(ids.group(2)).signum() == 0) {
+        throw new IllegalArgumentException(
+            "kaizent.cli.user must be a numeric non-root uid:gid, for example 10001:10001");
       }
     }
   }
@@ -95,12 +104,19 @@ public final class DockerCliExecutor implements CliExecutor {
       Process process = start(line, env);
       Capture stdout = Capture.start(process.getInputStream(), settings.maxOutputBytes());
       Capture stderr = Capture.start(process.getErrorStream(), settings.maxOutputBytes());
-      writeStdin(process, command.stdin());
-
-      boolean finished = waitFor(process, command.timeout());
+      boolean finished = false;
+      try {
+        writeStdin(process, command.stdin());
+        finished = waitFor(process, command.timeout());
+      } finally {
+        if (!finished) {
+          // Timeout, interruption or any other failure: the container belongs to the Docker
+          // daemon and keeps running unless it is stopped, even when its client is gone.
+          kill(container);
+          process.destroyForcibly();
+        }
+      }
       if (!finished) {
-        kill(container);
-        process.destroyForcibly();
         throw new CliException(
             Kind.TIMEOUT,
             null,
@@ -115,18 +131,17 @@ public final class DockerCliExecutor implements CliExecutor {
       String err = stderr.text();
       int exit = process.exitValue();
       if (exit == DOCKER_ERROR && isDockerError(err)) {
-        throw dockerError(exit, err, env);
+        throw dockerError(exit, excerpt(err, stderr.truncated(), env));
       }
       if (exit != 0) {
+        String excerpt =
+            err.isBlank()
+                ? excerpt(out, stdout.truncated(), env)
+                : excerpt(err, stderr.truncated(), env);
         throw new CliException(
             Kind.NON_ZERO_EXIT,
             exit,
-            "CLI call in "
-                + command.image()
-                + " exited with code "
-                + exit
-                + ": "
-                + excerpt(err.isBlank() ? out : err, env),
+            "CLI call in " + command.image() + " exited with code " + exit + ": " + excerpt,
             null);
       }
       Map<String, String> files = new LinkedHashMap<>();
@@ -377,13 +392,15 @@ public final class DockerCliExecutor implements CliExecutor {
     try {
       return process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
+      // The caller stops the container; the interruption stays visible to it.
       Thread.currentThread().interrupt();
-      process.destroyForcibly();
       throw new CliException(Kind.FAILED, null, "Interrupted while waiting for a CLI call", e);
     }
   }
 
+  /** Stops the container; also when the thread was interrupted, whose flag is kept. */
   private void kill(String container) {
+    boolean interrupted = Thread.interrupted();
     try {
       Process kill =
           new ProcessBuilder(settings.docker(), "kill", container)
@@ -397,7 +414,12 @@ public final class DockerCliExecutor implements CliExecutor {
     } catch (IOException e) {
       log.warn("Could not stop container {}: {}", container, e.getMessage());
     } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
+      interrupted = true;
+      log.warn("Interrupted while stopping container {}", container);
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
     }
   }
 
@@ -410,15 +432,14 @@ public final class DockerCliExecutor implements CliExecutor {
         || stderr.contains("Unable to find image");
   }
 
-  private CliException dockerError(int exit, String stderr, Map<String, String> env) {
+  private static CliException dockerError(int exit, String excerpt) {
     String reason =
-        stderr.contains("Cannot connect to the Docker daemon")
-                || stderr.contains("docker daemon is not running")
-                || stderr.contains("error during connect")
+        excerpt.contains("Cannot connect to the Docker daemon")
+                || excerpt.contains("docker daemon is not running")
+                || excerpt.contains("error during connect")
             ? "Docker is not running; start Docker Desktop or the Docker daemon"
             : "Docker could not run the container";
-    return new CliException(
-        Kind.DOCKER_UNAVAILABLE, exit, reason + ": " + excerpt(stderr, env), null);
+    return new CliException(Kind.DOCKER_UNAVAILABLE, exit, reason + ": " + excerpt, null);
   }
 
   private byte[] readCapped(Path file) {
@@ -429,16 +450,42 @@ public final class DockerCliExecutor implements CliExecutor {
     }
   }
 
-  /** The start of an error output, on one line, without the values of the passed variables. */
-  private static String excerpt(String text, Map<String, String> env) {
+  /**
+   * The start of an error output, on one line, without the values of the passed variables. The
+   * values are removed before anything is cut, longest first, so that a shorter value cannot break
+   * a longer one; when the output was cut at {@code max-output}, a value cut at its end is removed
+   * too.
+   */
+  static String excerpt(String text, boolean cut, Map<String, String> env) {
+    List<String> values =
+        env.values().stream()
+            .filter(value -> value != null && !value.isEmpty())
+            .distinct()
+            .sorted(Comparator.comparingInt(String::length).reversed())
+            .toList();
     String result = text;
-    for (String value : env.values()) {
-      if (value != null && !value.isBlank()) {
-        result = result.replace(value, "[REDACTED]");
-      }
+    for (String value : values) {
+      result = result.replace(value, REDACTED);
+    }
+    if (cut) {
+      result = withoutCutValue(result, values);
     }
     result = result.strip().replaceAll("\\s+", " ");
     return result.length() <= STDERR_EXCERPT ? result : result.substring(0, STDERR_EXCERPT) + "…";
+  }
+
+  /** Removes the start of a value that the output cap cut off at the end of the text. */
+  private static String withoutCutValue(String text, List<String> values) {
+    int longest = 0;
+    for (String value : values) {
+      for (int length = value.length() - 1; length > longest; length--) {
+        if (text.endsWith(value.substring(0, length))) {
+          longest = length;
+          break;
+        }
+      }
+    }
+    return longest == 0 ? text : text.substring(0, text.length() - longest) + REDACTED;
   }
 
   private static String seconds(Duration duration) {

@@ -344,9 +344,86 @@ class DockerCliExecutorTest {
   }
 
   @Test
-  void refusesARootUser() {
-    assertThatIllegalArgumentException()
-        .isThrownBy(() -> new DockerCliExecutor.Settings("docker", 1, "0:0", "1", "1g", 1));
+  void refusesARootOrNonNumericUser() {
+    for (String user :
+        List.of("0:0", "0", "00:10001", "10001:0", "root", "root:root", "10001", "")) {
+      assertThatIllegalArgumentException()
+          .as(user)
+          .isThrownBy(() -> new DockerCliExecutor.Settings("docker", 1, user, "1", "1g", 1));
+    }
+    assertThat(new DockerCliExecutor.Settings("docker", 1, "10001:10001", "1", "1g", 1).user())
+        .isEqualTo("10001:10001");
+  }
+
+  @Test
+  void redactsOverlappingValuesLongestFirst() {
+    Map<String, String> env = new java.util.LinkedHashMap<>();
+    env.put("SHORT_VAR", "d");
+    env.put("DECLARED_VAR", "d1-declared-text");
+
+    assertThat(DockerCliExecutor.excerpt("output: d1-declared-text", false, env))
+        .isEqualTo("output: [REDACTED]");
+  }
+
+  @Test
+  void redactsAValueCutByTheOutputCap() {
+    Map<String, String> env = Map.of("DECLARED_VAR", "declared-text-abcdef");
+
+    assertThat(DockerCliExecutor.excerpt("xx declared-text-a", true, env))
+        .isEqualTo("xx [REDACTED]");
+    // An output that was not cut keeps its end.
+    assertThat(DockerCliExecutor.excerpt("xx declared", false, env)).isEqualTo("xx declared");
+  }
+
+  @Test
+  void neverShowsAValueCutByTheOutputCapInTheError() {
+    DockerCliExecutor smallCap =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings("docker", 16, "10001:10001", "1", "256m", 64),
+            Map.of("DECLARED_VAR", "declared-text-abcdef")::get);
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            smallCap.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .env("DECLARED_VAR")
+                    .args("fake-cli", "fail", "3", "declared-text-abcdef")
+                    .build()))
+        .withMessage("CLI call in " + IMAGE + " exited with code 3: [REDACTED]");
+  }
+
+  @Test
+  void stopsTheContainerWhenTheCallIsInterrupted() throws Exception {
+    java.util.concurrent.atomic.AtomicReference<Throwable> failure =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    java.util.concurrent.atomic.AtomicBoolean stillInterrupted =
+        new java.util.concurrent.atomic.AtomicBoolean();
+    Thread caller =
+        Thread.ofPlatform()
+            .start(() -> {
+              try {
+                executor.execute(
+                    CliCommand.builder(IMAGE, Duration.ofMinutes(5))
+                        .args("fake-cli", "sleep", "300")
+                        .build());
+              } catch (RuntimeException e) {
+                failure.set(e);
+              }
+              stillInterrupted.set(Thread.currentThread().isInterrupted());
+            });
+    long deadline = System.nanoTime() + Duration.ofSeconds(60).toNanos();
+    while (docker("ps", "--quiet", "--filter", "ancestor=" + IMAGE).isBlank()) {
+      assertThat(System.nanoTime()).as("the container starts").isLessThan(deadline);
+      Thread.sleep(200);
+    }
+
+    caller.interrupt();
+    caller.join(Duration.ofSeconds(60));
+
+    assertThat(caller.isAlive()).isFalse();
+    assertThat(failure.get()).isInstanceOf(CliException.class).hasMessageContaining("Interrupted");
+    assertThat(stillInterrupted).isTrue();
+    assertThat(docker("ps", "--quiet", "--filter", "ancestor=" + IMAGE)).isBlank();
   }
 
   private CliResult run(String... args) {
