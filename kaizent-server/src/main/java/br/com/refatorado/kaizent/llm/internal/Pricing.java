@@ -17,7 +17,18 @@ final class Pricing {
 
   private final Map<String, LlmProperties.Price> prices;
 
+  /**
+   * @throws IllegalStateException if a configured price lacks its input or output rate
+   */
   Pricing(Map<String, LlmProperties.Price> prices) {
+    prices.forEach((model, price) -> {
+      if (price == null || price.inputPerMillion() == null || price.outputPerMillion() == null) {
+        throw new IllegalStateException(
+            "kaizent.llm.pricing."
+                + model
+                + " needs both input-per-million and output-per-million");
+      }
+    });
     this.prices = prices;
   }
 
@@ -26,11 +37,7 @@ final class Pricing {
       return usage;
     }
     LlmProperties.Price price = usage.model() == null ? null : prices.get(usage.model());
-    if (price == null
-        || price.inputPerMillion() == null
-        || price.outputPerMillion() == null
-        || usage.inputTokens() == null
-        || usage.outputTokens() == null) {
+    if (price == null || usage.inputTokens() == null || usage.outputTokens() == null) {
       return usage.withCost(null, CostType.UNKNOWN);
     }
     BigDecimal cost =

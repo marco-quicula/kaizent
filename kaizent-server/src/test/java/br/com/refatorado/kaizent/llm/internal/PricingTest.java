@@ -1,6 +1,7 @@
 package br.com.refatorado.kaizent.llm.internal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import br.com.refatorado.kaizent.llm.CostType;
 import br.com.refatorado.kaizent.llm.Usage;
@@ -41,6 +42,16 @@ class PricingTest {
 
     assertThat(pricing.apply(subscription)).isEqualTo(subscription);
     assertThat(pricing.apply(Usage.unknown("fake", null))).isEqualTo(Usage.unknown("fake", null));
+  }
+
+  @Test
+  void rejectsAPriceWithoutBothRates() {
+    assertThatIllegalStateException()
+        .isThrownBy(
+            () -> new Pricing(Map.of("m", new LlmProperties.Price(null, new BigDecimal("3.75")))))
+        .withMessageContaining("kaizent.llm.pricing.m needs both");
+    assertThatIllegalStateException()
+        .isThrownBy(() -> new Pricing(Map.of("m", new LlmProperties.Price(BigDecimal.ONE, null))));
   }
 
   @Test

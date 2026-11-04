@@ -115,6 +115,40 @@ class StructuredOutputsTest {
     }
   }
 
+  enum Choice {
+    A,
+    B
+  }
+
+  /** Output types whose schema constraints Jackson alone would not enforce. */
+  record Selected(Choice value) {}
+
+  record Values(List<String> values) {}
+
+  @Test
+  void validatesAgainstTheSchemaWhatMappingAloneWouldAccept() {
+    assertThat(outputs.map("{\"value\": \"B\"}", Selected.class).value())
+        .isEqualTo(new Selected(Choice.B));
+    assertThat(outputs.map("{\"value\": 0}", Selected.class).error()).contains("/value:");
+    assertThat(outputs.map("{\"value\": \"C\"}", Selected.class).error()).contains("/value:");
+    assertThat(outputs.map("{\"values\": [\"a\"]}", Values.class).value())
+        .isEqualTo(new Values(List.of("a")));
+    assertThat(outputs.map("{\"values\": [null]}", Values.class).error()).contains("/values/0:");
+  }
+
+  @Test
+  void repairsAnAnswerThatOnlyTheSchemaRejects() {
+    ScriptedCall call = new ScriptedCall("{\"values\": [null]}", "{\"values\": [\"a\"]}");
+
+    LlmResponse<Values> response =
+        outputs.complete(
+            new LlmRequest<>("step", "The system", "The question", Values.class, Map.of()), call);
+
+    assertThat(response.output()).isEqualTo(new Values(List.of("a")));
+    assertThat(call.users).hasSize(2);
+    assertThat(call.users.get(1)).contains("/values/0:");
+  }
+
   @Test
   void generatesASchemaThatRequiresEveryPropertyAndForbidsOthers() {
     String schema = outputs.schema(Answer.class);

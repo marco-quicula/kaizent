@@ -96,13 +96,19 @@ implementation and documented in the README.
 `StructuredOutputs` (in `llm.adapter`, shared by every adapter) appends the instructions
 and the JSON schema generated from the output record (victools, Draft 2020-12, every
 property required, no additional properties) to the user prompt. An answer is valid when
-it maps to the record with strict Jackson settings (no missing, null or unknown
-properties, possibly inside a Markdown code fence) and the record's Bean Validation
-constraints hold, which is what the schema requires, plus the constraints. On an invalid
-answer it calls the model once more with the validation error and the previous answer,
-and then fails with `LlmOutputException`. The usage of both calls is added up. The
-pipeline's output records (for example `ResolutionOutput`) are separate from the stored
-records (`Proposal`), which also carry the usage.
+it is a JSON object (possibly inside a Markdown code fence) that validates against that
+schema (networknt json-schema-validator), maps to the record with strict Jackson settings
+(no type conversion), and meets the record's Bean Validation constraints, which can be
+stricter than the schema (for example, a confidence from 0 to 1). On an invalid answer it
+calls the model once more with the validation errors and the previous answer, and then
+fails with `LlmOutputException`. The usage of both calls is added up. The pipeline's
+output records (for example `ResolutionOutput`) are separate from the stored records
+(`Proposal`), which also carry the usage.
+
+**Usage per adapter:** the Gemini adapter reads the API's own usage metadata, not Spring
+AI's normalized counts, which turn missing counts into zeros. Its billed output tokens
+include the thinking tokens. A count that the API does not report stays unknown, so the
+cost type becomes `UNKNOWN`. A configured price needs both rates, or startup fails.
 
 ## Data
 

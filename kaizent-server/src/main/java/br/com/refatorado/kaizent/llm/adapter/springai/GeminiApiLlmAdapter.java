@@ -10,6 +10,7 @@ import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.ModelCall;
 import br.com.refatorado.kaizent.llm.adapter.StructuredOutputs;
 import com.google.genai.Client;
+import com.google.genai.types.GenerateContentResponseUsageMetadata;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -81,9 +82,29 @@ public class GeminiApiLlmAdapter implements LlmAdapter {
   private static Usage usage(ChatResponse response, LlmProfile profile) {
     org.springframework.ai.chat.metadata.Usage reported =
         response.getMetadata() == null ? null : response.getMetadata().getUsage();
-    Integer input = reported == null ? null : reported.getPromptTokens();
-    Integer output = reported == null ? null : reported.getCompletionTokens();
-    return new Usage(input, output, null, CostType.API, NAME, profile.model());
+    Object nativeUsage = reported == null ? null : reported.getNativeUsage();
+    return usage(
+        nativeUsage instanceof GenerateContentResponseUsageMetadata metadata ? metadata : null,
+        profile.model());
+  }
+
+  /**
+   * The usage from the Gemini API's own metadata, not from Spring AI's normalized counts, which
+   * turn missing counts into zeros. The billed output includes the thinking tokens, which Gemini
+   * reports apart from the answer's tokens. A count the API did not report stays unknown.
+   */
+  static Usage usage(GenerateContentResponseUsageMetadata metadata, String model) {
+    Integer input = null;
+    Integer output = null;
+    if (metadata != null) {
+      input = metadata.promptTokenCount().orElse(null);
+      output =
+          metadata
+              .candidatesTokenCount()
+              .map(candidates -> candidates + metadata.thoughtsTokenCount().orElse(0))
+              .orElse(null);
+    }
+    return new Usage(input, output, null, CostType.API, NAME, model);
   }
 
   private GoogleGenAiChatModel model(String modelId) {

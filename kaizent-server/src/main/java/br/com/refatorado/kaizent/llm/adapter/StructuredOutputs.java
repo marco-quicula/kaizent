@@ -10,6 +10,10 @@ import com.github.victools.jsonschema.generator.SchemaGenerator;
 import com.github.victools.jsonschema.generator.SchemaGeneratorConfigBuilder;
 import com.github.victools.jsonschema.generator.SchemaVersion;
 import com.github.victools.jsonschema.module.jackson.JacksonModule;
+import com.networknt.schema.Error;
+import com.networknt.schema.Schema;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SpecificationVersion;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import java.util.Comparator;
@@ -21,6 +25,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.MapperFeature;
 import tools.jackson.databind.cfg.CoercionAction;
 import tools.jackson.databind.cfg.CoercionInputShape;
@@ -34,10 +39,9 @@ import tools.jackson.databind.type.LogicalType;
  * makes one repair attempt that sends the validation error back. A second invalid answer fails with
  * {@link LlmOutputException}.
  *
- * <p>An answer is valid when it is a JSON object, possibly inside a Markdown code fence, with every
- * property of the record, each of the right JSON type (no conversion from strings or between
- * numbers and strings), with no unknown property, and when the record's Bean Validation constraints
- * hold.
+ * <p>An answer is valid when it is a JSON object, possibly inside a Markdown code fence, that
+ * validates against the generated schema (networknt json-schema-validator), maps to the record
+ * without any type conversion, and meets the record's Bean Validation constraints.
  */
 @Component
 public class StructuredOutputs {
@@ -45,7 +49,10 @@ public class StructuredOutputs {
   private final JsonMapper strict;
   private final Validator validator;
   private final SchemaGenerator schemas;
+  private final SchemaRegistry validators =
+      SchemaRegistry.withDefaultDialect(SpecificationVersion.DRAFT_2020_12);
   private final Map<Class<?>, String> schemaCache = new ConcurrentHashMap<>();
+  private final Map<Class<?>, Schema> validatorCache = new ConcurrentHashMap<>();
 
   public StructuredOutputs(JsonMapper json, Validator validator) {
     this.strict =
@@ -85,6 +92,10 @@ public class StructuredOutputs {
   /** The JSON schema of a record, as text. */
   public String schema(Class<?> type) {
     return schemaCache.computeIfAbsent(type, key -> schemas.generateSchema(key).toPrettyString());
+  }
+
+  private Schema validator(Class<?> type) {
+    return validatorCache.computeIfAbsent(type, key -> validators.getSchema(schema(key)));
   }
 
   /** The instructions appended to the user prompt: answer with JSON matching the schema. */
@@ -130,19 +141,33 @@ public class StructuredOutputs {
         second.text());
   }
 
-  /** Maps and validates a text answer. */
+  /**
+   * Maps and validates a text answer: first against the generated JSON schema, then by mapping it
+   * strictly to the record, then with the record's constraints.
+   */
   <T> Mapping<T> map(String text, Class<T> type) {
     if (text == null || text.isBlank()) {
       return Mapping.invalid("the answer is empty");
     }
+    JsonNode tree;
+    try {
+      tree = strict.readTree(withoutCodeFence(text.strip()));
+    } catch (JacksonException e) {
+      return Mapping.invalid("the answer is not valid JSON: " + e.getOriginalMessage());
+    }
+    if (tree == null || !tree.isObject()) {
+      return Mapping.invalid("the answer is not a JSON object");
+    }
+    List<Error> schemaErrors = validator(type).validate(tree);
+    if (!schemaErrors.isEmpty()) {
+      return Mapping.invalid(
+          schemaErrors.stream().map(Error::toString).sorted().collect(Collectors.joining("; ")));
+    }
     T value;
     try {
-      value = strict.readValue(withoutCodeFence(text.strip()), type);
+      value = strict.treeToValue(tree, type);
     } catch (JacksonException e) {
       return Mapping.invalid(e.getOriginalMessage());
-    }
-    if (value == null) {
-      return Mapping.invalid("the answer is null, not a JSON object");
     }
     Set<ConstraintViolation<T>> violations = validator.validate(value);
     if (!violations.isEmpty()) {

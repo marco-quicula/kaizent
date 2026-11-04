@@ -1,12 +1,16 @@
 package br.com.refatorado.kaizent.llm.adapter.springai;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import br.com.refatorado.kaizent.llm.CostType;
 import br.com.refatorado.kaizent.llm.LlmException;
 import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmRequest;
+import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.TestStructuredOutputs;
 import br.com.refatorado.kaizent.resolution.ResolutionOutput;
+import com.google.genai.types.GenerateContentResponseUsageMetadata;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -32,5 +36,59 @@ class GeminiApiLlmAdapterTest {
     assertThatExceptionOfType(LlmException.class)
         .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", " ")))
         .withMessageContaining("No model configured");
+  }
+
+  @Test
+  void billsTheThinkingTokensAsOutput() {
+    Usage usage =
+        GeminiApiLlmAdapter.usage(
+            GenerateContentResponseUsageMetadata.builder()
+                .promptTokenCount(100)
+                .candidatesTokenCount(20)
+                .thoughtsTokenCount(900)
+                .build(),
+            "gemini-x");
+
+    assertThat(usage).isEqualTo(new Usage(100, 920, null, CostType.API, "gemini-api", "gemini-x"));
+  }
+
+  @Test
+  void countsOnlyTheAnswerWhenNoThinkingIsReported() {
+    Usage usage =
+        GeminiApiLlmAdapter.usage(
+            GenerateContentResponseUsageMetadata.builder()
+                .promptTokenCount(100)
+                .candidatesTokenCount(20)
+                .build(),
+            "gemini-x");
+
+    assertThat(usage.outputTokens()).isEqualTo(20);
+  }
+
+  @Test
+  void keepsZeroCountsThatTheApiReported() {
+    Usage usage =
+        GeminiApiLlmAdapter.usage(
+            GenerateContentResponseUsageMetadata.builder()
+                .promptTokenCount(0)
+                .candidatesTokenCount(0)
+                .build(),
+            "gemini-x");
+
+    assertThat(usage.inputTokens()).isZero();
+    assertThat(usage.outputTokens()).isZero();
+  }
+
+  @Test
+  void leavesCountsThatTheApiDidNotReportUnknown() {
+    assertThat(GeminiApiLlmAdapter.usage(null, "gemini-x"))
+        .satisfies(u -> assertThat(u.inputTokens()).isNull())
+        .satisfies(u -> assertThat(u.outputTokens()).isNull());
+    Usage partial =
+        GeminiApiLlmAdapter.usage(
+            GenerateContentResponseUsageMetadata.builder().promptTokenCount(100).build(),
+            "gemini-x");
+    assertThat(partial.inputTokens()).isEqualTo(100);
+    assertThat(partial.outputTokens()).isNull();
   }
 }
