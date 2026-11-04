@@ -366,6 +366,20 @@ class DockerCliExecutorTest {
   }
 
   @Test
+  void redactsAValueCutByTheOutputCapThatContainsAShorterValue() {
+    Map<String, String> env = new java.util.LinkedHashMap<>();
+    env.put("SHORT_VAR", "1");
+    env.put("DECLARED_VAR", "dx-1example-text");
+
+    // The capture was cut inside the longer value, which also contains the shorter one.
+    assertThat(DockerCliExecutor.excerpt("output: dx-1example-tex", true, env))
+        .isEqualTo("output: [REDACTED]");
+    // The shorter value elsewhere is still removed, and the runs do not merge across text.
+    assertThat(DockerCliExecutor.excerpt("1 and dx-1example-text", false, env))
+        .isEqualTo("[REDACTED] and [REDACTED]");
+  }
+
+  @Test
   void redactsAValueCutByTheOutputCap() {
     Map<String, String> env = Map.of("DECLARED_VAR", "declared-text-abcdef");
 
@@ -388,6 +402,27 @@ class DockerCliExecutorTest {
                 CliCommand.builder(IMAGE, TIMEOUT)
                     .env("DECLARED_VAR")
                     .args("fake-cli", "fail", "3", "declared-text-abcdef")
+                    .build()))
+        .withMessage("CLI call in " + IMAGE + " exited with code 3: [REDACTED]");
+  }
+
+  @Test
+  void neverShowsACutValueThatContainsAShorterOneInTheError() {
+    Map<String, String> values = new java.util.LinkedHashMap<>();
+    values.put("SHORT_VAR", "1");
+    values.put("DECLARED_VAR", "dx-1example-text");
+    DockerCliExecutor smallCap =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings("docker", 15, "10001:10001", "1", "256m", 64),
+            values::get);
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            smallCap.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .env("SHORT_VAR")
+                    .env("DECLARED_VAR")
+                    .args("fake-cli", "fail", "3", "dx-1example-text")
                     .build()))
         .withMessage("CLI call in " + IMAGE + " exited with code 3: [REDACTED]");
   }

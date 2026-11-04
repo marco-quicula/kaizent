@@ -83,8 +83,9 @@ with `ProcessBuilder`:
 - only the preset's `env` variables (`--env NAME`, with values from the environment or
   `.env`), never the whole host environment. The values reach `docker` through its own
   process environment, never on its command line, and an error excerpt replaces them with
-  `[REDACTED]`, longest first and before any cut, including a value that the output cap
-  cut off at the end;
+  `[REDACTED]`: every occurrence of each value, and the start of a value that the output
+  cap cut off at the end, is marked on the original text before anything is replaced or
+  shortened, so that no value can hide or break another;
 - the prompt written to stdin or to `/scratch`, as the preset defines, and stdin closed
   afterwards;
 - capped output buffers (`kaizent.cli.max-output`, also for the output files read back

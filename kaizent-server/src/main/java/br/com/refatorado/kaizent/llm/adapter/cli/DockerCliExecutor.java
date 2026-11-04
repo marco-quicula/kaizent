@@ -451,41 +451,42 @@ public final class DockerCliExecutor implements CliExecutor {
   }
 
   /**
-   * The start of an error output, on one line, without the values of the passed variables. The
-   * values are removed before anything is cut, longest first, so that a shorter value cannot break
-   * a longer one; when the output was cut at {@code max-output}, a value cut at its end is removed
-   * too.
+   * The start of an error output, on one line, without the values of the passed variables. Every
+   * occurrence of each value is marked on the original text, overlapping ones included, and, when
+   * the output was cut at {@code max-output}, also the start of a value cut off at its end; each
+   * run of marked characters then becomes one {@code [REDACTED]}. Marking before replacing means
+   * that no value can hide or break another. The excerpt is shortened only afterwards.
    */
   static String excerpt(String text, boolean cut, Map<String, String> env) {
     List<String> values =
         env.values().stream()
             .filter(value -> value != null && !value.isEmpty())
             .distinct()
-            .sorted(Comparator.comparingInt(String::length).reversed())
             .toList();
-    String result = text;
+    boolean[] secret = new boolean[text.length()];
     for (String value : values) {
-      result = result.replace(value, REDACTED);
-    }
-    if (cut) {
-      result = withoutCutValue(result, values);
-    }
-    result = result.strip().replaceAll("\\s+", " ");
-    return result.length() <= STDERR_EXCERPT ? result : result.substring(0, STDERR_EXCERPT) + "…";
-  }
-
-  /** Removes the start of a value that the output cap cut off at the end of the text. */
-  private static String withoutCutValue(String text, List<String> values) {
-    int longest = 0;
-    for (String value : values) {
-      for (int length = value.length() - 1; length > longest; length--) {
-        if (text.endsWith(value.substring(0, length))) {
-          longest = length;
-          break;
+      for (int at = text.indexOf(value); at >= 0; at = text.indexOf(value, at + 1)) {
+        java.util.Arrays.fill(secret, at, at + value.length(), true);
+      }
+      if (cut) {
+        for (int length = Math.min(value.length() - 1, text.length()); length > 0; length--) {
+          if (text.regionMatches(text.length() - length, value, 0, length)) {
+            java.util.Arrays.fill(secret, text.length() - length, text.length(), true);
+            break;
+          }
         }
       }
     }
-    return longest == 0 ? text : text.substring(0, text.length() - longest) + REDACTED;
+    StringBuilder redacted = new StringBuilder(text.length());
+    for (int i = 0; i < text.length(); i++) {
+      if (!secret[i]) {
+        redacted.append(text.charAt(i));
+      } else if (i == 0 || !secret[i - 1]) {
+        redacted.append(REDACTED);
+      }
+    }
+    String result = redacted.toString().strip().replaceAll("\\s+", " ");
+    return result.length() <= STDERR_EXCERPT ? result : result.substring(0, STDERR_EXCERPT) + "…";
   }
 
   private static String seconds(Duration duration) {
