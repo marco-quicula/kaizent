@@ -116,6 +116,10 @@ Wave 1 is broken down into 12 specs, listed in implementation order in
   wave 1 `DockerCliExecutor` (ADR-0030), plus a how-to covering isolation, credentials and
   the providers' terms of use.
 - Observability with OpenTelemetry (traces, metrics, LLM usage).
+- Cost reconciliation (idea): a background job that compares the estimated cost of the
+  model calls (tokens times `kaizent.llm.pricing`) with each provider's usage or billing
+  API, to capture the real charge, cached-input discounts and free tiers. It needs admin
+  credentials per provider and never runs in the resolution flow.
 - Authentication, multiple users and roles for reviewers.
 - A third problem type: operational incidents (alerts, failing workloads), with MCP
   servers for infrastructure.
