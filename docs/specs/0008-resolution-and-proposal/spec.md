@@ -91,7 +91,7 @@ Replace the skeleton's single prompt with the real Do step:
   model produced that is stored or shown: the diagnosis, the suggested reply, the
   confidence rationale, each citation's path and section, and the model's own text in
   the resolution's trace events (its messages and its tool-call arguments). The proposal
-  stays structurally valid (a redacted citation path is an invalid citation, AC-7). The
+  stays structurally valid (a redacted citation path is an invalid citation, AC-6). The
   proposal records each redaction as a flag, with the field, and the reviewer is
   warned.
 
