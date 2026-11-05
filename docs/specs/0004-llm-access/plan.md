@@ -134,9 +134,12 @@ container never starts, and Kaizent logs a WARN whenever a create was cut off, w
 container's name: since the name is fixed before the create, the targeted
 `docker rm --force <name>` also removes a container that the daemon completes later. The
 README also gives a bulk cleanup, `docker container prune` with the label and
-`--filter until=10m`: the age limit keeps it from removing the container of a call that is
-starting (briefly `Created`, at most the 2-minute create timeout), and prune never touches
-running containers.
+`--filter until=10m`, to run only while Kaizent is stopped: a call that is starting is
+briefly `Created`, and the age limit is an extra safeguard, not a guarantee (the filter
+counts from the container's creation, and a call can be delayed between create and
+start). Prune never touches running containers. The late create stays a documented
+limitation, not reconciled automatically: a check made before the daemon completes it
+finds nothing, so the WARN asks to check again later.
 
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a

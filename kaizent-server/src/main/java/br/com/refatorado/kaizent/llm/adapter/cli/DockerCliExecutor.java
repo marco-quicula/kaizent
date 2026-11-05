@@ -205,8 +205,8 @@ public final class DockerCliExecutor implements CliExecutor {
         // removal above: such a container never starts, but it stays until it is removed.
         log.warn(
             "docker create for CLI container {} was cut off; if Docker completes it later, the"
-                + " container stays created without running. Check with: docker ps --all"
-                + " --filter name={} and remove it with: docker rm --force {}",
+                + " container stays created without running. Check again in a few minutes with:"
+                + " docker ps --all --filter name={} and remove it with: docker rm --force {}",
             container,
             container,
             container);

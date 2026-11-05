@@ -318,17 +318,17 @@ with the `docker rm --force <name>` command in the log: it names only that call'
 container, and also stops it if it is still running. To find leftovers, list the CLI
 containers with `docker ps --all --filter label=br.com.refatorado.kaizent.cli=true`.
 
-To remove all leftovers at once, prune only the stopped or created CLI containers that
-are older than 10 minutes:
+To remove all leftovers at once, **stop Kaizent first** (no CLI call in progress), then
+prune the stopped or created CLI containers:
 
 ```bash
 docker container prune --filter label=br.com.refatorado.kaizent.cli=true --filter until=10m
 ```
 
-The age limit matters: a call that is starting shows as `Created` for a moment, and a
-prune without it could remove that call's container while Kaizent is running. `prune`
-never touches running containers; use `docker rm --force <name>` for those. No CLI
-container holds your login, which stays in the volume.
+A call that is starting shows as `Created` for a moment, so a prune while Kaizent runs
+could remove that call's container; the age limit is only an extra safeguard, not a
+guarantee. `prune` never touches running containers; use `docker rm --force <name>` for
+those. No CLI container holds your login, which stays in the volume.
 
 ## Running evaluations
 
