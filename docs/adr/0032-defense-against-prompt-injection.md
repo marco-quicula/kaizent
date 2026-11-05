@@ -33,8 +33,11 @@ Four layers, decided with the maintainer:
    - the **agentic CLI runtime (spec 0004 T8) is not released until this layer is in
      place and validated** with the real tool. A documented warning does not satisfy
      this gate: a tool whose agentic preset cannot restrict reads is marked
-     `read-restricted: false`, **never receives a `SUSPICIOUS` ticket, whatever the policy
-     of layer 3**, and is documented as unsafe for untrusted input.
+     `read-restricted: false`, is documented as unsafe for untrusted input and **is never
+     used to resolve a ticket, whatever its risk or the policy of layer 3**: the
+     application refuses to start with it as a resolution runtime. Every ticket is
+     untrusted input, and `SAFE` (layer 2) only means that no rule matched, not that the
+     text is safe.
 2. **Risk triage of the ticket.** Before resolution, each ticket gets an injection risk:
    `SAFE` or `SUSPICIOUS`, with the reasons. The first detector is **deterministic and
    free** (patterns such as instructions to ignore or reveal instructions, requests for
@@ -51,8 +54,8 @@ Four layers, decided with the maintainer:
      message that says why ("suspicious ticket and no API runtime configured"); it can
      be retried once one is configured (spec 0009);
    - `flag-only`: the run continues with the step's configured runtime, and the risk is
-     shown to the reviewer; a CLI preset with `read-restricted: false` is still never
-     used for it (layer 1).
+     shown to the reviewer. That runtime already satisfies layer 1: a CLI preset with
+     `read-restricted: false` is never a resolution runtime.
 
    `flag-only` is the operator's risk: the documentation warns about it, and the
    application logs a **WARN at startup** that names the setting and the risk.
@@ -60,10 +63,14 @@ Four layers, decided with the maintainer:
    A third policy, **holding** the run until a person decides, is deferred: it needs a
    new run state outside the worker's queue, an action to release it and a change to the
    run lifecycle of ADR-0023. It is in the roadmap with the console's decision actions.
-4. **Output check.** Before a proposal is stored, Kaizent looks for signs of a leak:
-   token and key formats (for example `eyJ…` JWTs or `sk-…` keys), paths outside the
-   granted ones, URLs to hosts outside `kaizent.security.known-hosts`. A match is redacted, the proposal is flagged,
-   and the reviewer is warned. The human verdict stays mandatory.
+4. **Output check.** Before a proposal is stored, Kaizent looks for signs of a leak in
+   **every text the model produced that is stored or shown**: the proposal's text fields
+   (diagnosis, suggested reply, confidence rationale, each citation's path and section)
+   and the model's own text in the resolution's trace events (its messages and the
+   arguments of its tool calls). The signs are token and key formats (for example `eyJ…`
+   JWTs or `sk-…` keys), paths outside the granted ones and URLs to hosts outside
+   `kaizent.security.known-hosts`. A match is redacted, the proposal is flagged, and the
+   reviewer is warned. The human verdict stays mandatory.
 
 Where each layer is specified: layer 1 in spec 0004 (T8, the agentic CLI runtime), layer
 2 in spec 0006 (triage), layers 3 and 4 in spec 0008 (resolution and proposal).

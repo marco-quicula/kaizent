@@ -74,16 +74,25 @@ Replace the skeleton's single prompt with the real Do step:
     Without that setting, the run fails with reason `ERROR` and the message "suspicious
     ticket and no API runtime configured";
   - `flag-only`: the run continues with the configured runtime, and the reviewer sees
-    the risk. A CLI preset with `read-restricted: false` is never used for a suspicious
-    ticket, whatever the policy; such a run fails the same way.
+    the risk.
+
+  Whatever the risk and the policy, a CLI preset with `read-restricted: false` is never
+  a resolution runtime (ADR-0032, layer 1): every ticket is untrusted input, and `SAFE`
+  only means that no rule matched. The application refuses to start when the resolution
+  runtime, or `kaizent.security.api-runtime`, is such a preset, with a message that names
+  it.
 
   `flag-only` logs a WARN at startup that names the setting and the risk, and the README
   documents it as the operator's risk. The runtime that resolved the ticket is recorded
   on the proposal.
 - **AC-12:** **Output check** (ADR-0032, layer 4): before a proposal is stored, token and
   key formats (for example `eyJ…` JWTs, `sk-…` keys), paths outside the granted ones and
-  URLs to hosts outside `kaizent.security.known-hosts` are redacted in the diagnosis and
-  the suggested reply; the proposal records each redaction as a flag, and the reviewer is
+  URLs to hosts outside `kaizent.security.known-hosts` are redacted in every text the
+  model produced that is stored or shown: the diagnosis, the suggested reply, the
+  confidence rationale, each citation's path and section, and the model's own text in
+  the resolution's trace events (its messages and its tool-call arguments). The proposal
+  stays structurally valid (a redacted citation path is an invalid citation, AC-7). The
+  proposal records each redaction as a flag, with the field, and the reviewer is
   warned.
 
 ## Evaluation cases
