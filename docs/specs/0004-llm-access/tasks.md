@@ -36,4 +36,6 @@
 - [ ] **T13:** Manual validation of the Codex preset and of `gemini-api`, recorded in the
   PR, and optionally of `openai` and `anthropic`. *Covers:* EV-1, EV-2, EV-3 (optional).
   The `llm-check` command runs the triage-shaped requests. (EV-2 and EV-3 were partly
-  validated in #38 with the resolution call.)
+  validated in #38 with the resolution call. The Codex `llm-check` call passed in the
+  maintainer's phase B run for #42; EV-1 with the full pipeline and the triage-shaped
+  EV-2 are running locally after the merge of #42.)
