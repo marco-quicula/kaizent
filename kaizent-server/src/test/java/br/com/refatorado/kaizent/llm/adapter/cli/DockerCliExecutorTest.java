@@ -531,6 +531,7 @@ class DockerCliExecutorTest {
     // A docker whose create hangs: it records its process id and the containers it is asked to
     // remove.
     Path pid = bin.resolve("create.pid");
+    Path createArgs = bin.resolve("create.args");
     Path removed = bin.resolve("removed.log");
     Path docker = bin.resolve("docker");
     Files.writeString(
@@ -538,6 +539,7 @@ class DockerCliExecutorTest {
         """
         #!/bin/sh
         if [ "$1" = create ]; then
+          echo "$@" > "%s"
           echo $$ > "%s"
           exec sleep 300
         fi
@@ -547,7 +549,7 @@ class DockerCliExecutorTest {
         fi
         exit 1
         """
-            .formatted(pid, removed));
+            .formatted(createArgs, pid, removed));
     docker.toFile().setExecutable(true);
     DockerCliExecutor hanging =
         new DockerCliExecutor(
@@ -584,6 +586,52 @@ class DockerCliExecutorTest {
         .as("the docker create client")
         .isFalse();
     assertThat(Files.readString(removed)).startsWith("rm --force kaizent-cli-");
+    assertThat(Files.readString(createArgs)).contains("--label " + DockerCliExecutor.LABEL);
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void saysWhenTheRemovalOfATimedOutContainerIsNotConfirmed(@TempDir Path bin) throws Exception {
+    // A docker whose container never ends; its rm answers with the text of the case.
+    Path rmAnswer = bin.resolve("rm.answer");
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = create ]; then
+          exit 0
+        fi
+        if [ "$1" = start ]; then
+          exec sleep 300
+        fi
+        if [ "$1" = rm ]; then
+          cat "%s" >&2
+          exit 1
+        fi
+        exit 1
+        """
+            .formatted(rmAnswer));
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor stuck =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 1024, "10001:10001", "1", "256m", 64),
+            configuration::get);
+    CliCommand command =
+        CliCommand.builder(IMAGE, Duration.ofSeconds(1)).args("fake-cli", "id").build();
+
+    Files.writeString(rmAnswer, "Error response from daemon: removal refused (test)\n");
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() -> stuck.execute(command))
+        .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.TIMEOUT))
+        .withMessageContaining("the container could not be removed: run docker rm --force")
+        .withMessageContaining("kaizent-cli-");
+
+    // Already gone (removed by --rm): the removal is confirmed.
+    Files.writeString(rmAnswer, "Error response from daemon: No such container: x\n");
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() -> stuck.execute(command))
+        .withMessageEndingWith("timed out after 1s; the container was stopped");
   }
 
   @Test

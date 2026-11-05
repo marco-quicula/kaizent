@@ -55,6 +55,12 @@ public final class DockerCliExecutor implements CliExecutor {
   private static final int STDERR_EXCERPT = 1000;
   private static final Duration KILL_TIMEOUT = Duration.ofSeconds(20);
 
+  /** Marks every CLI container, so that a leftover one can be found and removed. */
+  static final String LABEL = "br.com.refatorado.kaizent.cli=true";
+
+  private static final String NO_SUCH_CONTAINER = "No such container";
+  private static final long REMOVE_OUTPUT = 4096;
+
   /**
    * The container settings: {@code kaizent.cli.*}.
    *
@@ -100,11 +106,18 @@ public final class DockerCliExecutor implements CliExecutor {
     Map<String, String> env = envValues(command);
     Path scratch = createScratch(command);
     long start = System.nanoTime();
+    boolean mayExist = false;
+    boolean removalDone = false;
     boolean succeeded = false;
+    Creation creation = new Creation();
     try {
+      List<String> createLine = commandLine(command, container, scratch);
+      log.debug("Creating CLI container {}: {}", container, createLine);
+      Process creator = start(createLine, env);
       // From here on the container may exist, even when docker create is interrupted or fails:
       // every abnormal end removes it by name.
-      create(command, container, scratch, env);
+      mayExist = true;
+      awaitCreate(creator, container, env, creation);
       List<String> line =
           List.of(settings.docker(), "start", "--attach", "--interactive", container);
       log.debug("Starting CLI container {}", container);
@@ -121,6 +134,8 @@ public final class DockerCliExecutor implements CliExecutor {
         }
       }
       if (!finished) {
+        removalDone = true;
+        boolean removed = remove(container);
         throw new CliException(
             Kind.TIMEOUT,
             null,
@@ -128,7 +143,9 @@ public final class DockerCliExecutor implements CliExecutor {
                 + command.image()
                 + " timed out after "
                 + seconds(command.timeout())
-                + "; the container was stopped",
+                + (removed
+                    ? "; the container was stopped"
+                    : "; the container could not be removed: run docker rm --force " + container),
             null);
       }
       String out = stdout.text();
@@ -175,7 +192,7 @@ public final class DockerCliExecutor implements CliExecutor {
       succeeded = true;
       return result;
     } finally {
-      if (!succeeded) {
+      if (!succeeded && mayExist && !removalDone) {
         // Timeout, interruption, a failed create or start, or any other failure: the container
         // belongs to the Docker daemon and keeps running (or stays created, since --rm removes
         // only a container that ran) unless it is removed, even when its client is gone. A
@@ -183,19 +200,32 @@ public final class DockerCliExecutor implements CliExecutor {
         // harmless.
         remove(container);
       }
+      if (creation.cutOff) {
+        // The daemon may still complete a create request whose client was stopped, after the
+        // removal above: such a container never starts, but it stays until it is removed.
+        log.warn(
+            "docker create for CLI container {} was cut off; if Docker completes it later, the"
+                + " container stays created without running. Remove it with: docker container"
+                + " prune --filter label={}",
+            container,
+            LABEL);
+      }
       deleteScratch(scratch);
     }
   }
 
+  /** Whether docker create was stopped before it ended (timeout or interruption). */
+  private static final class Creation {
+    boolean cutOff;
+  }
+
   /**
-   * Creates the container. Docker's own messages (errors, and warnings such as "Your kernel does
+   * Waits for docker create. Docker's own messages (errors, and warnings such as "Your kernel does
    * not support swap limit capabilities") come from this step, so they never mix with the tool's
    * output, its excerpts or its output cap.
    */
-  private void create(CliCommand command, String container, Path scratch, Map<String, String> env) {
-    List<String> line = commandLine(command, container, scratch);
-    log.debug("Creating CLI container {}: {}", container, line);
-    Process process = start(line, env);
+  private void awaitCreate(
+      Process process, String container, Map<String, String> env, Creation creation) {
     Capture stdout = Capture.start(process.getInputStream(), settings.maxOutputBytes());
     Capture stderr = Capture.start(process.getErrorStream(), settings.maxOutputBytes());
     try {
@@ -210,6 +240,7 @@ public final class DockerCliExecutor implements CliExecutor {
       if (!finished) {
         // Timeout or interruption: the client must not outlive the call. The caller removes
         // the container, which the daemon may have created already.
+        creation.cutOff = true;
         end(process);
       }
     }
@@ -251,6 +282,8 @@ public final class DockerCliExecutor implements CliExecutor {
             settings.docker(),
             "create",
             "--rm",
+            "--label",
+            LABEL,
             "--interactive",
             "--name",
             container,
@@ -531,30 +564,51 @@ public final class DockerCliExecutor implements CliExecutor {
   /**
    * Stops and removes the container, whether it is running or only created; also when the thread
    * was interrupted, whose flag is kept.
+   *
+   * @return true when Docker confirmed the removal or that the container does not exist (a
+   *     container that ran was already removed by {@code --rm}); false, with a WARN that names the
+   *     container and the command to remove it, in any other case
    */
-  private void remove(String container) {
+  private boolean remove(String container) {
     boolean interrupted = Thread.interrupted();
     try {
-      Process kill =
+      Process rm =
           new ProcessBuilder(command(List.of(settings.docker(), "rm", "--force", container)))
               .redirectErrorStream(true)
-              .redirectOutput(ProcessBuilder.Redirect.DISCARD)
               .start();
-      if (!kill.waitFor(KILL_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
-        kill.destroyForcibly();
-        log.warn("docker rm --force {} did not finish in time", container);
+      Capture output = Capture.start(rm.getInputStream(), REMOVE_OUTPUT);
+      if (!rm.waitFor(KILL_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+        rm.destroyForcibly();
+        warnNotRemoved(container, "docker rm did not finish in time");
+        return false;
       }
+      String text = output.text().strip();
+      if (rm.exitValue() == 0 || text.contains(NO_SUCH_CONTAINER)) {
+        return true;
+      }
+      warnNotRemoved(container, "docker rm exited with code " + rm.exitValue() + ": " + text);
+      return false;
     } catch (IOException e) {
-      // docker itself cannot run, so it cannot have created the container either.
-      log.debug("Could not stop container {}: {}", container, e.getMessage());
+      warnNotRemoved(container, "could not run docker rm: " + e.getMessage());
+      return false;
     } catch (InterruptedException e) {
       interrupted = true;
-      log.warn("Interrupted while stopping container {}", container);
+      warnNotRemoved(container, "interrupted while waiting for docker rm");
+      return false;
     } finally {
       if (interrupted) {
         Thread.currentThread().interrupt();
       }
     }
+  }
+
+  private static void warnNotRemoved(String container, String reason) {
+    log.warn(
+        "Could not confirm the removal of CLI container {} ({}). Remove it with: docker rm"
+            + " --force {}",
+        container,
+        reason,
+        container);
   }
 
   private static CliException dockerError(int exit, String excerpt) {

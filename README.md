@@ -312,6 +312,15 @@ To log out and remove the login, run
 `docker compose --profile cli run --rm codex-cli kaizent-codex logout`, then
 `docker volume rm kaizent-cli-codex`.
 
+Each call runs in its own container, removed when the call ends. If Kaizent logs that it
+could not confirm a removal, or that a `docker create` was cut off, remove what is left
+with the command in the log, or remove every leftover CLI container (they never hold
+your login, which stays in the volume) with:
+
+```bash
+docker container prune --filter label=br.com.refatorado.kaizent.cli=true
+```
+
 ## Running evaluations
 
 The evaluation runner sends the twelve PetClinic demo tickets through the pipeline with

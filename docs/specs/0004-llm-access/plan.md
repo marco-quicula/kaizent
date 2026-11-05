@@ -124,7 +124,14 @@ When a call does not end normally (timeout, interruption, a failed or interrupte
 docker client and waits for it, then stops and removes the container by name with
 `docker rm --force`: the container belongs to the Docker daemon and keeps running when only
 its client is stopped, and `--rm` removes only a container that ran, so one that was
-created but never started would stay. An interruption is kept for the caller.
+created but never started would stay. An interruption is kept for the caller. The removal
+counts as confirmed only when `docker rm` succeeds or answers that the container does not
+exist; otherwise Kaizent logs a WARN with the container's name and the command to remove
+it, and a timeout's message says that the container could not be removed. Every CLI
+container carries the label `br.com.refatorado.kaizent.cli=true`. The daemon can still
+complete a create request after its client was stopped and after the removal; that
+container never starts, Kaizent logs a WARN whenever a create was cut off, and the README
+gives the `docker container prune --filter label=…` command that removes such leftovers.
 
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a
