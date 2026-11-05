@@ -11,6 +11,9 @@
 | `resolution` | `ConfidencePolicy` | Applies the configurable caps of ADR-0022 |
 | `resolution` | `ResolutionService` | Orchestrates the steps: assemble, run, validate, score, return a `Proposal` |
 | `run` | `RunOrchestrator` | Calls `ResolutionService`; handles `BUDGET_EXCEEDED` |
+| `resolution` | `RuntimeSelector` | Chooses the runtime for a run (AC-11): the configured one for a `SAFE` ticket; for a `SUSPICIOUS` one, the native runtime with `kaizent.security.api-runtime` (`api-runtime`) or the configured one (`flag-only`), never a CLI preset with `read-restricted: false`; fails the run with a clear message when no allowed runtime is configured |
+| `resolution` | `OutputLeakCheck` | Redacts token and key formats, paths outside the granted ones and URLs to unknown hosts in the diagnosis and the reply, and returns one flag per redaction (AC-12) |
+| `resolution` | `SecurityPolicyWarning` | Logs a WARN at startup when `kaizent.security.suspicious-tickets` is not `api-runtime` (AC-11) |
 
 Runtime selection: `kaizent.agent.resolution.runtime = native | cli | fake`. With
 `native`, `kaizent.agent.resolution.adapter` and `model` choose the Spring AI provider.
@@ -24,8 +27,10 @@ record ProposalOutput(String diagnosis, String suggestedReply, double rawConfide
 record Citation(String path, @Nullable String section) {}
 ```
 
-The stored `Proposal` adds `adjustedConfidence`, `appliedRules`, `invalidCitations` and
-the skills with their versions.
+The stored `Proposal` adds `adjustedConfidence`, `appliedRules`, `invalidCitations`, the
+skills with their versions, `resolvedBy` (the runtime and its adapter or preset) and
+`securityFlags` (one per redaction of the output check, with the kind and the field; the
+redacted text itself is not stored).
 
 ## Prompt resource
 
@@ -39,7 +44,10 @@ the skills with their versions.
 
 ## Data
 
-None new. The proposal is stored as JSONB on `run`, with the shape of spec 0002 extended.
+None new. The proposal is stored as JSONB on `run`, with the shape of spec 0002 extended
+(including `resolvedBy` and `securityFlags`). The injection risk comes from the triage
+document of spec 0006. `RunDetail` shows `resolvedBy` and the security flags (contract
+first).
 
 ## Configuration
 
@@ -48,6 +56,11 @@ kaizent:
   agent.resolution: { runtime: native, adapter: gemini-api, model: <id> }  # or runtime: cli, preset: codex
   budget.max-tool-calls: 20
   confidence: { no-citation-cap: 0.5, invalid-citation-cap: 0.3, lacks-information-cap: 0.3 }
+  security:
+    suspicious-tickets: api-runtime        # or flag-only (operator's risk; WARN at startup)
+    api-runtime: { adapter: gemini-api, model: <id> }   # the native runtime for suspicious tickets
+    known-hosts: []                        # hosts whose URLs are not notes (spec 0006) nor redacted
+  cli.presets.<name>.agent.read-restricted: true   # validated per tool (spec 0004 T8)
 ```
 
 ## Testing
@@ -59,6 +72,8 @@ kaizent:
 | AC-4 | CLI runtime test with a fake CLI script, asserting the paths passed |
 | AC-5 to AC-8 | `ProposalValidator` and `ConfidencePolicy` unit tests |
 | AC-9, AC-10 | Orchestrator and end-to-end tests with the fake runtime |
+| AC-11 | `RuntimeSelector` tests for every combination of risk, policy and runtime: a suspicious ticket with a CLI runtime goes to the API runtime; without one, the run fails with the message; `flag-only` keeps the configured runtime but never a preset with `read-restricted: false`; a log-capture test of the startup WARN; an orchestrator test that records `resolvedBy` |
+| AC-12 | `OutputLeakCheck` unit tests with synthetic tokens and keys, outside paths and unknown URLs (redacted and flagged) and with legitimate text (unchanged); an end-to-end test with a fake runtime whose answer leaks a synthetic token |
 | EV-1 to EV-6 | Evaluation runner with two profiles; results recorded in the PR |
 
 ## Risks and mitigations
@@ -68,3 +83,6 @@ kaizent:
   without a confidence cap in wave 1).
 - Native and CLI runtimes behave differently → the evaluations run with both, and the
   differences are reported in the PR.
+- Redaction hides a legitimate part of the reply (for example a documented URL) → known
+  hosts are configurable, every redaction is flagged for the reviewer, and the human
+  verdict stays mandatory.

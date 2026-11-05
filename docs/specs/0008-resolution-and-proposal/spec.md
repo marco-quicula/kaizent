@@ -69,17 +69,21 @@ Replace the skeleton's single prompt with the real Do step:
   with the fake `AgentRuntime`.
 - **AC-11:** **Suspicious tickets** (spec 0006 AC-9) follow
   `kaizent.security.suspicious-tickets` (ADR-0032, layer 3):
-  - `api-runtime` (default): resolved by the native runtime through an API profile, never
-    by a CLI runtime. Without an API profile for resolution, the run waits as with
-    `hold`, with a message that says so;
-  - `hold`: the run stops before resolution until a person decides;
-  - `flag-only`: the run continues as configured, and the reviewer sees the risk.
+  - `api-runtime` (default): resolved by the native runtime through
+    `kaizent.security.api-runtime` (an API adapter and model), never by a CLI runtime.
+    Without that setting, the run fails with reason `ERROR` and the message "suspicious
+    ticket and no API runtime configured";
+  - `flag-only`: the run continues with the configured runtime, and the reviewer sees
+    the risk. A CLI preset with `read-restricted: false` is never used for a suspicious
+    ticket, whatever the policy; such a run fails the same way.
 
-  Any value other than `api-runtime` logs a WARN at startup that names the setting and
-  the risk, and the README documents it as the operator's risk.
+  `flag-only` logs a WARN at startup that names the setting and the risk, and the README
+  documents it as the operator's risk. The runtime that resolved the ticket is recorded
+  on the proposal.
 - **AC-12:** **Output check** (ADR-0032, layer 4): before a proposal is stored, token and
   key formats (for example `eyJ…` JWTs, `sk-…` keys), paths outside the granted ones and
-  URLs outside an allowlist are redacted; the proposal is flagged and the reviewer is
+  URLs to hosts outside `kaizent.security.known-hosts` are redacted in the diagnosis and
+  the suggested reply; the proposal records each redaction as a flag, and the reviewer is
   warned.
 
 ## Evaluation cases

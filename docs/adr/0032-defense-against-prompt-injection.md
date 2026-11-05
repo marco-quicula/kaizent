@@ -31,27 +31,38 @@ Four layers, decided with the maintainer:
      network is limited to what the tool needs to reach its model, where the tool or the
      container allows it;
    - the **agentic CLI runtime (spec 0004 T8) is not released until this layer is in
-     place and validated** with the real tool. If a tool cannot restrict reads, its
-     agentic preset is documented as unsafe for untrusted tickets.
+     place and validated** with the real tool. A documented warning does not satisfy
+     this gate: a tool whose agentic preset cannot restrict reads is marked
+     `read-restricted: false`, **never receives a `SUSPICIOUS` ticket, whatever the policy
+     of layer 3**, and is documented as unsafe for untrusted input.
 2. **Risk triage of the ticket.** Before resolution, each ticket gets an injection risk:
    `SAFE` or `SUSPICIOUS`, with the reasons. The first detector is **deterministic and
    free** (patterns such as instructions to ignore or reveal instructions, requests for
    files, environment variables, tokens, keys or passwords, shell commands such as `curl`,
    `wget` or `cat ~/...`, long encoded blobs, unexpected URLs). A model-based classifier
-   may be added later, as an evolution measured by evaluation cases.
+   may be added later, as an evolution measured by evaluation cases. A URL to a host
+   outside `kaizent.security.known-hosts` is recorded as a note for the reviewer but
+   does not make a ticket suspicious on its own, since tickets often carry links.
 3. **Policy for suspicious tickets**, `kaizent.security.suspicious-tickets`:
    - `api-runtime` (**default**): the ticket is resolved by Kaizent's own loop through
-     the API adapters, which only has Kaizent's read tools over the role's knowledge, no
-     shell; never by an agentic CLI runtime;
-   - `hold`: the run stops and waits for a person to decide before resolution;
-   - `flag-only`: the run continues as configured, with the risk shown to the reviewer.
+     an API adapter (`kaizent.security.api-runtime`: adapter and model), which only has
+     Kaizent's read tools over the role's knowledge, no shell; never by an agentic CLI
+     runtime. Without that API profile, the run **fails** with reason `ERROR` and a
+     message that says why ("suspicious ticket and no API runtime configured"); it can
+     be retried once one is configured (spec 0009);
+   - `flag-only`: the run continues with the step's configured runtime, and the risk is
+     shown to the reviewer; a CLI preset with `read-restricted: false` is still never
+     used for it (layer 1).
 
-   Any value other than the default is the operator's risk: the documentation warns
-   about it, and the application logs a **WARN at startup** that names the setting and
-   the risk.
+   `flag-only` is the operator's risk: the documentation warns about it, and the
+   application logs a **WARN at startup** that names the setting and the risk.
+
+   A third policy, **holding** the run until a person decides, is deferred: it needs a
+   new run state outside the worker's queue, an action to release it and a change to the
+   run lifecycle of ADR-0023. It is in the roadmap with the console's decision actions.
 4. **Output check.** Before a proposal is stored, Kaizent looks for signs of a leak:
    token and key formats (for example `eyJ…` JWTs or `sk-…` keys), paths outside the
-   granted ones, URLs outside an allowlist. A match is redacted, the proposal is flagged,
+   granted ones, URLs to hosts outside `kaizent.security.known-hosts`. A match is redacted, the proposal is flagged,
    and the reviewer is warned. The human verdict stays mandatory.
 
 Where each layer is specified: layer 1 in spec 0004 (T8, the agentic CLI runtime), layer
@@ -64,9 +75,10 @@ Where each layer is specified: layer 1 in spec 0004 (T8, the agentic CLI runtime
   leak.
 - **No agentic CLI runtime at all.** The safest, but it gives up the CLI tools' agents,
   which ADR-0016 kept for good reasons; with layers 1 and 3 their risk is contained.
-- **Hold every suspicious ticket for a person (`hold` as the default).** Safer for a
-  shared deployment, but it stops the flow on every false positive of a deterministic
-  detector; it stays available as a setting.
+- **Hold every suspicious ticket for a person.** Safer for a shared deployment, but it
+  stops the flow on every false positive of a deterministic detector, and it needs a new
+  run state and a release action (a change to ADR-0023). Deferred, as a later setting,
+  not as the default.
 
 ## Consequences
 
@@ -75,7 +87,7 @@ Where each layer is specified: layer 1 in spec 0004 (T8, the agentic CLI runtime
 - Spec 0006 adds the injection risk to the triage result; spec 0008 adds the routing
   policy, the startup warning and the output check.
 - A suspicious ticket may be resolved by the API loop even when the step's runtime is a
-  CLI tool, so the `api-runtime` policy needs an API profile for resolution (for example
-  `gemini-api`); without one, the run waits as with `hold`, with a clear message.
+  CLI tool, so the `api-runtime` policy needs `kaizent.security.api-runtime` (for example
+  `gemini-api` and a model); without it, suspicious tickets fail with a clear message.
 - Evaluation cases with injected tickets (synthetic) measure the detector and the
   layers over time.
