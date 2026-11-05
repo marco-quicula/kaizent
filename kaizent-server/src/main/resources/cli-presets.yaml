@@ -12,7 +12,7 @@ kaizent:
       codex:
         image: kaizent-cli-codex
         tool-version: 0.166.0           # pinned in docker/cli/codex/Dockerfile
-        validated: false                # true once EV-1 passes with the real tool
+        validated: true                 # EV-1 passed with Codex CLI 0.166.0 (spec 0004 T13)
         cost-type: SUBSCRIPTION
         credentials:
           # Only the login (auth.json): kaizent-codex keeps the tool's other state (sessions,

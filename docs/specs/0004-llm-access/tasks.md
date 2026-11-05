@@ -15,7 +15,7 @@
 - [x] **T7:** The presets (configuration `kaizent.cli.presets`, see the plan), the `codex`
   preset and image, the `cli` compose profile with its login command, `CliLlmGateway` (the
   `cli` adapter) and the event reader. *Covers:* AC-7, AC-9 (part), AC-11 (part). The
-  preset stays `validated: false` until EV-1 (T13).
+  preset became `validated: true` with EV-1 (T13).
 - [ ] **T8:** The `AgentRuntime` port (in `resolution`), `CliAgentRuntime` and
   `TraceSink`, with the read and network restrictions of ADR-0032 (layer 1) found in a
   discovery with the real tool and validated with a synthetic injected ticket.
@@ -33,9 +33,11 @@
   AC-11. (The API adapters' log-capture and redaction tests came with #38; the
   environment allowlist and the redacted error excerpts of the CLI executor with T6.)
 - [x] **T12:** Add the profiles to `GET /system`. *Covers:* AC-12.
-- [ ] **T13:** Manual validation of the Codex preset and of `gemini-api`, recorded in the
+- [x] **T13:** Manual validation of the Codex preset and of `gemini-api`, recorded in the
   PR, and optionally of `openai` and `anthropic`. *Covers:* EV-1, EV-2, EV-3 (optional).
-  The `llm-check` command runs the triage-shaped requests. (EV-2 and EV-3 were partly
-  validated in #38 with the resolution call. The Codex `llm-check` call passed in the
-  maintainer's phase B run for #42; EV-1 with the full pipeline and the triage-shaped
-  EV-2 are running locally after the merge of #42.)
+  The `llm-check` command runs the triage-shaped requests. Results (#44): EV-1 passed
+  with Codex CLI 0.166.0 in the full pipeline (12 of 12 tickets in `AWAITING_REVIEW`,
+  `costType = SUBSCRIPTION`, the login volume still holds only `auth.json`); EV-2 passed
+  with `gemini-api` and `gemini-3.6-flash` (valid triage-shaped JSON, tokens reported).
+  EV-3 is partly validated: three OpenAI models in #38, with the resolution call;
+  Anthropic and the triage-shaped request were not run (optional).
