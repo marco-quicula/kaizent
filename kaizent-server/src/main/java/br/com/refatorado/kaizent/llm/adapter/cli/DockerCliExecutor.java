@@ -100,23 +100,24 @@ public final class DockerCliExecutor implements CliExecutor {
     Map<String, String> env = envValues(command);
     Path scratch = createScratch(command);
     long start = System.nanoTime();
-    boolean created = false;
-    boolean finished = false;
+    boolean succeeded = false;
     try {
+      // From here on the container may exist, even when docker create is interrupted or fails:
+      // every abnormal end removes it by name.
       create(command, container, scratch, env);
-      created = true;
       List<String> line =
           List.of(settings.docker(), "start", "--attach", "--interactive", container);
       log.debug("Starting CLI container {}", container);
       Process process = start(line, Map.of());
       Capture stdout = Capture.start(process.getInputStream(), settings.maxOutputBytes());
       Capture stderr = Capture.start(process.getErrorStream(), settings.maxOutputBytes());
+      boolean finished = false;
       try {
         writeStdin(process, command.stdin());
         finished = waitFor(process, command.timeout());
       } finally {
         if (!finished) {
-          process.destroyForcibly();
+          end(process);
         }
       }
       if (!finished) {
@@ -169,12 +170,17 @@ public final class DockerCliExecutor implements CliExecutor {
           files.put(name, new String(bytes, 0, length, StandardCharsets.UTF_8));
         }
       }
-      return new CliResult(out, err, truncated, files, Duration.ofNanos(System.nanoTime() - start));
+      CliResult result =
+          new CliResult(out, err, truncated, files, Duration.ofNanos(System.nanoTime() - start));
+      succeeded = true;
+      return result;
     } finally {
-      if (created && !finished) {
-        // Timeout, interruption or any other failure: the container belongs to the Docker
-        // daemon and keeps running (or stays created) unless it is removed, even when its
-        // client is gone.
+      if (!succeeded) {
+        // Timeout, interruption, a failed create or start, or any other failure: the container
+        // belongs to the Docker daemon and keeps running (or stays created, since --rm removes
+        // only a container that ran) unless it is removed, even when its client is gone. A
+        // container that ran and exited was already removed by --rm; removing it again is
+        // harmless.
         remove(container);
       }
       deleteScratch(scratch);
@@ -197,9 +203,17 @@ public final class DockerCliExecutor implements CliExecutor {
     } catch (IOException e) {
       // Nothing to write.
     }
-    if (!waitFor(process, CREATE_TIMEOUT)) {
-      process.destroyForcibly();
-      remove(container);
+    boolean finished = false;
+    try {
+      finished = waitFor(process, CREATE_TIMEOUT);
+    } finally {
+      if (!finished) {
+        // Timeout or interruption: the client must not outlive the call. The caller removes
+        // the container, which the daemon may have created already.
+        end(process);
+      }
+    }
+    if (!finished) {
       throw new CliException(
           Kind.DOCKER_UNAVAILABLE,
           null,
@@ -209,7 +223,6 @@ public final class DockerCliExecutor implements CliExecutor {
     stdout.text();
     String err = stderr.text();
     if (process.exitValue() != 0) {
-      remove(container);
       throw dockerError(process.exitValue(), excerpt(err, stderr.truncated(), env));
     }
     if (!err.isBlank()) {
@@ -496,6 +509,26 @@ public final class DockerCliExecutor implements CliExecutor {
   }
 
   /**
+   * Stops a docker client and waits for it to end, so that the container is removed only after the
+   * client can no longer act on it; also when the thread was interrupted, whose flag is kept.
+   */
+  private static void end(Process process) {
+    process.destroyForcibly();
+    boolean interrupted = Thread.interrupted();
+    try {
+      if (!process.waitFor(KILL_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+        log.warn("A docker client did not end in time (pid {})", process.pid());
+      }
+    } catch (InterruptedException e) {
+      interrupted = true;
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
+  /**
    * Stops and removes the container, whether it is running or only created; also when the thread
    * was interrupted, whose flag is kept.
    */
@@ -512,7 +545,8 @@ public final class DockerCliExecutor implements CliExecutor {
         log.warn("docker rm --force {} did not finish in time", container);
       }
     } catch (IOException e) {
-      log.warn("Could not stop container {}: {}", container, e.getMessage());
+      // docker itself cannot run, so it cannot have created the container either.
+      log.debug("Could not stop container {}: {}", container, e.getMessage());
     } catch (InterruptedException e) {
       interrupted = true;
       log.warn("Interrupted while stopping container {}", container);

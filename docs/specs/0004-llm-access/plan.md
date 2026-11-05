@@ -119,10 +119,12 @@ argument. The container is created with:
   container (exit code 125 with Docker's own message, for example when the daemon is not
   running).
 
-When a call does not end normally (timeout, interruption or any other failure after the
-container was started), the executor stops and removes the container with `docker rm --force`: the container
-belongs to the Docker daemon and keeps running when only its client is stopped. An
-interruption is kept for the caller.
+When a call does not end normally (timeout, interruption, a failed or interrupted
+`docker create`, a failed `docker start` or any other failure), the executor first ends the
+docker client and waits for it, then stops and removes the container by name with
+`docker rm --force`: the container belongs to the Docker daemon and keeps running when only
+its client is stopped, and `--rm` removes only a container that ran, so one that was
+created but never started would stay. An interruption is kept for the caller.
 
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a

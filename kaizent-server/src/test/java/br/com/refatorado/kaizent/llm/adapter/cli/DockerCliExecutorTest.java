@@ -524,6 +524,98 @@ class DockerCliExecutorTest {
     assertThat(docker("ps", "--quiet", "--filter", "ancestor=" + IMAGE)).isBlank();
   }
 
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void endsTheCreateClientAndRemovesTheContainerWhenCreateIsInterrupted(@TempDir Path bin)
+      throws Exception {
+    // A docker whose create hangs: it records its process id and the containers it is asked to
+    // remove.
+    Path pid = bin.resolve("create.pid");
+    Path removed = bin.resolve("removed.log");
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = create ]; then
+          echo $$ > "%s"
+          exec sleep 300
+        fi
+        if [ "$1" = rm ]; then
+          echo "$@" >> "%s"
+          exit 0
+        fi
+        exit 1
+        """
+            .formatted(pid, removed));
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor hanging =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 1024, "10001:10001", "1", "256m", 64),
+            configuration::get);
+    java.util.concurrent.atomic.AtomicReference<Throwable> failure =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    java.util.concurrent.atomic.AtomicBoolean stillInterrupted =
+        new java.util.concurrent.atomic.AtomicBoolean();
+    Thread caller =
+        Thread.ofPlatform()
+            .start(() -> {
+              try {
+                hanging.execute(CliCommand.builder(IMAGE, TIMEOUT).args("fake-cli", "id").build());
+              } catch (RuntimeException e) {
+                failure.set(e);
+              }
+              stillInterrupted.set(Thread.currentThread().isInterrupted());
+            });
+    long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+    while (!Files.exists(pid) || Files.readString(pid).isBlank()) {
+      assertThat(System.nanoTime()).as("docker create starts").isLessThan(deadline);
+      Thread.sleep(100);
+    }
+    long createPid = Long.parseLong(Files.readString(pid).strip());
+
+    caller.interrupt();
+    caller.join(Duration.ofSeconds(60));
+
+    assertThat(caller.isAlive()).isFalse();
+    assertThat(failure.get()).isInstanceOf(CliException.class).hasMessageContaining("Interrupted");
+    assertThat(stillInterrupted).isTrue();
+    assertThat(ProcessHandle.of(createPid).map(ProcessHandle::isAlive).orElse(false))
+        .as("the docker create client")
+        .isFalse();
+    assertThat(Files.readString(removed)).startsWith("rm --force kaizent-cli-");
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void removesACreatedContainerThatDockerCouldNotStart(@TempDir Path bin) throws Exception {
+    // A docker that creates the container for real but fails to start it, as when a mount
+    // fails: --rm removes only a container that ran, so this one would stay created.
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = start ]; then
+          echo "Error response from daemon: failed to start (test)" >&2
+          exit 1
+        fi
+        exec docker "$@"
+        """);
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor failing =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 1024, "10001:10001", "1", "256m", 64),
+            configuration::get);
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            failing.execute(CliCommand.builder(IMAGE, TIMEOUT).args("fake-cli", "id").build()))
+        .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.DOCKER_UNAVAILABLE))
+        .withMessageContaining("failed to start (test)");
+    assertThat(docker("ps", "--all", "--quiet", "--filter", "ancestor=" + IMAGE)).isBlank();
+  }
+
   private CliResult run(String... args) {
     return executor.execute(CliCommand.builder(IMAGE, TIMEOUT).args(args).build());
   }
