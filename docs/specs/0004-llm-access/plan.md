@@ -130,10 +130,13 @@ exist; otherwise Kaizent logs a WARN with the container's name and the command t
 it, and a timeout's message says that the container could not be removed. Every CLI
 container carries the label `br.com.refatorado.kaizent.cli=true`. The daemon can still
 complete a create request after its client was stopped and after the removal; that
-container never starts, Kaizent logs a WARN whenever a create was cut off, and the README
-gives the `docker container prune --filter label=…` command that removes such leftovers
-(stopped or created containers only; a running one needs the `docker rm --force` of the
-WARN).
+container never starts, and Kaizent logs a WARN whenever a create was cut off, with the
+container's name: since the name is fixed before the create, the targeted
+`docker rm --force <name>` also removes a container that the daemon completes later. The
+README also gives a bulk cleanup, `docker container prune` with the label and
+`--filter until=10m`: the age limit keeps it from removing the container of a call that is
+starting (briefly `Created`, at most the 2-minute create timeout), and prune never touches
+running containers.
 
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a

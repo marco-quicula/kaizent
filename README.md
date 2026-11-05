@@ -314,14 +314,21 @@ To log out and remove the login, run
 
 Each call runs in its own container, removed when the call ends. If Kaizent logs that it
 could not confirm a removal, or that a `docker create` was cut off, remove what is left
-with the `docker rm --force <name>` command in the log; it also stops a container that is
-still running. To remove every leftover CLI container that is stopped or only created
-(`prune` does not touch running ones; none of them holds your login, which stays in the
-volume), run:
+with the `docker rm --force <name>` command in the log: it names only that call's
+container, and also stops it if it is still running. To find leftovers, list the CLI
+containers with `docker ps --all --filter label=br.com.refatorado.kaizent.cli=true`.
+
+To remove all leftovers at once, prune only the stopped or created CLI containers that
+are older than 10 minutes:
 
 ```bash
-docker container prune --filter label=br.com.refatorado.kaizent.cli=true
+docker container prune --filter label=br.com.refatorado.kaizent.cli=true --filter until=10m
 ```
+
+The age limit matters: a call that is starting shows as `Created` for a moment, and a
+prune without it could remove that call's container while Kaizent is running. `prune`
+never touches running containers; use `docker rm --force <name>` for those. No CLI
+container holds your login, which stays in the volume.
 
 ## Running evaluations
 
