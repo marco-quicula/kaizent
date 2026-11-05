@@ -8,6 +8,7 @@ case "$1" in
   cat) cat "$2" ;;
   write) printf '%s' "$3" > "$2" ;;
   link) ln -s "$2" "$3" ;;
+  mkdir) mkdir -p "$2" ;;
   answer) cat > /scratch/prompt-received.txt; printf '%s' "$3" > "$2" ;;
   answer-stdout) cat > /dev/null; printf '%s' "$2" ;;
   sleep) sleep "$2" ;;

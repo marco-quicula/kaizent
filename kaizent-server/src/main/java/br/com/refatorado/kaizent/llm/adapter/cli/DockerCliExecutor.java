@@ -31,12 +31,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs each CLI call in a new container with {@code docker run --rm} (ADR-0030, spec 0004 AC-6).
- * The container gets a read-only root file system, a non-root user, CPU, memory and process limits,
- * no Linux capabilities, only the granted workspace paths (read-only), a writable scratch folder
- * that is deleted afterwards, the tool's credential volume, and only the declared environment
- * variables. A timeout stops the container. Kaizent calls the {@code docker} command line; it needs
- * no Docker library, and it never mounts the Docker socket.
+ * Runs each CLI call in a new container (ADR-0030, spec 0004 AC-6): {@code docker create --rm},
+ * then {@code docker start --attach}, so that Docker's own messages stay apart from the tool's
+ * output. The container gets a read-only root file system, a non-root user, CPU, memory and process
+ * limits, no Linux capabilities, only the granted workspace paths (read-only), a writable scratch
+ * folder that is deleted afterwards, the tool's credential volume, and only the declared
+ * environment variables. A timeout stops the container. Kaizent calls the {@code docker} command
+ * line; it needs no Docker library, and it never mounts the Docker socket.
  */
 public final class DockerCliExecutor implements CliExecutor {
 
@@ -47,7 +48,8 @@ public final class DockerCliExecutor implements CliExecutor {
   private static final Pattern FILE = Pattern.compile("[A-Za-z0-9][A-Za-z0-9_.-]*");
   private static final Pattern CONTAINER_PATH = Pattern.compile("/[A-Za-z0-9_./-]*");
   private static final String EVALS = "evals";
-  private static final int DOCKER_ERROR = 125;
+  private static final String DAEMON_ERROR = "Error response from daemon";
+  private static final Duration CREATE_TIMEOUT = Duration.ofMinutes(2);
   private static final String REDACTED = "[REDACTED]";
   private static final Pattern USER = Pattern.compile("([0-9]+):([0-9]+)");
   private static final int STDERR_EXCERPT = 1000;
@@ -98,21 +100,22 @@ public final class DockerCliExecutor implements CliExecutor {
     Map<String, String> env = envValues(command);
     Path scratch = createScratch(command);
     long start = System.nanoTime();
+    boolean created = false;
+    boolean finished = false;
     try {
-      List<String> line = commandLine(command, container, scratch);
-      log.debug("Running a CLI call in container {}: {}", container, line);
-      Process process = start(line, env);
+      create(command, container, scratch, env);
+      created = true;
+      List<String> line =
+          List.of(settings.docker(), "start", "--attach", "--interactive", container);
+      log.debug("Starting CLI container {}", container);
+      Process process = start(line, Map.of());
       Capture stdout = Capture.start(process.getInputStream(), settings.maxOutputBytes());
       Capture stderr = Capture.start(process.getErrorStream(), settings.maxOutputBytes());
-      boolean finished = false;
       try {
         writeStdin(process, command.stdin());
         finished = waitFor(process, command.timeout());
       } finally {
         if (!finished) {
-          // Timeout, interruption or any other failure: the container belongs to the Docker
-          // daemon and keeps running unless it is stopped, even when its client is gone.
-          kill(container);
           process.destroyForcibly();
         }
       }
@@ -130,7 +133,8 @@ public final class DockerCliExecutor implements CliExecutor {
       String out = stdout.text();
       String err = stderr.text();
       int exit = process.exitValue();
-      if (exit == DOCKER_ERROR && isDockerError(err)) {
+      if (err.startsWith(DAEMON_ERROR)) {
+        // Docker could not start the container: the tool never ran.
         throw dockerError(exit, excerpt(err, stderr.truncated(), env));
       }
       if (exit != 0) {
@@ -148,12 +152,14 @@ public final class DockerCliExecutor implements CliExecutor {
       boolean truncated = stdout.truncated() || stderr.truncated();
       for (String name : command.outputFiles()) {
         Path file = scratch.resolve(name);
-        if (Files.isSymbolicLink(file)) {
-          // The tool could point it at a host file that was never mounted.
+        if (Files.exists(file, LinkOption.NOFOLLOW_LINKS)
+            && !Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+          // A symbolic link (the tool could point it at a host file that was never mounted),
+          // a reparse point on Windows, a folder or a device: only regular files are read.
           throw new CliException(
               Kind.FAILED,
               null,
-              "CLI output file " + name + " is a symbolic link; only regular files are read",
+              "CLI output file " + name + " is not a regular file (for example a symbolic link)",
               null);
         }
         if (Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
@@ -165,7 +171,52 @@ public final class DockerCliExecutor implements CliExecutor {
       }
       return new CliResult(out, err, truncated, files, Duration.ofNanos(System.nanoTime() - start));
     } finally {
+      if (created && !finished) {
+        // Timeout, interruption or any other failure: the container belongs to the Docker
+        // daemon and keeps running (or stays created) unless it is removed, even when its
+        // client is gone.
+        remove(container);
+      }
       deleteScratch(scratch);
+    }
+  }
+
+  /**
+   * Creates the container. Docker's own messages (errors, and warnings such as "Your kernel does
+   * not support swap limit capabilities") come from this step, so they never mix with the tool's
+   * output, its excerpts or its output cap.
+   */
+  private void create(CliCommand command, String container, Path scratch, Map<String, String> env) {
+    List<String> line = commandLine(command, container, scratch);
+    log.debug("Creating CLI container {}: {}", container, line);
+    Process process = start(line, env);
+    Capture stdout = Capture.start(process.getInputStream(), settings.maxOutputBytes());
+    Capture stderr = Capture.start(process.getErrorStream(), settings.maxOutputBytes());
+    try {
+      process.getOutputStream().close();
+    } catch (IOException e) {
+      // Nothing to write.
+    }
+    if (!waitFor(process, CREATE_TIMEOUT)) {
+      process.destroyForcibly();
+      remove(container);
+      throw new CliException(
+          Kind.DOCKER_UNAVAILABLE,
+          null,
+          "Docker did not create the container within " + seconds(CREATE_TIMEOUT),
+          null);
+    }
+    stdout.text();
+    String err = stderr.text();
+    if (process.exitValue() != 0) {
+      remove(container);
+      throw dockerError(process.exitValue(), excerpt(err, stderr.truncated(), env));
+    }
+    if (!err.isBlank()) {
+      log.info(
+          "Docker warned while creating CLI container {}: {}",
+          container,
+          excerpt(err, stderr.truncated(), env));
     }
   }
 
@@ -185,7 +236,7 @@ public final class DockerCliExecutor implements CliExecutor {
     line.addAll(
         List.of(
             settings.docker(),
-            "run",
+            "create",
             "--rm",
             "--interactive",
             "--name",
@@ -351,7 +402,7 @@ public final class DockerCliExecutor implements CliExecutor {
   }
 
   private Process start(List<String> line, Map<String, String> env) {
-    ProcessBuilder builder = new ProcessBuilder(line);
+    ProcessBuilder builder = new ProcessBuilder(command(line));
     // docker needs the host environment (PATH, DOCKER_HOST...); the container gets only the
     // declared variables, which docker reads from here.
     env.forEach((name, value) -> {
@@ -372,6 +423,52 @@ public final class DockerCliExecutor implements CliExecutor {
               + "'. The CLI adapters need Docker (ADR-0030); install it or start Docker Desktop",
           e);
     }
+  }
+
+  /**
+   * The command for {@link ProcessBuilder}: on Windows, quoted so that docker gets it unchanged.
+   */
+  private static List<String> command(List<String> line) {
+    return WINDOWS ? windowsQuoted(line) : line;
+  }
+
+  private static final boolean WINDOWS =
+      System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT).startsWith("windows");
+
+  /**
+   * Quotes each argument for the Windows command line. On Windows, {@link ProcessBuilder} joins the
+   * arguments into one command line without escaping the double quotes inside them, and the program
+   * splits it again by the Microsoft C runtime rules: an argument such as {@code {"ok":true}} would
+   * arrive as {@code {ok:true}}. Each argument that needs it is wrapped in double quotes, with its
+   * inner double quotes and the backslashes before them escaped.
+   */
+  static List<String> windowsQuoted(List<String> arguments) {
+    List<String> quoted = new ArrayList<>(arguments.size());
+    for (String argument : arguments) {
+      quoted.add(windowsQuoted(argument));
+    }
+    return quoted;
+  }
+
+  static String windowsQuoted(String argument) {
+    if (!argument.isEmpty() && argument.chars().noneMatch(c -> c == ' ' || c == '\t' || c == '"')) {
+      return argument;
+    }
+    StringBuilder out = new StringBuilder("\"");
+    int backslashes = 0;
+    for (char c : argument.toCharArray()) {
+      if (c == '\\') {
+        backslashes++;
+      } else if (c == '"') {
+        out.append("\\".repeat(2 * backslashes + 1)).append('"');
+        backslashes = 0;
+      } else {
+        out.append("\\".repeat(backslashes)).append(c);
+        backslashes = 0;
+      }
+    }
+    out.append("\\".repeat(2 * backslashes)).append('"');
+    return out.toString();
   }
 
   private static void writeStdin(Process process, String stdin) {
@@ -398,18 +495,21 @@ public final class DockerCliExecutor implements CliExecutor {
     }
   }
 
-  /** Stops the container; also when the thread was interrupted, whose flag is kept. */
-  private void kill(String container) {
+  /**
+   * Stops and removes the container, whether it is running or only created; also when the thread
+   * was interrupted, whose flag is kept.
+   */
+  private void remove(String container) {
     boolean interrupted = Thread.interrupted();
     try {
       Process kill =
-          new ProcessBuilder(settings.docker(), "kill", container)
+          new ProcessBuilder(command(List.of(settings.docker(), "rm", "--force", container)))
               .redirectErrorStream(true)
               .redirectOutput(ProcessBuilder.Redirect.DISCARD)
               .start();
       if (!kill.waitFor(KILL_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
         kill.destroyForcibly();
-        log.warn("docker kill {} did not finish in time", container);
+        log.warn("docker rm --force {} did not finish in time", container);
       }
     } catch (IOException e) {
       log.warn("Could not stop container {}: {}", container, e.getMessage());
@@ -421,15 +521,6 @@ public final class DockerCliExecutor implements CliExecutor {
         Thread.currentThread().interrupt();
       }
     }
-  }
-
-  /** Exit code 125 with Docker's own message: the container did not start. */
-  private static boolean isDockerError(String stderr) {
-    return stderr.contains("docker:")
-        || stderr.contains("Docker daemon")
-        || stderr.contains("docker daemon")
-        || stderr.contains("error during connect")
-        || stderr.contains("Unable to find image");
   }
 
   private static CliException dockerError(int exit, String excerpt) {

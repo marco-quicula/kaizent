@@ -84,10 +84,16 @@ profile's model, if any.
 **Event mapping:** a per-preset `EventMapper` turns JSONL events into `TraceEvent`s (tool
 call, file read, message). Unknown events are kept raw.
 
-**`DockerCliExecutor` (ADR-0030):** builds a `docker run --rm` command line and runs it
-with `ProcessBuilder`:
+**`DockerCliExecutor` (ADR-0030):** creates the container with `docker create --rm` and
+runs it with `docker start --attach --interactive`, through `ProcessBuilder`. Docker's own
+messages (errors, and warnings such as "Your kernel does not support swap limit
+capabilities") come from the create step, so they never mix with the tool's output, its
+error excerpts or its output cap. On Windows, each argument is quoted for the Windows
+command line, because `ProcessBuilder` there does not escape the double quotes inside an
+argument. The container is created with:
 
-- a unique container name per call, so that a timeout can `docker kill` it;
+- a unique container name per call, so that a timeout or any other failure can remove it
+  with `docker rm --force`;
 - `--read-only` root file system with a `--tmpfs /tmp` (a preset can declare more
   temporary paths that its tool needs), `--user` non-root (`kaizent.cli.user`, a numeric
   `uid:gid` with neither id zero, default `10001:10001`, the user that every CLI image
@@ -114,7 +120,7 @@ with `ProcessBuilder`:
   running).
 
 When a call does not end normally (timeout, interruption or any other failure after the
-container was started), the executor stops the container with `docker kill`: the container
+container was started), the executor stops and removes the container with `docker rm --force`: the container
 belongs to the Docker daemon and keeps running when only its client is stopped. An
 interruption is kept for the caller.
 
@@ -122,8 +128,9 @@ Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a
 normalized workspace-relative path that stays inside the workspace after resolving
 symbolic links, and it can neither be nor contain `evals/` nor resolve into it. An output
-file that the tool left in `/scratch` is read only when it is a regular file: a symbolic
-link fails the call, so that it cannot point to a host file that was never mounted. A CLI image creates the folder that its credential volume is mounted on,
+file that the tool left in `/scratch` is read only when it is a regular file: anything else
+(a symbolic link, a Windows reparse point, a folder) fails the call, so that it cannot point
+to a host file that was never mounted. A CLI image creates the folder that its credential volume is mounted on,
 owned by the tool's user, so that a new volume takes that ownership.
 
 **Images and setup:** `docker/cli/<tool>/Dockerfile` installs the tool at a pinned

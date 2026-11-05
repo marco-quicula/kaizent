@@ -231,7 +231,7 @@ class DockerCliExecutorTest {
                         "/scratch/answer.json")
                     .outputFile("answer.json")
                     .build()))
-        .withMessageContaining("is a symbolic link")
+        .withMessageContaining("is not a regular file")
         .withMessageNotContaining("host-only content");
   }
 
@@ -341,6 +341,69 @@ class DockerCliExecutorTest {
                 CliCommand.builder("kaizent-cli-missing:none", TIMEOUT).args("x").build()))
         .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.DOCKER_UNAVAILABLE))
         .withMessageContaining("Docker could not run the container");
+  }
+
+  @Test
+  void neverReadsAnOutputThatIsNotARegularFile() {
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            executor.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .args("fake-cli", "mkdir", "/scratch/answer.json")
+                    .outputFile("answer.json")
+                    .build()))
+        .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.FAILED))
+        .withMessageContaining("is not a regular file");
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void keepsDockersOwnWarningsOutOfTheToolsOutput(@TempDir Path bin) throws Exception {
+    // A docker that warns when it creates a container, like Docker on a kernel without swap
+    // accounting, then runs the real docker.
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = create ] || [ "$1" = run ]; then
+          echo "WARNING: Your kernel does not support swap limit capabilities (test)" >&2
+        fi
+        exec docker "$@"
+        """);
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor warned =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 16, "10001:10001", "1", "256m", 64),
+            Map.of("DECLARED_VAR", "declared-text-abcdef")::get);
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            warned.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .env("DECLARED_VAR")
+                    .args("fake-cli", "fail", "3", "declared-text-abcdef")
+                    .build()))
+        .withMessage("CLI call in " + IMAGE + " exited with code 3: [REDACTED]");
+    CliResult result =
+        warned.execute(CliCommand.builder(IMAGE, TIMEOUT).args("fake-cli", "id").build());
+    assertThat(result.stderr()).doesNotContain("WARNING");
+    assertThat(result.stdout().strip()).isEqualTo("10001");
+  }
+
+  @Test
+  void quotesArgumentsForTheWindowsCommandLine() {
+    assertThat(DockerCliExecutor.windowsQuoted("plain")).isEqualTo("plain");
+    assertThat(DockerCliExecutor.windowsQuoted("{\"ok\":true}")).isEqualTo("\"{\\\"ok\\\":true}\"");
+    assertThat(DockerCliExecutor.windowsQuoted("web_search=\"disabled\""))
+        .isEqualTo("\"web_search=\\\"disabled\\\"\"");
+    assertThat(DockerCliExecutor.windowsQuoted("C:\\Users\\Ana Maria\\scratch"))
+        .isEqualTo("\"C:\\Users\\Ana Maria\\scratch\"");
+    // Backslashes before a quote, and at the end of a quoted argument, are doubled.
+    assertThat(DockerCliExecutor.windowsQuoted("a\\\"b")).isEqualTo("\"a\\\\\\\"b\"");
+    assertThat(DockerCliExecutor.windowsQuoted("dir with space\\"))
+        .isEqualTo("\"dir with space\\\\\"");
+    assertThat(DockerCliExecutor.windowsQuoted("")).isEqualTo("\"\"");
   }
 
   @Test
