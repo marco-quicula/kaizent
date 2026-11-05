@@ -20,6 +20,19 @@ public interface LlmAdapter {
   /** How this adapter's calls are paid for. */
   CostType costType();
 
+  /** How a profile's calls are paid for; the CLI adapter takes it from the profile's preset. */
+  default CostType costType(LlmProfile profile) {
+    return costType();
+  }
+
+  /**
+   * Why a profile cannot work with this adapter, for example an unknown CLI preset; empty when it
+   * can. Such a profile fails at startup (spec 0004 AC-1).
+   */
+  default Optional<String> invalidProfile(LlmProfile profile) {
+    return Optional.empty();
+  }
+
   /**
    * Why the adapter cannot serve calls, for example a missing API key; empty when it is configured.
    * A step that uses an unconfigured adapter logs this at startup, and its calls fail with it.

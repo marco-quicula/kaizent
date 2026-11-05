@@ -247,7 +247,7 @@ class ProviderAdaptersTest {
             KEY, stub.url(), TestStructuredOutputs.create(), TestRetrying.none());
 
     assertThatExceptionOfType(LlmCallException.class)
-        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", "m")))
+        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", "m", null)))
         .satisfies(e -> assertThat(e.providerCode()).isEqualTo("UNAVAILABLE"));
     assertThat(stub.received()).hasSize(1);
   }
@@ -289,7 +289,7 @@ class ProviderAdaptersTest {
   private LlmResponse<Triage> complete(Provider provider) {
     LlmAdapter adapter =
         provider.adapter().apply(new Setup(stub.url(), TestRetrying.recording(waits)));
-    return adapter.complete(request, new LlmProfile(provider.name(), "m"));
+    return adapter.complete(request, new LlmProfile(provider.name(), "m", null));
   }
 
   /** The JDK server normalizes header names to "X-api-key". */

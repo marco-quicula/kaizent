@@ -231,7 +231,7 @@ class DockerCliExecutorTest {
                         "/scratch/answer.json")
                     .outputFile("answer.json")
                     .build()))
-        .withMessageContaining("is a symbolic link")
+        .withMessageContaining("is not a regular file")
         .withMessageNotContaining("host-only content");
   }
 
@@ -341,6 +341,69 @@ class DockerCliExecutorTest {
                 CliCommand.builder("kaizent-cli-missing:none", TIMEOUT).args("x").build()))
         .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.DOCKER_UNAVAILABLE))
         .withMessageContaining("Docker could not run the container");
+  }
+
+  @Test
+  void neverReadsAnOutputThatIsNotARegularFile() {
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            executor.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .args("fake-cli", "mkdir", "/scratch/answer.json")
+                    .outputFile("answer.json")
+                    .build()))
+        .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.FAILED))
+        .withMessageContaining("is not a regular file");
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void keepsDockersOwnWarningsOutOfTheToolsOutput(@TempDir Path bin) throws Exception {
+    // A docker that warns when it creates a container, like Docker on a kernel without swap
+    // accounting, then runs the real docker.
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = create ] || [ "$1" = run ]; then
+          echo "WARNING: Your kernel does not support swap limit capabilities (test)" >&2
+        fi
+        exec docker "$@"
+        """);
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor warned =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 16, "10001:10001", "1", "256m", 64),
+            Map.of("DECLARED_VAR", "declared-text-abcdef")::get);
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            warned.execute(
+                CliCommand.builder(IMAGE, TIMEOUT)
+                    .env("DECLARED_VAR")
+                    .args("fake-cli", "fail", "3", "declared-text-abcdef")
+                    .build()))
+        .withMessage("CLI call in " + IMAGE + " exited with code 3: [REDACTED]");
+    CliResult result =
+        warned.execute(CliCommand.builder(IMAGE, TIMEOUT).args("fake-cli", "id").build());
+    assertThat(result.stderr()).doesNotContain("WARNING");
+    assertThat(result.stdout().strip()).isEqualTo("10001");
+  }
+
+  @Test
+  void quotesArgumentsForTheWindowsCommandLine() {
+    assertThat(DockerCliExecutor.windowsQuoted("plain")).isEqualTo("plain");
+    assertThat(DockerCliExecutor.windowsQuoted("{\"ok\":true}")).isEqualTo("\"{\\\"ok\\\":true}\"");
+    assertThat(DockerCliExecutor.windowsQuoted("web_search=\"disabled\""))
+        .isEqualTo("\"web_search=\\\"disabled\\\"\"");
+    assertThat(DockerCliExecutor.windowsQuoted("C:\\Users\\Ana Maria\\scratch"))
+        .isEqualTo("\"C:\\Users\\Ana Maria\\scratch\"");
+    // Backslashes before a quote, and at the end of a quoted argument, are doubled.
+    assertThat(DockerCliExecutor.windowsQuoted("a\\\"b")).isEqualTo("\"a\\\\\\\"b\"");
+    assertThat(DockerCliExecutor.windowsQuoted("dir with space\\"))
+        .isEqualTo("\"dir with space\\\\\"");
+    assertThat(DockerCliExecutor.windowsQuoted("")).isEqualTo("\"\"");
   }
 
   @Test
@@ -459,6 +522,146 @@ class DockerCliExecutorTest {
     assertThat(failure.get()).isInstanceOf(CliException.class).hasMessageContaining("Interrupted");
     assertThat(stillInterrupted).isTrue();
     assertThat(docker("ps", "--quiet", "--filter", "ancestor=" + IMAGE)).isBlank();
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void endsTheCreateClientAndRemovesTheContainerWhenCreateIsInterrupted(@TempDir Path bin)
+      throws Exception {
+    // A docker whose create hangs: it records its process id and the containers it is asked to
+    // remove.
+    Path pid = bin.resolve("create.pid");
+    Path createArgs = bin.resolve("create.args");
+    Path removed = bin.resolve("removed.log");
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = create ]; then
+          echo "$@" > "%s"
+          echo $$ > "%s"
+          exec sleep 300
+        fi
+        if [ "$1" = rm ]; then
+          echo "$@" >> "%s"
+          exit 0
+        fi
+        exit 1
+        """
+            .formatted(createArgs, pid, removed));
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor hanging =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 1024, "10001:10001", "1", "256m", 64),
+            configuration::get);
+    java.util.concurrent.atomic.AtomicReference<Throwable> failure =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    java.util.concurrent.atomic.AtomicBoolean stillInterrupted =
+        new java.util.concurrent.atomic.AtomicBoolean();
+    Thread caller =
+        Thread.ofPlatform()
+            .start(() -> {
+              try {
+                hanging.execute(CliCommand.builder(IMAGE, TIMEOUT).args("fake-cli", "id").build());
+              } catch (RuntimeException e) {
+                failure.set(e);
+              }
+              stillInterrupted.set(Thread.currentThread().isInterrupted());
+            });
+    long deadline = System.nanoTime() + Duration.ofSeconds(30).toNanos();
+    while (!Files.exists(pid) || Files.readString(pid).isBlank()) {
+      assertThat(System.nanoTime()).as("docker create starts").isLessThan(deadline);
+      Thread.sleep(100);
+    }
+    long createPid = Long.parseLong(Files.readString(pid).strip());
+
+    caller.interrupt();
+    caller.join(Duration.ofSeconds(60));
+
+    assertThat(caller.isAlive()).isFalse();
+    assertThat(failure.get()).isInstanceOf(CliException.class).hasMessageContaining("Interrupted");
+    assertThat(stillInterrupted).isTrue();
+    assertThat(ProcessHandle.of(createPid).map(ProcessHandle::isAlive).orElse(false))
+        .as("the docker create client")
+        .isFalse();
+    assertThat(Files.readString(removed)).startsWith("rm --force kaizent-cli-");
+    assertThat(Files.readString(createArgs)).contains("--label " + DockerCliExecutor.LABEL);
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void saysWhenTheRemovalOfATimedOutContainerIsNotConfirmed(@TempDir Path bin) throws Exception {
+    // A docker whose container never ends; its rm answers with the text of the case.
+    Path rmAnswer = bin.resolve("rm.answer");
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = create ]; then
+          exit 0
+        fi
+        if [ "$1" = start ]; then
+          exec sleep 300
+        fi
+        if [ "$1" = rm ]; then
+          cat "%s" >&2
+          exit 1
+        fi
+        exit 1
+        """
+            .formatted(rmAnswer));
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor stuck =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 1024, "10001:10001", "1", "256m", 64),
+            configuration::get);
+    CliCommand command =
+        CliCommand.builder(IMAGE, Duration.ofSeconds(1)).args("fake-cli", "id").build();
+
+    Files.writeString(rmAnswer, "Error response from daemon: removal refused (test)\n");
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() -> stuck.execute(command))
+        .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.TIMEOUT))
+        .withMessageContaining("the container could not be removed: run docker rm --force")
+        .withMessageContaining("kaizent-cli-");
+
+    // Already gone (removed by --rm): the removal is confirmed.
+    Files.writeString(rmAnswer, "Error response from daemon: No such container: x\n");
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() -> stuck.execute(command))
+        .withMessageEndingWith("timed out after 1s; the container was stopped");
+  }
+
+  @Test
+  @org.junit.jupiter.api.condition.DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS)
+  void removesACreatedContainerThatDockerCouldNotStart(@TempDir Path bin) throws Exception {
+    // A docker that creates the container for real but fails to start it, as when a mount
+    // fails: --rm removes only a container that ran, so this one would stay created.
+    Path docker = bin.resolve("docker");
+    Files.writeString(
+        docker,
+        """
+        #!/bin/sh
+        if [ "$1" = start ]; then
+          echo "Error response from daemon: failed to start (test)" >&2
+          exit 1
+        fi
+        exec docker "$@"
+        """);
+    docker.toFile().setExecutable(true);
+    DockerCliExecutor failing =
+        new DockerCliExecutor(
+            new DockerCliExecutor.Settings(docker.toString(), 1024, "10001:10001", "1", "256m", 64),
+            configuration::get);
+
+    assertThatExceptionOfType(CliException.class)
+        .isThrownBy(() ->
+            failing.execute(CliCommand.builder(IMAGE, TIMEOUT).args("fake-cli", "id").build()))
+        .satisfies(e -> assertThat(e.kind()).isEqualTo(Kind.DOCKER_UNAVAILABLE))
+        .withMessageContaining("failed to start (test)");
+    assertThat(docker("ps", "--all", "--quiet", "--filter", "ancestor=" + IMAGE)).isBlank();
   }
 
   private CliResult run(String... args) {

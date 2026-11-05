@@ -55,7 +55,7 @@ class EvalReportWriterTest {
             START,
             START.plusSeconds(3),
             Path.of("/repo/examples/petclinic"),
-            Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash")),
+            Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash", null)),
             false,
             Duration.ofSeconds(15));
 
@@ -88,8 +88,8 @@ class EvalReportWriterTest {
             START,
             Path.of("ws"),
             Map.of(
-                "resolution", new LlmProfile("fake", null),
-                "triage", new LlmProfile("gemini-api", "gemini-3.6-flash")),
+                "resolution", new LlmProfile("fake", null, null),
+                "triage", new LlmProfile("gemini-api", "gemini-3.6-flash", null)),
             true,
             Duration.ZERO);
 
@@ -106,7 +106,7 @@ class EvalReportWriterTest {
             START,
             START,
             Path.of("ws"),
-            Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash")),
+            Map.of("resolution", new LlmProfile("gemini-api", "gemini-3.6-flash", null)),
             true,
             Duration.ZERO);
 

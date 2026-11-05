@@ -1,0 +1,49 @@
+# The bundled CLI presets (ADR-0016, ADR-0030, spec 0004 AC-9). Each runs its tool in a new
+# container from an image built locally from docker/cli/<tool>/ (docker compose --profile cli
+# build). Select one for a step with adapter "cli" and the preset's name, for example:
+#   kaizent.llm.profiles.resolution: { adapter: cli, preset: codex }
+# Any value can be overridden under kaizent.cli.presets.<name> in the configuration.
+#
+# Placeholders in the arguments: {schemaFile}, {promptFile} and {outputFile} are files in the
+# call's /scratch folder; {model} is the profile's model, used only in modelArgs.
+kaizent:
+  cli:
+    presets:
+      codex:
+        image: kaizent-cli-codex
+        tool-version: 0.166.0           # pinned in docker/cli/codex/Dockerfile
+        validated: false                # true once EV-1 passes with the real tool
+        cost-type: SUBSCRIPTION
+        credentials:
+          # Only the login (auth.json): kaizent-codex keeps the tool's other state (sessions,
+          # logs, caches, plugins) in a temporary CODEX_HOME under /tmp (ADR-0030).
+          volume: kaizent-cli-codex
+          path: /home/kaizent/.codex-login
+        llm:
+          # A single structured call: read-only sandbox, no tools, no session files, the JSON
+          # schema enforced by codex, the prompt from stdin, the final message written to a file.
+          # Flags confirmed with codex exec --help (Codex CLI 0.166.0).
+          args:
+            - kaizent-codex
+            - exec
+            - --json
+            - --ephemeral
+            - --sandbox
+            - read-only
+            - --skip-git-repo-check
+            # No tools in a single structured call (spec 0004 AC-7): no shell, no web search.
+            - --disable
+            - shell_tool
+            - -c
+            - web_search="disabled"
+            - --output-schema
+            - "{schemaFile}"
+            - --output-last-message
+            - "{outputFile}"
+            - "-"
+          model-args: [--model, "{model}"]
+          prompt: STDIN
+          output:
+            # The answer from the output file; the token usage from the JSON events.
+            source: FILE
+            events: codex

@@ -43,7 +43,8 @@ class SystemController implements SystemApi {
                         entry.getKey(),
                         entry.getValue().adapter(),
                         CostType.fromValue(profiles.costType(entry.getValue()).name()))
-                    .model(entry.getValue().model()))
+                    .model(entry.getValue().model())
+                    .preset(entry.getValue().preset()))
             .toList();
     return new SystemInfo(version, workspace.root().toString(), steps);
   }

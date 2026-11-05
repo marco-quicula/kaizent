@@ -75,7 +75,10 @@ class EvalRunnerTimeoutTests {
 
     assertThat(report)
         .contains("| PC-001 | TIMED OUT |")
-        .contains("- `mentionsAll`: ❌ the run did not finish within PT0.5S; it is RESOLVING")
+        // RECEIVED when the worker has not picked the run up yet (a slow machine), RESOLVING
+        // when the stalled model call has started: either way the run is unfinished.
+        .containsPattern(
+            "- `mentionsAll`: ❌ the run did not finish within PT0\\.5S; it is (RECEIVED|RESOLVING)")
         .contains("| `mentionsAll` | 0 | 1 | 11 |")
         .contains("- `mentionsAll`: ⏭️ not run: the session stopped after PC-001 timed out");
     for (int i = 2; i <= 12; i++) {
