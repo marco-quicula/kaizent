@@ -117,7 +117,17 @@ Wave 1 is broken down into 12 specs, listed in implementation order in
 - Agent runner: runs headless CLI tasks for Kaizent through `RemoteRunnerExecutor`, as
   one Kubernetes Job or Pod per call, with the same images and container contract as the
   wave 1 `DockerCliExecutor` (ADR-0030), plus a how-to covering isolation, credentials and
-  the providers' terms of use.
+  the providers' terms of use. Usage rules, agreed with the maintainer (a documented
+  policy, not a technical lock; complying with each provider's terms stays with the user):
+  - a CLI tool's **subscription** login is for personal use only: the local Docker mode of
+    wave 1, or a local Kubernetes (for example Rancher Desktop with k3s) used only to test
+    this runner, not to run Kaizent;
+  - a **shared cluster** may run agentic tasks, but **only with API access**: Kaizent's
+    own loop through the API adapters (the default), or a CLI tool with an API key when an
+    evaluation shows a clear gain from its agent. Single structured calls always use the
+    API adapters there.
+
+  An ADR records the credential model when this wave starts.
 - Observability with OpenTelemetry (traces, metrics, LLM usage).
 - Cost reconciliation (idea): a background job that compares the estimated cost of the
   model calls (tokens times `kaizent.llm.pricing`) with each provider's usage or billing

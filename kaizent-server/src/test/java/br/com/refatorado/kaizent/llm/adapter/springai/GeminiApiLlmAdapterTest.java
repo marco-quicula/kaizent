@@ -27,7 +27,7 @@ class GeminiApiLlmAdapterTest {
         new GeminiApiLlmAdapter("  ", TestStructuredOutputs.create(), TestRetrying.none());
 
     assertThatExceptionOfType(LlmException.class)
-        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", "gemini-x")))
+        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", "gemini-x", null)))
         .withMessageContaining("GEMINI_API_KEY is not set");
   }
 
@@ -37,7 +37,7 @@ class GeminiApiLlmAdapterTest {
         new GeminiApiLlmAdapter("key", TestStructuredOutputs.create(), TestRetrying.none());
 
     assertThatExceptionOfType(LlmException.class)
-        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", " ")))
+        .isThrownBy(() -> adapter.complete(request, new LlmProfile("gemini-api", " ", null)))
         .withMessageContaining("No model configured");
   }
 

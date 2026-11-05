@@ -33,41 +33,67 @@ task. The CLI implementation reuses `CliExecutor` from the `llm` module.
 | Name | Port(s) | Notes |
 |---|---|---|
 | `gemini-api`, `openai`, `anthropic`, `ollama` | `LlmGateway` | A Spring AI `ChatModel` per model id, built on the first call (so the application starts without keys). The answer goes through `StructuredOutputs` (schema in the prompt, validation, one repair). Spring AI's and the SDKs' own retries are off; `Retrying` retries instead, and `ProviderErrors` turns each SDK's exception into an `LlmCallException` with the status, the provider's code and message, and the suggested wait. The configured key is removed from the message and the causes, since a provider may echo it. For Gemini, the SDK's own retries are set to one attempt, and an OkHttp interceptor keeps the JSON `error.status` that the SDK drops |
-| `cli` + preset | `LlmGateway`, `AgentRuntime` | `PresetRegistry` loads presets from `classpath:cli-presets/*.yaml`, overridable through `kaizent.cli.presets.*` |
+| `cli` + preset | `LlmGateway`, `AgentRuntime` | Presets from `kaizent.cli.presets.*`, bundled in `classpath:cli-presets.yaml` and overridable |
 | `fake` | `LlmGateway`, `AgentRuntime` | `FakeScript` loaded from `classpath:fake/<step>/<ticket-key>.json`, with fallback to `default.json`; special markers `__error__`, `__timeout__`, `__invalid__` |
 
-**Preset shape** (YAML). The exact flags are verified with the tool's `--help`, inside
-its image, during implementation:
+**Presets** are configuration, `kaizent.cli.presets.<name>`, bundled in
+`classpath:cli-presets.yaml` (imported by `application.yaml`) and overridable like any
+property. A step selects one with `adapter: cli` and `preset: <name>` in its profile
+(`LlmProfile.preset`, also shown by `GET /system`). An unknown or incomplete preset fails at
+startup. The exact flags were confirmed with the tool's `--help` inside its image (the
+maintainer's discovery run with Codex CLI 0.166.0):
 
 ```yaml
-name: codex
-image: kaizent-cli-codex       # built from docker/cli/codex/Dockerfile (ADR-0030)
-toolVersion: <pinned version>  # the version the preset was validated with
-credentials:                   # the tool's login volume and where the tool keeps its login
-  volume: kaizent-cli-codex
-  path: /home/kaizent/.codex   # sessions and history are kept out of it (ephemeral mode,
-                               # or redirected to /scratch); checked when validating
-env: []                        # variables passed from .env, for tools that use API keys
-command: codex
-llm:   # single structured call, with tools disabled
-  args: [exec, --json, --sandbox, read-only, --skip-git-repo-check, --output-schema, "{schemaFile}", "-"]
-  prompt: stdin
-  output: { format: jsonl-events, finalMessage: last-agent-message }
-agent: # agentic task
-  args: [exec, --json, --sandbox, read-only, --skip-git-repo-check, --cd, "{workspace}", --output-schema, "{schemaFile}", "-"]
-  prompt: stdin
-  output: { format: jsonl-events, finalMessage: last-agent-message, events: codex }
-costType: SUBSCRIPTION
-validated: true
+kaizent.cli.presets.codex:
+  image: kaizent-cli-codex         # built from docker/cli/codex/Dockerfile (ADR-0030)
+  tool-version: 0.166.0            # pinned in the Dockerfile
+  validated: false                 # true once EV-1 passes
+  cost-type: SUBSCRIPTION
+  credentials:                     # the login only (auth.json)
+    volume: kaizent-cli-codex
+    path: /home/kaizent/.codex-login
+  env: []                          # variables passed from .env, for tools that use API keys
+  tmpfs: []                        # writable paths the tool needs besides /tmp
+  llm:                             # single structured call
+    args: [kaizent-codex, exec, --json, --ephemeral, --sandbox, read-only,
+           --skip-git-repo-check, --disable, shell_tool, -c, 'web_search="disabled"',
+           --output-schema, "{schemaFile}",
+           --output-last-message, "{outputFile}", "-"]
+    model-args: [--model, "{model}"]   # added only when the profile names a model
+    prompt: STDIN                      # or FILE: {promptFile} in /scratch
+    output: { source: FILE, events: codex }   # answer from {outputFile}; tokens from events
 ```
+
+The `agent` call (spec 0004 T8) is added to the presets with the `AgentRuntime`.
+
+**Tool state.** Codex keeps its login, sessions, logs, caches and plugins in the same
+folder (`CODEX_HOME`), and `--ephemeral` alone does not keep that folder unchanged (the
+discovery run counted 598 files after two calls). The image's `kaizent-codex` wrapper
+therefore runs `codex` with `CODEX_HOME` in a new folder under `/tmp` (a temporary file
+system per call), copies `auth.json` from the login volume before the call and copies it
+back only when the tool renewed it. The volume holds only the login, nothing is left
+from one call to the next (ADR-0030), and Kaizent's application never reads the login
+(ADR-0031).
+
+**Output readers (`CliEvents`).** `text` takes the standard output as the answer;
+`codex` reads `codex exec --json`: the answer is the last `item.completed` event of type
+`agent_message`, and the tokens are the sum of the `turn.completed` events' `usage`
+(`input_tokens`, `output_tokens`). The events carry no model id, so the usage records the
+profile's model, if any.
 
 **Event mapping:** a per-preset `EventMapper` turns JSONL events into `TraceEvent`s (tool
 call, file read, message). Unknown events are kept raw.
 
-**`DockerCliExecutor` (ADR-0030):** builds a `docker run --rm` command line and runs it
-with `ProcessBuilder`:
+**`DockerCliExecutor` (ADR-0030):** creates the container with `docker create --rm` and
+runs it with `docker start --attach --interactive`, through `ProcessBuilder`. Docker's own
+messages (errors, and warnings such as "Your kernel does not support swap limit
+capabilities") come from the create step, so they never mix with the tool's output, its
+error excerpts or its output cap. On Windows, each argument is quoted for the Windows
+command line, because `ProcessBuilder` there does not escape the double quotes inside an
+argument. The container is created with:
 
-- a unique container name per call, so that a timeout can `docker kill` it;
+- a unique container name per call, so that a timeout or any other failure can remove it
+  with `docker rm --force`;
 - `--read-only` root file system with a `--tmpfs /tmp` (a preset can declare more
   temporary paths that its tool needs), `--user` non-root (`kaizent.cli.user`, a numeric
   `uid:gid` with neither id zero, default `10001:10001`, the user that every CLI image
@@ -93,17 +119,35 @@ with `ProcessBuilder`:
   container (exit code 125 with Docker's own message, for example when the daemon is not
   running).
 
-When a call does not end normally (timeout, interruption or any other failure after the
-container was started), the executor stops the container with `docker kill`: the container
-belongs to the Docker daemon and keeps running when only its client is stopped. An
-interruption is kept for the caller.
+When a call does not end normally (timeout, interruption, a failed or interrupted
+`docker create`, a failed `docker start` or any other failure), the executor first ends the
+docker client and waits for it, then stops and removes the container by name with
+`docker rm --force`: the container belongs to the Docker daemon and keeps running when only
+its client is stopped, and `--rm` removes only a container that ran, so one that was
+created but never started would stay. An interruption is kept for the caller. The removal
+counts as confirmed only when `docker rm` succeeds or answers that the container does not
+exist; otherwise Kaizent logs a WARN with the container's name and the command to remove
+it, and a timeout's message says that the container could not be removed. Every CLI
+container carries the label `br.com.refatorado.kaizent.cli=true`. The daemon can still
+complete a create request after its client was stopped and after the removal; that
+container never starts, and Kaizent logs a WARN whenever a create was cut off, with the
+container's name: since the name is fixed before the create, the targeted
+`docker rm --force <name>` also removes a container that the daemon completes later. The
+README also gives a bulk cleanup, `docker container prune` with the label and
+`--filter until=10m`, to run only while Kaizent is stopped: a call that is starting is
+briefly `Created`, and the age limit is an extra safeguard, not a guarantee (the filter
+counts from the container's creation, and a call can be delayed between create and
+start). Prune never touches running containers. The late create stays a documented
+limitation, not reconciled automatically: a check made before the daemon completes it
+finds nothing, so the WARN asks to check again later.
 
 Failures are `CliException`s with a kind: `DOCKER_UNAVAILABLE`, `TIMEOUT`,
 `NON_ZERO_EXIT` (with a truncated stderr excerpt) or `FAILED`. A granted path must be a
 normalized workspace-relative path that stays inside the workspace after resolving
 symbolic links, and it can neither be nor contain `evals/` nor resolve into it. An output
-file that the tool left in `/scratch` is read only when it is a regular file: a symbolic
-link fails the call, so that it cannot point to a host file that was never mounted. A CLI image creates the folder that its credential volume is mounted on,
+file that the tool left in `/scratch` is read only when it is a regular file: anything else
+(a symbolic link, a Windows reparse point, a folder) fails the call, so that it cannot point
+to a host file that was never mounted. A CLI image creates the folder that its credential volume is mounted on,
 owned by the tool's user, so that a new volume takes that ownership.
 
 **Images and setup:** `docker/cli/<tool>/Dockerfile` installs the tool at a pinned
@@ -175,6 +219,15 @@ kaizent:
 | AC-11 | A log-capture test asserting no key or token appears |
 | AC-12 | API test |
 | EV-3 | Optional manual check with `openai` and `anthropic` keys, recorded in the PR when run |
+
+**`llm-check` command (T13).** The manual validations run one triage-shaped structured call
+on one ticket, before triage exists (spec 0006), with the `llm-check` profile:
+`java -jar ... --spring.profiles.active=llm-check --kaizent.llm-check.ticket=PC-002`. It uses
+the profile of `kaizent.llm-check.step` (default `resolution`), so any adapter, model or CLI
+preset; prints the answer, the tokens, the cost and the cost type; stores and delivers
+nothing; and exits with code 0, or 1 with the provider's cause when the call fails. It also
+lets a user check a key, a model or a CLI login before running the pipeline. Like the
+`eval` profile, it needs PostgreSQL running.
 
 ## Risks and mitigations
 

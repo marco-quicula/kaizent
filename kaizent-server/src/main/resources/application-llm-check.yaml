@@ -1,0 +1,11 @@
+# Profile for the llm-check command (spec 0004 T13): one triage-shaped model call on one
+# ticket, through the profile of kaizent.llm-check.step, then the application exits. It
+# checks the configured adapter, model or CLI preset, and their credentials.
+spring:
+  main:
+    # No HTTP server, and no worker or intake polling: nothing runs but the check.
+    web-application-type: none
+
+kaizent:
+  scheduling:
+    enabled: false

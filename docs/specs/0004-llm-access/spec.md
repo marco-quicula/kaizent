@@ -92,8 +92,10 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   test resources, and can simulate errors, timeouts and invalid output.
 - **AC-11:** API keys and CLI credentials are never logged or stored. Each CLI tool keeps
   its login in its own Docker volume, filled by the tool's own login command run in a
-  container; Kaizent mounts that volume but never reads or copies it. An API key for a
-  CLI tool reaches only that tool's container.
+  container; Kaizent's application mounts that volume but never reads or copies it. Inside
+  the tool's container, the image's wrapper may move the login between the volume and a
+  private temporary folder, and the volume holds the login only (ADR-0031). An API key for
+  a CLI tool reaches only that tool's container.
 - **AC-12:** `GET /api/v1/system` lists each pipeline step with its adapter, its model or
   preset, and its cost type.
 - **AC-13:** The README documents the CLI mode as a local, personal development mode and

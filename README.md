@@ -227,6 +227,109 @@ which returns a fixed reply:
 KAIZENT_LLM_RESOLUTION_ADAPTER=fake
 ```
 
+### Check a model configuration
+
+Before running the pipeline, you can check that an adapter, a model, a key or a CLI login
+works: the `llm-check` command makes **one** model call on one ticket of the inbox, prints
+the answer, the tokens, the cost and the cost type, and exits. It stores and delivers
+nothing. PostgreSQL must be running, as for the application:
+
+```bash
+java -jar kaizent-server/target/kaizent-server-0.1.0-SNAPSHOT.jar --spring.profiles.active=llm-check --kaizent.llm-check.ticket=PC-002
+```
+
+It uses the configuration of the resolution step (adapter, model, preset). The exit code
+is 0 when the call works, and 1 otherwise, with the provider's cause, for example
+`HTTP 429 RESOURCE_EXHAUSTED`.
+
+## Run with a CLI tool (local, personal mode)
+
+Instead of an API key, a step can use an agentic command-line tool that you are already
+logged in to, through the `cli` adapter. Today the **Codex CLI** has a preset (`codex`);
+other tools follow.
+
+> **A local, personal development mode.** Read this before you use it:
+>
+> - Use your **own** account, on your **own** machine, for your **own** work. Do not use a
+>   subscription to serve other people's requests or to run a shared service: for that,
+>   use the API adapters with an API key.
+> - The tool's login stays in a Docker volume on your machine. Kaizent's application
+>   mounts it into the tool's container but never reads, copies or logs it. Inside that
+>   container, the image's wrapper keeps the tool's sessions and caches in a temporary
+>   folder and moves only the login file between it and the volume (ADR-0031).
+> - You build the tool's image yourself from this repository; the project publishes no
+>   images or tool binaries.
+> - The tool's own read-only sandbox stays on; the container adds a second boundary
+>   (ADR-0030).
+> - **Check your provider's terms of use.** Whether your plan allows this use is your
+>   responsibility.
+
+Each call runs in a **new container** with only what the call needs: no workspace files
+for a single call, a read-only root file system, the non-root user 10001, no Linux
+capabilities, CPU and memory limits and a timeout (5 minutes by default,
+`kaizent.cli.timeout`). Docker is needed: Docker Desktop, or Rancher Desktop with the
+`dockerd (moby)` container engine.
+
+1. Build the Codex image (the Codex CLI version is pinned in
+   `docker/cli/codex/Dockerfile`):
+
+   ```bash
+   docker compose --profile cli build codex-cli
+   ```
+
+2. Create the volume for the login, once. Docker Compose does not manage it, so
+   `docker compose down -v` (an empty database) keeps your login:
+
+   ```bash
+   docker volume create kaizent-cli-codex
+   ```
+
+3. Log in once, with your ChatGPT account. The login uses a device code: the command
+   prints a URL and a code that you open in your browser. If it says that device code
+   login is disabled, enable it in your ChatGPT security settings and try again.
+
+   ```bash
+   docker compose --profile cli run --rm codex-cli kaizent-codex login --device-auth
+   ```
+
+   The login is kept in the `kaizent-cli-codex` Docker volume. To check it, run
+   `docker compose --profile cli run --rm codex-cli kaizent-codex login status`.
+
+4. Select the preset for the resolution step in `.env`. A model is optional; without
+   one, Codex uses its default:
+
+   ```
+   KAIZENT_LLM_RESOLUTION_ADAPTER=cli
+   KAIZENT_LLM_RESOLUTION_PRESET=codex
+   KAIZENT_LLM_RESOLUTION_MODEL=
+   ```
+
+5. Check it with the `llm-check` command (above), then run the application as usual.
+   `GET /api/v1/system` shows the preset and the cost type `SUBSCRIPTION`. Tokens are
+   recorded when the tool reports them; there is no price.
+
+To log out and remove the login, run
+`docker compose --profile cli run --rm codex-cli kaizent-codex logout`, then
+`docker volume rm kaizent-cli-codex`.
+
+Each call runs in its own container, removed when the call ends. If Kaizent logs that it
+could not confirm a removal, or that a `docker create` was cut off, remove what is left
+with the `docker rm --force <name>` command in the log: it names only that call's
+container, and also stops it if it is still running. To find leftovers, list the CLI
+containers with `docker ps --all --filter label=br.com.refatorado.kaizent.cli=true`.
+
+To remove all leftovers at once, **stop Kaizent first** (no CLI call in progress), then
+prune the stopped or created CLI containers:
+
+```bash
+docker container prune --filter label=br.com.refatorado.kaizent.cli=true --filter until=10m
+```
+
+A call that is starting shows as `Created` for a moment, so a prune while Kaizent runs
+could remove that call's container; the age limit is only an extra safeguard, not a
+guarantee. `prune` never touches running containers; use `docker rm --force <name>` for
+those. No CLI container holds your login, which stays in the volume.
+
 ## Running evaluations
 
 The evaluation runner sends the twelve PetClinic demo tickets through the pipeline with
