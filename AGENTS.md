@@ -68,6 +68,11 @@ Progress is tracked in GitHub issues under the "Wave 1 – MVP" milestone.
   the per-run budget.
 - The pipeline is orchestrated in our own code; only the resolution step is an agent loop
   (ADR-0017). Runs follow the state machine of ADR-0023.
+- Ticket text is untrusted input. Prompt injection is handled in layers (ADR-0032): least
+  capability first (single calls without the tool's tools; agentic runs may read only the
+  granted paths), then a deterministic risk check, a policy that routes suspicious tickets
+  to the API loop by default, and an output check. Never give an agent more access than
+  its task needs.
 - Prompts are versioned resource files in `kaizent-server/src/main/resources/prompts/`,
   in English. The run records each prompt's content hash.
 - Contract-first REST: change `api/openapi.yaml` first, then generate the code (ADR-0024).

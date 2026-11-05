@@ -17,10 +17,12 @@
   `cli` adapter) and the event reader. *Covers:* AC-7, AC-9 (part), AC-11 (part). The
   preset stays `validated: false` until EV-1 (T13).
 - [ ] **T8:** The `AgentRuntime` port (in `resolution`), `CliAgentRuntime` and
-  `TraceSink`. *Covers:* AC-8. Also: the Codex CLI refuses to create its helper binaries
-  under `/tmp`, where the wrapper keeps `CODEX_HOME` (a warning only; no effect on single
-  calls). Check its effect in agent mode and, if needed, give the preset a dedicated
-  temporary path (`tmpfs`) for them.
+  `TraceSink`, with the read and network restrictions of ADR-0032 (layer 1) found in a
+  discovery with the real tool and validated with a synthetic injected ticket.
+  *Covers:* AC-8. Also: the Codex CLI refuses to create its helper binaries under `/tmp`,
+  where the wrapper keeps `CODEX_HOME` (a warning only; no effect on single calls). Check
+  its effect in agent mode and, if needed, give the preset a dedicated temporary path
+  (`tmpfs`) for them.
 - [ ] **T9:** Fake `LlmGateway` and `AgentRuntime` with scripts and error markers.
   *Covers:* AC-10.
 - [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`, `gemini-cli`),

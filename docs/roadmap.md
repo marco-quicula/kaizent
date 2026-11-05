@@ -107,6 +107,9 @@ Wave 1 is broken down into 12 specs, listed in implementation order in
 - An evaluation harness built from recorded runs, used to detect regressions when skills
   or models change.
 - A PDCA dashboard per subject.
+- Holding a suspicious ticket (ADR-0032) until a person decides how to resolve it: a run
+  state outside the worker's queue and a decision action in the console, which changes
+  the run lifecycle of ADR-0023.
 
 ## Wave 5: operations, Kubernetes and incident handling
 

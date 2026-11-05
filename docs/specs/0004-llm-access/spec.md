@@ -76,6 +76,13 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   task's knowledge roots and skill folders (the role's, as spec 0008 AC-4 requires), asks
   for the proposal JSON schema, and
   maps the tool's event stream (when available) to `TraceEvent`s through the `TraceSink`.
+  It may **read** only the granted paths and its scratch folder, not the tool's login nor
+  any other file, and its network is limited to what the tool needs to reach its model,
+  where the tool or the container allows it (ADR-0032, layer 1). It is released only once
+  this is validated with the real tool. A tool that cannot restrict reads has its agentic
+  preset marked `read-restricted: false`; a documented warning does not lift the gate, and
+  such a preset is never used to resolve a ticket, whatever its injection risk: the
+  application refuses to start with it as a resolution runtime (spec 0008 AC-11).
 - **AC-9:** The `codex` preset and its image are implemented and validated (read-only
   sandbox, JSON events, final message extraction). The `claude-code`, `antigravity` and
   `gemini-cli` presets and images, and the `generic` preset, are provided and documented
