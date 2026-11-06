@@ -3,7 +3,9 @@ package br.com.refatorado.kaizent.llm.adapter.fake;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
+import br.com.refatorado.kaizent.llm.LlmCallException;
 import br.com.refatorado.kaizent.llm.LlmException;
+import br.com.refatorado.kaizent.llm.LlmOutputException;
 import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmRequest;
 import br.com.refatorado.kaizent.llm.LlmResponse;
@@ -34,6 +36,23 @@ class FakeLlmAdapterTest {
     assertThatExceptionOfType(LlmException.class)
         .isThrownBy(() -> fake.complete(request("PC-ERR"), profile))
         .withMessageContaining("Fake LLM error");
+  }
+
+  @Test
+  void simulatesAProviderTimeout() {
+    assertThatExceptionOfType(LlmCallException.class)
+        .isThrownBy(() -> fake.complete(request("PC-TIMEOUT"), profile))
+        .withMessageContaining("timed out (simulated)")
+        .satisfies(e -> assertThat(e.retryable()).isTrue())
+        .satisfies(e -> assertThat(e.providerCode()).isEqualTo("TIMEOUT"));
+  }
+
+  @Test
+  void simulatesInvalidOutputThatTheRepairAttemptCannotFix() {
+    assertThatExceptionOfType(LlmOutputException.class)
+        .isThrownBy(() -> fake.complete(request("PC-INVALID"), profile))
+        .withMessageContaining("even after one repair attempt")
+        .satisfies(e -> assertThat(e.rawOutput()).isEqualTo(FakeLlmAdapter.INVALID_ANSWER));
   }
 
   @Test
