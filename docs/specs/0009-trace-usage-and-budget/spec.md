@@ -80,14 +80,17 @@ fine-tuning depend on.
   and the per-call cap. Usage that is unknown (AC-6) is **debited at the conservative
   upper bound of the call**, so that the next call is still barred in time:
   - input tokens: the estimate;
-  - output tokens: the output limit sent to the provider;
+  - output tokens: the **nominal output limit of the call**, the smaller of the remaining
+    output budget and `max-output-per-call`. It is sent to the provider when the provider
+    accepts a limit, and it is debited all the same when it cannot be sent;
   - cost: those two values at the configured price; without a configured price, the cost
     dimension does not limit, and the token limits apply.
 
   The call is marked **estimated**, and the reported total stays unknown, never zero.
   The guarantee degrades explicitly: when the provider accepts no output limit and
-  reports no usage, nothing bounds one call from above, and the guarantee becomes "the
-  next call is barred by the estimated balance". It is a guarantee on estimates, not on
+  reports no usage, nothing bounds the real output of one call, but the nominal limit is
+  still debited, and the guarantee becomes "the next call is barred by the estimated
+  balance". It is a guarantee on estimates, not on
   real usage.
 - **AC-9:** `POST /api/v1/runs/{id}/retry` on a `FAILED` run increments `attempt`, keeps
   the previous events (tagged with their attempt) and moves the run to `RECEIVED`. A
