@@ -98,3 +98,8 @@ Where each layer is specified: layer 1 in spec 0004 (T8, the agentic CLI runtime
   `gemini-api` and a model); without it, suspicious tickets fail with a clear message.
 - Evaluation cases with injected tickets (synthetic) measure the detector and the
   layers over time.
+
+## Notes
+
+- Clarified by spec 0009 AC-2 (2026-11): layer 4 also covers the trace and the triage and
+  lesson drafts.

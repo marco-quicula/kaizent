@@ -41,7 +41,7 @@ No real customer data is used. See [ADR-0013](adr/0013-demo-domain-spring-petcli
 | Step | Delivered in the MVP |
 |---|---|
 | **Ingestion** | A file-based inbound connector: a folder (`inbox/`) in a git repository, with one ticket per file (Markdown body plus YAML front matter) and polling. It maps each ticket to the canonical `Problem` model. |
-| **Triage (Plan)** | The LLM classifies the problem's subject and type and selects a **role** from file-based role definitions (persona, allowed skills, knowledge sources). |
+| **Triage (Plan)** | The LLM classifies the problem's subject and type, and the code selects the **role** from file-based role definitions (persona, allowed skills, knowledge sources), deterministically. See [spec 0006](specs/0006-triage-and-roles/spec.md). |
 | **Context assembly (Plan)** | Skills in the Agent Skills format (`SKILL.md`) are loaded from a git folder. Knowledge comes from Markdown files in git, exposed to the agent as tools (`search_knowledge` for text search, `read_document`). There is no vector store yet. |
 | **Resolution (Do)** | An agent loop with tool calling (Spring AI). It produces structured output: diagnosis, suggested reply, confidence, cited sources and skills used. |
 | **Review (Check)** | A web console (React SPA) over a REST API, with a queue of runs and a full trace for each one (role, skills, sources, tool calls, tokens, cost, confidence). The reviewer can **approve**, **edit and approve**, or **reject with a comment**. |
@@ -49,7 +49,7 @@ No real customer data is used. See [ADR-0013](adr/0013-demo-domain-spring-petcli
 | **Learning (Act)** | On an edit or a rejection, the agent proposes a **lesson** (a new Markdown knowledge entry). If a human approves it, it is added to the knowledge base. |
 | **Metrics** | Per subject: approved-as-is, approved-with-edits and rejected rates. The **autonomy level is computed and displayed, but does not act yet**: every answer still requires human approval. |
 | **Data capture** | Each run stores input, assembled context, proposal, final answer, verdict, tokens and cost. This is the seed for evaluation and future fine-tuning. |
-| **Cost control** | Tokens and cost per run are visible in the console, with a configurable budget limit per run. |
+| **Cost control** | Tokens and cost per run are visible in the console, with a configurable budget limit per run. The budget is a soft ceiling, checked before every provider call (repairs and retries included), so a run can exceed it by at most one call. |
 | **LLM access** | Two ports, `LlmGateway` (single structured calls) and `AgentRuntime` (the resolution loop), with **API adapters** (Gemini, OpenAI, Anthropic, Ollama, through Spring AI) and **CLI adapters** (Codex validated; Claude Code, Antigravity and Gemini CLI presets provided) selected per pipeline step by configuration. Validated with Codex CLI, the Gemini API free tier and fake adapters. See [ADR-0016](adr/0016-llm-access-api-and-cli-adapters.md). |
 | **Evaluation** | An opt-in runner executes the demo's evaluation cases against real adapters and writes a report. CI never calls real models. See [ADR-0020](adr/0020-testing-and-evaluation-strategy.md). |
 | **Project hygiene** | `LICENSE`, `CONTRIBUTING.md` (DCO), `SECURITY.md`, `.env.example`, no secrets committed, and CI that builds and tests every pull request. |
@@ -73,6 +73,11 @@ A newcomer can:
 6. see the subject's metrics update and, after an edit, approve a proposed lesson that
    lands in the knowledge base;
 7. do all of this by following the README alone.
+
+The closing criterion of the wave is an automated **full-cycle test** with the fake
+adapters (spec 0011 AC-11): a ticket is triaged and resolved with tool calls, a reviewer
+edits and approves it, the reply appears in `outbox/`, the drafted lesson is approved and
+published once, and a second ticket finds the lesson and cites it.
 
 ### Specs
 

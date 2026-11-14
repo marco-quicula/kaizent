@@ -29,7 +29,9 @@ in the workspace.
   `triage`) receives the problem's title, body and labels (marked as hints) and the list
   of subjects (id, name, description). It returns a `TriageResult` with `subjectId` (a
   declared id or `unknown`), `problemType` (`BUG`, `HOW_TO` or `OTHER`), `language` (ISO
-  639-1) and `rationale` (English, at most 300 characters).
+  639-1) and `rationale` (English, at most 300 characters). The rationale is model text
+  that is stored and shown, so it passes the **output check** of spec 0008 AC-12 (ADR-0032,
+  layer 4) before it is stored; a redaction is flagged on the triage result.
 - **AC-4:** A `subjectId` that is not declared is treated as `unknown`, with a recorded
   note.
 - **AC-5:** The role is selected deterministically: the role whose `subjects` contain the

@@ -42,15 +42,23 @@ build on.
   `heading`, `snippet`, `score`), restricted to the given roots (the role's
   `knowledgePaths`).
 - **AC-6:** `KnowledgeSource.read(path, section?)` returns a document, or one section of
-  it, with its version (as in AC-3).
+  it, with its version (as in AC-3). The returned text is capped at a configurable size
+  (`kaizent.knowledge.max-read`, default 16 KB). When the document or section is longer,
+  the result carries `truncated = true`, the number of characters returned and the total,
+  and the outline of the document's section headings, so that the caller can read another
+  section. A section that is itself longer than the cap is cut the same way.
 - **AC-7:** Every path is normalized and must resolve inside `knowledge/` (for
   `KnowledgeSource`) or `skills/` (for `SkillRepository`). Anything else, including
   `..` and symbolic links that point outside, is rejected.
 - **AC-8:** Adding, changing or deleting a knowledge file updates the index within 5
   seconds, without a restart.
-- **AC-9:** `KnowledgeWriter.write(relativePath, content)` creates a new file under
-  `knowledge/lessons/` only, refuses to overwrite an existing file, and triggers a
-  re-index.
+- **AC-9:** `KnowledgeWriter.write(relativePath, content)` creates a file under
+  `knowledge/lessons/` only and triggers a re-index. It never overwrites an existing file
+  with different content and never creates a second file for the same call: writing
+  the same path with identical content again succeeds without changing anything (so that a
+  caller can resume after a failure, spec 0011 AC-7), and writing it with different
+  content is refused. Re-indexing can be repeated: running it again for a file that is
+  already indexed leaves the index unchanged.
 - **AC-10:** `GET /api/v1/knowledge/document?path=&section=` returns the Markdown content
   for the console. Paths outside `knowledge/` return 400.
 
