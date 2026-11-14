@@ -70,9 +70,23 @@ fine-tuning depend on.
   leave an `ERROR` event explaining which limit was hit. The budget is a **soft
   ceiling**: it is checked before each call (AC-8) and the usage is known only after it,
   so the most a run can exceed it is **one call**, and the documentation says so. The
-  remaining time is also checked before each call, and a retry never waits past it.
+  remaining time is also checked before each call, and a retry never waits past it. The
+  guarantee has **two levels**, because the unit of a call differs:
+  - **Native runtime and API adapters:** the unit is the provider call, including each
+    repair attempt, retry and loop turn (AC-8). The most a run can exceed a limit is one
+    such call.
+  - **CLI adapters, single calls (wave 1: triage, lesson, the model check):** the unit is
+    the `CliExecutor` call. The balance is checked before each one. The tool's own turns and
+    retries inside it are not visible to Kaizent, so the most a run can exceed a limit is
+    **one whole CLI call**, bounded by the container timeout (ADR-0030). Its usage arrives
+    aggregated, after the call, and may be unknown (AC-6), never zero.
+
+  The **CLI in agent mode is outside wave 1** (ADR-0033). A per-turn guarantee for it
+  (a turn limit of the tool when there is one, the timeout, or calls mediated by Kaizent,
+  such as through MCP) is a **requirement of wave 2** before that runtime is released.
 - **AC-8:** The remaining budget is checked **before every provider call**, including
-  each repair attempt, each retry and each turn of the agent loop. Kaizent estimates the
+  each repair attempt, each retry and each turn of the agent loop (for a CLI single call,
+  before each `CliExecutor` call, as AC-7 says). Kaizent estimates the
   input tokens and, if the estimate already exceeds the remaining input budget, or the
   remaining cost or time is exhausted, it fails without calling. When the provider
   accepts an output limit, Kaizent sends one: the smaller of the remaining output budget

@@ -28,7 +28,12 @@ interface CallBudget {
 }
 ```
 
-`LlmRequest` and `AgentTask` carry the handle (`CallBudget budget`). `StructuredOutputs`
+`LlmRequest` and `AgentTask` carry the handle (`CallBudget budget`). The seam differs per
+adapter: a Spring AI adapter calls the handle before each provider call it makes; the CLI
+adapter (single calls) calls it before each `CliExecutor.execute`, and `afterCall` with the
+aggregated usage the tool reported, which may be unknown. The tool's internal turns are not
+seen, so a CLI call can overshoot by one whole call, within the container timeout. An agent
+mode CLI is wave 2 and needs a per-turn mechanism first (ADR-0033). `StructuredOutputs`
 (repair), `Retrying` (each attempt) and the native loop (each turn) call `beforeCall` and
 `afterCall`. The lesson drafting passes a handle of its own budget (`kaizent.budget.lesson`).
 
@@ -101,6 +106,9 @@ kaizent:
 - A redacted trace cannot replay a call byte for byte → accepted: the barrier is
   deliberate (a leaked secret in the trace would outlive the proposal), and the
   documentation says that "raw" means raw after redaction.
+- A CLI single call is a coarser unit than an API call → the overshoot is one whole CLI call,
+  bounded by the container timeout; the guarantee per turn of an agent-mode CLI is a wave 2
+  requirement (ADR-0033).
 - The soft ceiling lets a run overshoot by one call → accepted and documented; a hard cap
   would need the provider to refuse a call by price, which APIs do not offer. The
   per-call output limit keeps that overshoot small.
