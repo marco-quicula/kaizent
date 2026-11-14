@@ -79,12 +79,23 @@ shape and are `validated: false`. Each has a wrapper in its image, run as the no
   unknown until there is a reader for Claude Code's JSON output.
 - `kaizent-agy` (Antigravity CLI, pinned by the package URL and its SHA-512, because the
   official installer reads a mutable manifest): creates a private `HOME` under `/tmp`,
-  copies the image's `/etc/kaizent/agy-settings.json` (`toolPermission` `strict`; deny rules
-  to be added from the official docs, D2d) to `$HOME/.gemini/antigravity-cli/settings.json`, runs `agy`, deletes the `HOME`
+  copies the image's `/etc/kaizent/agy-settings.json` (`toolPermission` `strict`, and deny
+  rules for `read_file(*)`, `write_file(*)`, `command(*)`, `unsandboxed(*)`, `read_url(*)`,
+  `execute_url(*)` and `mcp(*)`) to `$HOME/.gemini/antigravity-cli/settings.json`, runs `agy`, deletes the `HOME`
   and returns its exit code. `agy` has no flag to turn its tools off, and
   `--dangerously-skip-permissions` is never used. The key comes only from `GEMINI_API_KEY`
   (cost type `API`, price unknown, no login volume); the Google account login uses the
   system keyring and is not supported in a container.
+
+**What is known about the Antigravity deny rules.** The actions and the `*` target come from
+the literal table of the official permissions page (D2e). The key `permissions.deny` comes
+from the text of the headless page, which says to add a rule "under permissions.allow in
+~/.gemini/antigravity-cli/settings.json"; its example JSON was not seen. The CLI ignores a
+rule that it does not understand, without a warning, so the effect of the rules is **not
+proven**. Protections that do not depend on them: a single call, no workspace mounted, a
+read-only root file system, no capabilities, mode `strict`, and headless mode denying what
+would need approval. The proof is left to the real validation of the preset (a call that
+asks to read a file, which must be denied); until then the preset is "not validated".
 
 The Antigravity preset's `--print-timeout 290s` is a little under the executor's default
 timeout (`kaizent.cli.timeout`, 5 minutes): the two values go together, so lower the

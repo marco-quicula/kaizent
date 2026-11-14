@@ -29,7 +29,18 @@ RUN groupadd -g 10001 kaizent \
  && chown -R 10001:10001 /home/kaizent
 
 # The settings that restrict the tool's own tools, copied into a temporary HOME per call.
-# For now only toolPermission "strict": deny rules to be added from the official docs (D2d).
+# toolPermission "strict" plus deny rules for every action of the CLI (read_file, write_file,
+# command, unsandboxed, read_url, execute_url, mcp, each with the target "*").
+# What is and is not known about them:
+#  - The actions and the "*" target come from the literal table of the permissions page.
+#  - The key permissions.deny comes from the text of the headless page ("under
+#    permissions.allow in ~/.gemini/antigravity-cli/settings.json"); its example JSON was not seen.
+#  - The CLI ignores a rule that it does not understand, without a warning, so the rules'
+#    effect is NOT proven. The preset stays "not validated" until a real call that asks to
+#    read a file shows it denied.
+#  - Protections that do not depend on the rules: a single call, no workspace mounted, a
+#    read-only root file system, no capabilities, mode strict, and headless mode denies
+#    what would need approval.
 COPY agy-settings.json /etc/kaizent/agy-settings.json
 COPY kaizent-agy.sh /usr/local/bin/kaizent-agy
 RUN chmod 644 /etc/kaizent/agy-settings.json \

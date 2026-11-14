@@ -32,8 +32,9 @@
   left the scope because the Antigravity CLI replaces it on the free plan. *Covers:*
   AC-9, AC-13. (The README section on the CLI mode, its terms-of-use notice, the Codex setup
   and the other tools' setup are done, with the `claude-code` and `antigravity` presets,
-  images, wrappers and compose services, all not validated. The deny rules of the
-  Antigravity settings are added after the D2d discovery, in this PR.)
+  images, wrappers and compose services, all not validated. The Antigravity settings deny
+  all of its tool actions; whether the rules take effect is proven by the real validation,
+  which does not block this task.)
 - [x] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*
   AC-11. (The API adapters' log-capture and redaction tests came with #38; the
   environment allowlist and the redacted error excerpts of the CLI executor with T6.)

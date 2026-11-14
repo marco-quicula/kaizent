@@ -361,8 +361,9 @@ uses the Gemini API with your own key.
    keyring. Use the API key.
 
 `agy` has no flag to turn its tools off, so its image carries settings that deny them
-(`toolPermission` set to `strict`; more deny rules are to come), copied into a temporary
-home for each call;
+(`toolPermission` set to `strict`, plus deny rules for all of its tool actions), copied into
+a temporary home for each call. Their effect is not proven until the preset is validated
+with a real call;
 `--dangerously-skip-permissions` is never used. The price per token is unknown, so the
 cost is not computed.
 
