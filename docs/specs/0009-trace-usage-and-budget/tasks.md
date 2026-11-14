@@ -1,11 +1,11 @@
 # Tasks 0009: Run trace, usage and budget
 
-- [ ] **T1:** Migration `V6`, `TraceEvent` and its repository, and `RunTraceSink`.
-  *Covers:* AC-1, AC-11.
+- [ ] **T1:** Migration `V6` (with `effective_config`), `TraceEvent` and its repository, and
+  `RunTraceSink`. *Covers:* AC-1, AC-11, AC-5 (the snapshot).
 - [ ] **T2:** The `TracingLlmGateway` decorator, with the payload caps and the redaction
   before persistence. *Covers:* AC-2, AC-6.
-- [ ] **T3:** The `TracingAgentRuntime` decorator, native tool-call events and CLI event
-  mapping. *Covers:* AC-3, AC-4, AC-5.
+- [ ] **T3:** The `TracingAgentRuntime` decorator, native tool-call events (the CLI event
+  mapping is wave 2, ADR-0033). *Covers:* AC-3 (with the content hash and version), AC-4, AC-5.
 - [ ] **T4:** `BudgetGuard` and the `CallBudget` handle used before every provider call
   (repair, retry and loop turn), token estimation, the output limit and timeout
   enforcement. *Covers:* AC-7, AC-8. Also the budget and deadline of the lesson drafting

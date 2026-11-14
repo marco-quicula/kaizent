@@ -27,8 +27,9 @@ fine-tuning depend on.
   `STEP_STARTED`, `STEP_COMPLETED`, `LLM_CALL`, `TOOL_CALL`, `AGENT_EVENT` and `ERROR`,
   each with a step, a summary, details (JSON), a timestamp and, when relevant, a usage
   and a duration.
-- **AC-2:** `LLM_CALL` events store the adapter, the model or preset, the prompt version,
-  the full request messages and the raw response, each capped at
+- **AC-2:** `LLM_CALL` events store the adapter, the model or preset requested, the model
+  or version that the provider reported in its answer (they can differ, for example when an
+  alias moves), the prompt version, the full request messages and the raw response, each capped at
   `kaizent.trace.max-payload` (default 256 KB, with a truncation marker). Everything the
   model produced passes the **output check** of spec 0008 AC-12 (ADR-0032, layer 4)
   before it is persisted, so "raw" means *raw after redaction*. The rule is the same for
@@ -38,11 +39,26 @@ fine-tuning depend on.
   event. The stored trace therefore is not a byte-exact copy of what the model returned,
   and the documentation says so.
 - **AC-3:** `TOOL_CALL` events store the tool name, the arguments (after the same output
-  check), a result summary (paths and headings, not full documents) and the duration.
-- **AC-4:** For CLI runtimes, the mapped tool events become `AGENT_EVENT`s. Unmapped raw
-  events are kept in the `LLM_CALL` details, after the same redaction (AC-2).
+  check), a result summary (paths and headings, not full documents), the duration and, for
+  the read tools, the **provenance of what was returned**: `contentHash`, the SHA-256 of the
+  text actually returned (the section or the document, after the cap), and `documentHash`,
+  the SHA-256 of the whole document on disk, which later detects a change whatever the cap
+  or the section was; and, when the workspace is a git working copy, the commit version
+  (spec 0007 AC-3 and AC-6). A commit alone does not identify the content read, because of
+  uncommitted changes and new lessons.
+- **AC-4:** For CLI runtimes (wave 2, ADR-0033), the mapped tool events become
+  `AGENT_EVENT`s. Unmapped raw events are kept in the `LLM_CALL` details, after the same
+  redaction (AC-2). In wave 1 the type `AGENT_EVENT` exists, and the native runtime may use
+  it for its own loop steps.
 - **AC-5:** The assembled `AgentTask` (instructions, skills catalog, knowledge roots,
-  budget) is stored as the details of the resolution `STEP_STARTED` event.
+  budget) is stored as the details of the resolution `STEP_STARTED` event, together with
+  the run's **effective configuration**, which is also stored on the run: for each step the
+  adapter or preset, the model requested, the parameters in force (for example the
+  temperature, when set), the content hash of each prompt, the version of the injection
+  detector (spec 0006 AC-9) and the versions of the policies applied (confidence caps,
+  output check, budgets). The model that the provider reported is recorded per call (AC-2).
+  The configuration is a snapshot: later changes to the settings do not alter it, so that
+  results can be compared by configuration (spec 0012).
 - **AC-6:** The run's usage totals (input and output tokens, cost, and the cost type
   summary) are updated after each **effective provider call**: every model turn of the
   agent loop, every repair attempt and every retry (spec 0004 AC-2 and AC-4) counts, not
@@ -68,9 +84,10 @@ fine-tuning depend on.
     **one whole CLI call**, bounded by the container timeout (ADR-0030). Its usage arrives
     aggregated, after the call, and may be unknown (AC-6), never zero.
 
-  A **per-turn guarantee for a CLI in agent mode is a requirement before that runtime is
-  released** (a turn limit of the tool when there is one, the timeout, or calls mediated
-  by Kaizent, such as through MCP). The single-call guarantee above does not cover it.
+  The **CLI in agent mode is outside wave 1** (ADR-0033). A **per-turn guarantee for it is
+  a requirement before that runtime is released** (a turn limit of the tool when there is
+  one, the timeout, or calls mediated by Kaizent, such as through MCP). The single-call
+  guarantee above does not cover it.
 - **AC-8:** The remaining budget is checked **before every provider call**, including
   each repair attempt, each retry and each turn of the agent loop (for a CLI single call,
   before each `CliExecutor` call, as AC-7 says). Kaizent estimates the

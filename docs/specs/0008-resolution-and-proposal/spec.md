@@ -3,7 +3,7 @@
 - **Status:** Approved
 - **Wave:** 1
 - **Depends on:** 0004, 0006, 0007
-- **Related ADRs:** 0016, 0017, 0022, 0029
+- **Related ADRs:** 0016, 0017, 0022, 0029, 0033
 
 ## Goal
 
@@ -11,8 +11,8 @@ Replace the skeleton's single prompt with the real Do step:
 
 - assemble the agent task from the role, the problem, the skills catalog and the
   knowledge scope;
-- run it through an `AgentRuntime`, either the native Spring AI loop with Kaizent's tools
-  or a CLI tool;
+- run it through an `AgentRuntime`: in wave 1, the native Spring AI loop with Kaizent's
+  tools (the CLI agent runtime is wave 2, ADR-0033);
 - validate the proposal and its citations;
 - compute the adjusted confidence.
 
@@ -20,8 +20,8 @@ Replace the skeleton's single prompt with the real Do step:
 
 - As a **reviewer**, I want each proposal to cite its sources and the skills it used, so
   that I can verify it quickly.
-- As the **maintainer**, I want the same resolution behavior whether the loop runs on an
-  API model or on a CLI tool, so that I can switch adapters freely.
+- As the **maintainer**, I want the same resolution behavior whichever API model runs the
+  loop, so that I can switch providers freely.
 
 ## Acceptance criteria
 
@@ -51,8 +51,12 @@ Replace the skeleton's single prompt with the real Do step:
   (`kaizent.agent.max-context-tokens`); otherwise the run fails with `BUDGET_EXCEEDED`
   and an `ERROR` event that names the context limit. The check is the one of spec 0009
   AC-8, made before every model call.
-- **AC-4:** The **CLI runtime** (spec 0004) receives only the role's knowledge roots and
-  allowed skill folders as read-only paths, and must answer with the same schema.
+- **AC-4:** *Moved to wave 2 (ADR-0033).* The CLI runtime, which would receive only the
+  role's knowledge roots and skill folders as read-only paths, is not part of wave 1: the
+  read restriction that ADR-0032 requires is not demonstrated for a CLI agent (the sandbox of
+  Codex is documented as restricting writes, not reads; not tested in agent mode).
+  The wave 1 resolution runtimes are `native` and `fake`, and both answer with the
+  `Proposal` schema of AC-5.
 - **AC-5:** The `Proposal` contains:
   - `diagnosis` (English);
   - `suggestedReply` (in the triage language);
@@ -64,8 +68,7 @@ Replace the skeleton's single prompt with the real Do step:
 - **AC-6:** **Citation validation:** every citation path must exist and lie inside the
   role's knowledge roots. Invalid citations are kept but flagged.
 - **AC-7:** **Skills used:** for the native runtime, they are the skills actually read
-  through `read_skill`. For the CLI runtime, they are the self-reported names, filtered
-  to the allowed skills. Each one is recorded with its version.
+  through `read_skill`. Each one is recorded with its version.
 - **AC-8:** **Adjusted confidence** follows ADR-0022:
   - no citation → capped at 0.5;
   - an invalid citation → capped at 0.3;
@@ -76,24 +79,19 @@ Replace the skeleton's single prompt with the real Do step:
   output after the repair attempt moves the run to `FAILED` with reason `ERROR`.
 - **AC-10:** `SkeletonResolver` is removed, and the end-to-end test of spec 0002 passes
   with the fake `AgentRuntime`.
-- **AC-11:** **Suspicious tickets** (spec 0006 AC-9) follow
-  `kaizent.security.suspicious-tickets` (ADR-0032, layer 3):
-  - `api-runtime` (default): resolved by the native runtime through
-    `kaizent.security.api-runtime` (an API adapter and model), never by a CLI runtime.
-    Without that setting, the run fails with reason `ERROR` and the message "suspicious
-    ticket and no API runtime configured";
-  - `flag-only`: the run continues with the configured runtime, and the reviewer sees
-    the risk.
+- **AC-11:** **Suspicious tickets** (spec 0006 AC-9; ADR-0032, layers 2 and 3). In wave 1
+  the only resolution runtimes are `native` and `fake` (ADR-0033), and the native one has
+  least capability by construction: Kaizent's three read tools over the role's scope, no
+  shell and no other file access. A suspicious ticket is therefore resolved like any other
+  ticket, and its risk, reasons and notes are shown to the reviewer. The runtime that
+  resolved the ticket (`resolvedBy`) is recorded on the proposal. `SAFE` only means that no
+  rule matched.
 
-  Whatever the risk and the policy, a CLI preset with `read-restricted: false` is never
-  a resolution runtime (ADR-0032, layer 1): every ticket is untrusted input, and `SAFE`
-  only means that no rule matched. The application refuses to start when the resolution
-  runtime, or `kaizent.security.api-runtime`, is such a preset, with a message that names
-  it.
-
-  `flag-only` logs a WARN at startup that names the setting and the risk, and the README
-  documents it as the operator's risk. The runtime that resolved the ticket is recorded
-  on the proposal.
+  The routing policy of layer 3 (`kaizent.security.suspicious-tickets`, with `api-runtime`
+  and `flag-only`, `kaizent.security.api-runtime`), the refusal of a CLI preset with
+  `read-restricted: false` as a resolution runtime and the startup WARN are the contract
+  of the wave 2 CLI runtime and are implemented there. In wave 1 the application refuses
+  to start with `kaizent.agent.resolution.runtime: cli` (spec 0004 AC-8).
 - **AC-12:** **Output check** (ADR-0032, layer 4). It is **one barrier**, applied to every
   text the model produced before that text is stored or shown, whatever the step: the
   proposal, the model's text in the trace (including the raw responses, the invalid ones,
@@ -110,7 +108,7 @@ Replace the skeleton's single prompt with the real Do step:
 
 ## Evaluation cases
 
-Run with both a native-runtime API profile and the Codex CLI preset:
+Run with a native-runtime API profile (the CLI runtime is wave 2, ADR-0033):
 
 - **EV-1:** Across all 12 tickets, at least 90% of the citations are valid.
 - **EV-2:** PC-001, PC-004 and PC-010 cite the matching known issue.

@@ -42,9 +42,14 @@ foundation.
   - the proposal: diagnosis, suggested reply, confidence band with the raw value and
     the rules applied, citations with invalid ones flagged, skills used with versions;
   - usage and budget;
+  - the run's effective configuration (adapter or preset, model requested and reported,
+    parameters, prompt hashes, detector and policy versions; spec 0009 AC-5);
   - the failure reason when the run failed.
 - **AC-4:** Clicking a citation opens the cited document (scrolled to the section) in a
-  side panel, using `GET /knowledge/document`.
+  side panel, using `GET /knowledge/document`. The panel shows the **current** document,
+  and says so. When its `documentHash` (the hash of the whole document) differs from the one recorded
+  for the citation at the time of the run (spec 0009 AC-3), the panel warns that the document has changed since the
+  run. Showing the historical version is out of scope in wave 1.
 - **AC-5:** **Trace timeline:** the events in order, grouped by step and attempt, with
   expandable details (prompts, responses, tool arguments).
 - **AC-6:** **Verdicts** (`POST /runs/{id}/verdict`):
@@ -74,6 +79,8 @@ None.
 ## Out of scope
 
 - Authentication and multiple reviewers (wave 5).
+- Showing the version of a cited document that the run actually read (only the warning of
+  AC-4 is in wave 1).
 - Bulk actions, search over ticket text, and dashboards (wave 4).
 
 ## Open questions

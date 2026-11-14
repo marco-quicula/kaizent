@@ -9,13 +9,13 @@ interface LlmGateway {
 }
 record LlmRequest<T>(String step, String system, String user, Class<T> outputType,
                      Map<String, Object> attributes, CallBudget budget) {}   // CallBudget: spec 0009
-record LlmResponse<T>(T output, Usage usage, String rawOutput) {}
+record LlmResponse<T>(T output, Usage usage, String rawOutput) {}   // Usage also carries the model the provider reported, when it says (spec 0009 AC-2)
 
 interface CliExecutor {
   CliResult execute(CliCommand command);   // preset, args, stdin or prompt file, granted read-only paths, timeout
 }
 
-// resolution module (public API); the adapters live in llm/adapter/cli and resolution/adapter/*
+// resolution module (public API); wave 1 adapters: resolution/adapter/native and fake (the CLI one is wave 2)
 interface AgentRuntime {
   AgentResult run(AgentTask task, TraceSink trace);
 }
@@ -33,7 +33,7 @@ task. The CLI implementation reuses `CliExecutor` from the `llm` module.
 | Name | Port(s) | Notes |
 |---|---|---|
 | `gemini-api`, `openai`, `anthropic`, `ollama` | `LlmGateway` | A Spring AI `ChatModel` per model id, built on the first call (so the application starts without keys). The answer goes through `StructuredOutputs` (schema in the prompt, validation, one repair). Spring AI's and the SDKs' own retries are off; `Retrying` retries instead, and `ProviderErrors` turns each SDK's exception into an `LlmCallException` with the status, the provider's code and message, and the suggested wait. The configured key is removed from the message and the causes, since a provider may echo it. For Gemini, the SDK's own retries are set to one attempt, and an OkHttp interceptor keeps the JSON `error.status` that the SDK drops |
-| `cli` + preset | `LlmGateway`, `AgentRuntime` | Presets from `kaizent.cli.presets.*`, bundled in `classpath:cli-presets.yaml` and overridable |
+| `cli` + preset | `LlmGateway` (wave 1); `AgentRuntime` in wave 2 (ADR-0033) | Presets from `kaizent.cli.presets.*`, bundled in `classpath:cli-presets.yaml` and overridable |
 | `fake` | `LlmGateway`, `AgentRuntime` | `FakeScript` loaded from `classpath:fake/<step>/<ticket-key>.json`, with fallback to `default.json`; special markers `__error__`, `__timeout__`, `__invalid__` |
 
 **Presets** are configuration, `kaizent.cli.presets.<name>`, bundled in
@@ -64,7 +64,7 @@ kaizent.cli.presets.codex:
     output: { source: FILE, events: codex }   # answer from {outputFile}; tokens from events
 ```
 
-The `agent` call (spec 0004 T8) is added to the presets with the `AgentRuntime`.
+The `agent` call is added to the presets in wave 2, with the CLI `AgentRuntime` (ADR-0033).
 
 **Tool state.** Codex keeps its login, sessions, logs, caches and plugins in the same
 folder (`CODEX_HOME`), and `--ephemeral` alone does not keep that folder unchanged (the
@@ -206,7 +206,7 @@ kaizent:
     pricing:
       <model-id>: { input-per-million: 0.0, output-per-million: 0.0 }
   agent:
-    resolution: { runtime: cli, preset: codex, timeout: 5m }
+    resolution: { runtime: native, adapter: gemini-api, model: <id> }   # wave 1; runtime: cli is refused (ADR-0033)
   cli:
     docker: docker            # the docker command
     max-output: 2MB
@@ -223,7 +223,8 @@ kaizent:
 | AC-3 | Tests of each adapter against a local stub of its API (answer and token counts), and a startup test with an unconfigured adapter |
 | AC-4 | Retry tests with a stub that fails with 429 and then succeeds, honors a suggested wait, and keeps the provider's cause when it gives up; error mapping tests for each SDK |
 | AC-5 | Pricing computation tests |
-| AC-6 to AC-8 | `DockerCliExecutor` and CLI adapter tests against a fake CLI image built from `src/test/resources/fake-cli/` (prints canned JSONL, sleeps for timeouts, exits non-zero, tries to write to the workspace, and tries to read paths it was not granted, including `evals/`). They run the same on every operating system with Docker, like the Testcontainers tests |
+| AC-6, AC-7 | `DockerCliExecutor` and CLI adapter tests against a fake CLI image built from `src/test/resources/fake-cli/` (prints canned JSONL, sleeps for timeouts, exits non-zero, tries to write to the workspace, and tries to read paths it was not granted, including `evals/`). They run the same on every operating system with Docker, like the Testcontainers tests |
+| AC-8 | Fake `AgentRuntime` and `TraceSink` tests; a startup test that `runtime: cli` is refused with the message that points to ADR-0033 |
 | AC-9 | Manual validation with the real Codex CLI in its image, recorded in the PR (EV-1) |
 | AC-10 | Fake adapter tests |
 | AC-11 | A log-capture test asserting no key or token appears |

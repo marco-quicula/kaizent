@@ -66,13 +66,15 @@ on estimates, not on real usage.
   text, summary text, details jsonb, input_tokens int, output_tokens int, cost numeric,
   cost_type text, duration_ms int, created_at timestamptz, unique(run_id, attempt,
   sequence))`;
-- `run` gains `attempt int`, `usage jsonb` (totals per cost type) and `budget jsonb`.
+- `run` gains `attempt int`, `usage jsonb` (totals per cost type), `budget jsonb` and
+  `effective_config jsonb` (the snapshot of AC-5, taken when the run starts and again for a
+  retry, since the settings may have changed).
 
 ## API
 
 - `GET /runs/{id}/trace?attempt=` → `TraceEvent[]`.
 - `POST /runs/{id}/retry` → `RunDetail`.
-- `RunDetail` gains `attempt`, `usage` and `budget`.
+- `RunDetail` gains `attempt`, `usage`, `budget` and `effectiveConfig`.
 
 ## Configuration
 
@@ -96,6 +98,7 @@ kaizent:
 |---|---|
 | AC-1 to AC-5 | Orchestrator tests with fakes, asserting the event sequences |
 | AC-2 to AC-4 (redaction) | `RunTraceSink` tests with a synthetic token in a valid response, an invalid response, a repair request and response, an error message and an unmapped event: nothing is persisted unredacted, each case carries a flag, and redaction happens before truncation |
+| AC-2, AC-3, AC-5 | Orchestrator tests with fakes: the requested and reported models differ and both are stored; a read tool's event carries both hashes (`documentHash` and `contentHash`) and, in a git test workspace, the version; the snapshot holds adapter or preset, model, temperature, prompt hashes and the detector and policy versions, and does not change when the settings change afterwards |
 | AC-6 to AC-8 | `BudgetGuard` and decorator unit tests (the fake reports usage that exceeds the limits); a test where the first answer is invalid, and the repair attempt and a retry each fail with `BUDGET_EXCEEDED` **before** calling the provider (the stub counts its calls); the output limit reaches the stub provider; a call with unknown usage stays unknown in the totals; the overshoot of a run is at most one call; **several calls with no reported usage** and a stub provider that takes no output limit, with `max-output-tokens: 10000`, `max-output-per-call: 4000`, an input estimate of 1000 per call and no configured price: calls 1 and 2 each debit 4000 output (2000 left), call 3 debits `min(2000, 4000) = 2000` (0 left), and call 4 fails with `BUDGET_EXCEEDED` before it is made (the stub counts 3 calls); each call is marked `estimated`, the reported total stays unknown and not zero, and only the token limits stop the run; a second case with prices of 1 and 2 per million input and output tokens and `max-cost: 0.02` debits 0.009 per call, so call 3 is barred by cost before it is made |
 | AC-12 | The lesson drafting runs with its own budget when the run's budget is already spent; exceeding it fails the drafting and leaves the run untouched |
 | AC-9 | Retry service and API tests |

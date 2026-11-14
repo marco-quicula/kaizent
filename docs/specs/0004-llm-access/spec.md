@@ -3,7 +3,7 @@
 - **Status:** In progress
 - **Wave:** 1
 - **Depends on:** 0002
-- **Related ADRs:** 0016, 0017, 0020, 0030
+- **Related ADRs:** 0016, 0017, 0020, 0030, 0033
 
 ## Goal
 
@@ -24,8 +24,9 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
 
 ## User stories
 
-- As the **maintainer**, I want to run Kaizent through my Codex CLI login, so that I can
-  develop without paid API access.
+- As the **maintainer**, I want to run the single structured calls (triage, lesson and
+  the model check) through my Codex CLI login, so that I can develop them without paid
+  API access. (The resolution step needs an API key in wave 1, ADR-0033.)
 - As a **contributor**, I want to pick any supported API provider through configuration,
   so that I can use what I have.
 - As a **test author**, I want scripted fake adapters, so that tests are deterministic and
@@ -72,17 +73,15 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
 - **AC-7:** The CLI `LlmGateway` adapter disables the tool's own tools where the preset
   supports it, grants no workspace path, and extracts the final JSON answer from the
   tool's output.
-- **AC-8:** The CLI `AgentRuntime` adapter gives the tool read-only access only to the
-  task's knowledge roots and skill folders (the role's, as spec 0008 AC-4 requires), asks
-  for the proposal JSON schema, and
-  maps the tool's event stream (when available) to `TraceEvent`s through the `TraceSink`.
-  It may **read** only the granted paths and its scratch folder, not the tool's login nor
-  any other file, and its network is limited to what the tool needs to reach its model,
-  where the tool or the container allows it (ADR-0032, layer 1). It is released only once
-  this is validated with the real tool. A tool that cannot restrict reads has its agentic
-  preset marked `read-restricted: false`; a documented warning does not lift the gate, and
-  such a preset is never used to resolve a ticket, whatever its injection risk: the
-  application refuses to start with it as a resolution runtime (spec 0008 AC-11).
+- **AC-8:** The `AgentRuntime` port, the `TraceSink` and the fake `AgentRuntime` (AC-10)
+  exist, so that the resolution loop (spec 0008) runs behind a seam that is tested. The
+  **CLI `AgentRuntime` adapter is not part of wave 1** (ADR-0033): the discovery for
+  the single-call preset (T7) and the tool's documented read-only sandbox indicate that the
+  sandbox restricts writes, not reads (not tested in agent mode), so layer 1 of ADR-0032 is not
+  demonstrated and cannot be assumed. The CLI adapter, its
+  event mapping and the validation of its read and network restrictions move to wave 2,
+  with Kaizent as an MCP server. In wave 1 the application refuses to start with
+  `kaizent.agent.resolution.runtime: cli`.
 - **AC-9:** The `codex` preset and its image are implemented and validated (read-only
   sandbox, JSON events, final message extraction). The `claude-code`, `antigravity` and
   `gemini-cli` presets and images, and the `generic` preset, are provided and documented
@@ -104,8 +103,9 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
 
 ## Evaluation cases
 
-- **EV-1:** `codex` preset, `resolution` step, with a skeleton prompt on PC-002 → valid
-  proposal JSON, with `costType = SUBSCRIPTION`.
+- **EV-1:** `codex` preset, one structured call (the `llm-check` command, or the skeleton
+  prompt) on PC-002 → valid JSON, with `costType = SUBSCRIPTION`. It validates single
+  calls only; it says nothing about the isolation of an agent (ADR-0033).
 - **EV-2:** `gemini-api`, a triage-shaped request on PC-002 → valid JSON with tokens
   reported.
 - **EV-3 (optional):** the same request with `openai` and with `anthropic`, when the
@@ -115,6 +115,8 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
 ## Out of scope
 
 - The native agent loop with Kaizent's tools (0008).
+- The CLI `AgentRuntime` adapter, its event mapping and the layer 1 validation with the
+  real tool (wave 2, ADR-0033).
 - `RemoteRunnerExecutor` and the Kubernetes agent runner (wave 5). It will run the same
   images under the same container contract (ADR-0030).
 - Falling back to other models when a quota runs out (open decision 18).

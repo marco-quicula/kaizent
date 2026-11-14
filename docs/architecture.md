@@ -42,7 +42,7 @@ Modulith verifies the dependencies between them. Inside a module:
 | `triage` | Classifies subject, problem type and language; selects the role | `RoleCatalog` | `adapter.file` (roles/) |
 | `skills` | Skill catalog and content, with versions | `SkillRepository` | `adapter.file` |
 | `knowledge` | Search and read the knowledge base; write lessons | `KnowledgeSource`, `KnowledgeWriter` | `adapter.lucene`, `adapter.file` |
-| `resolution` | Builds the agent task, runs it, validates the proposal, computes confidence | `AgentRuntime` | `adapter.native` (Spring AI loop), `adapter.cli`, `adapter.fake` |
+| `resolution` | Builds the agent task, runs it, validates the proposal, computes confidence | `AgentRuntime` | `adapter.native` (Spring AI loop), `adapter.fake`; the CLI adapter is wave 2 (ADR-0033) |
 | `review` | Records verdicts | n/a | n/a |
 | `delivery` | Sends approved replies | `ReplySink` | `adapter.file` (outbox) |
 | `learning` | Drafts lessons after edits or rejections; approves or discards them | n/a | n/a |
@@ -91,8 +91,9 @@ goes to `FAILED`, and a retry resumes at delivery without asking for a new verdi
 1. **Intake** (`intake`): poll `inbox/`, then map each file to a `Problem` (or an
    `IntakeIssue`), then create a `Run` in `RECEIVED`.
 2. **Triage** (`triage` via `LlmGateway`, profile `triage`): the subjects list and the
-   problem go in, `TriageResult` comes out. The role is chosen deterministically: the
-   role whose `subjects` contain the subject, otherwise the workspace's default role.
+   problem go in, `TriageResult` comes out. The model only classifies. The code selects the
+   role from the subject and the problem type, within the eligible roles (ADR-0034): the role
+   that lists both, then the one that lists the subject, then the workspace's default role.
 3. **Context assembly** (`resolution`): role persona, problem, skills catalog (names and
    descriptions of the role's allowed skills), knowledge roots and output schema.
 4. **Resolution** (`resolution` via `AgentRuntime`, profile `resolution`): the agent
@@ -125,13 +126,14 @@ kaizent:
       triage:     { adapter: gemini-api, model: <model-id> }
       lesson:     { adapter: gemini-api, model: <model-id> }
   agent:
-    resolution:   { runtime: cli, preset: codex, timeout: 5m }
+    resolution:   { runtime: native, adapter: gemini-api, model: <model-id>, timeout: 5m }
 ```
 
 - **API adapters** (Spring AI): `gemini-api`, `openai`, `anthropic`, `ollama`. The
   native `AgentRuntime` exposes the tools `search_knowledge(query, limit)`,
   `read_document(path, section?)` and `read_skill(name)`.
-- **CLI adapters**: presets `codex` (validated in wave 1), `claude-code`, `antigravity`
+- **CLI adapters** (single structured calls in wave 1; the agentic CLI runtime is wave 2,
+  ADR-0033): presets `codex` (validated in wave 1), `claude-code`, `antigravity`
   and `gemini-cli` (provided as configuration examples, validated when someone has
   access), plus `generic` (command template). Commands run through `CliExecutor` →
   `DockerCliExecutor`: a new container per call, with only the granted workspace paths

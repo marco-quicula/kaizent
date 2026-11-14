@@ -26,8 +26,8 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 
 - **Pluggable everywhere.** Ticket sources, reply sinks, skill repositories, knowledge
   sources, tools (MCP) and LLM access are ports with swappable adapters, chosen at setup.
-  Models can be reached through provider APIs or through agent CLI tools such as Codex,
-  run in containers built locally.
+  Models can be reached through provider APIs or, for single structured calls, through
+  CLI tools such as Codex, run in containers built locally.
 - **Human in the loop first.** At the start, a person confirms every answer. Human
   approvals, edits and rejections are both the safety net and the success metric.
 - **Graduated autonomy.** Each subject gets a level (Junior → Mid-level → Senior →
@@ -167,6 +167,11 @@ free tier is enough for the demo.
    review**. Open it, read the diagnosis and the suggested reply, and click **Approve**. The
    reply is written to `examples/petclinic/outbox/PC-001.reply.md`.
 
+The resolution step needs an **API key** (the Gemini free tier, OpenAI or Anthropic): the
+agent loop that resolves a ticket runs on an API model, and the agentic CLI runtime is
+planned for wave 2 (ADR-0033). A CLI login can serve the single calls (triage, lessons and
+the model check): see [Run with a CLI tool](#run-with-a-cli-tool-local-personal-mode).
+
 The model is set per pipeline step. The default for resolution is `gemini-3.6-flash`. To
 use another model, set it in `.env`, for example:
 
@@ -244,9 +249,16 @@ is 0 when the call works, and 1 otherwise, with the provider's cause, for exampl
 
 ## Run with a CLI tool (local, personal mode)
 
-Instead of an API key, a step can use an agentic command-line tool that you are already
-logged in to, through the `cli` adapter. Today the **Codex CLI** has a preset (`codex`);
-other tools follow.
+Instead of an API key, a **single structured call** (the triage, the lesson drafting and
+the `llm-check` command) can use a command-line tool that you are already logged in to,
+through the `cli` adapter. Today the **Codex CLI** has a preset (`codex`); other tools
+follow.
+
+> **Not for the resolution step.** The agentic CLI runtime, where the tool itself resolves
+> the ticket with file access, is planned for wave 2 (ADR-0033): the sandbox of Codex is
+> documented as restricting writes, not reads (not tested in agent mode), so the read
+> restriction that ADR-0032 requires is not demonstrated for an agent. The resolution step needs an API key. The
+> skeleton's single resolution call still accepts a CLI preset until spec 0008 replaces it.
 
 > **A local, personal development mode.** Read this before you use it:
 >
@@ -295,8 +307,9 @@ capabilities, CPU and memory limits and a timeout (5 minutes by default,
    The login is kept in the `kaizent-cli-codex` Docker volume. To check it, run
    `docker compose --profile cli run --rm codex-cli kaizent-codex login status`.
 
-4. Select the preset for the resolution step in `.env`. A model is optional; without
-   one, Codex uses its default:
+4. Select the preset for a single-call step in `.env`. Until the triage step exists, the
+   skeleton's resolution call and the `llm-check` command use the `KAIZENT_LLM_RESOLUTION_*`
+   settings. A model is optional; without one, Codex uses its default:
 
    ```
    KAIZENT_LLM_RESOLUTION_ADAPTER=cli
