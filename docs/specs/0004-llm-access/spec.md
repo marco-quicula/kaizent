@@ -84,10 +84,11 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   such a preset is never used to resolve a ticket, whatever its injection risk: the
   application refuses to start with it as a resolution runtime (spec 0008 AC-11).
 - **AC-9:** The `codex` preset and its image are implemented and validated (read-only
-  sandbox, JSON events, final message extraction). The `claude-code`, `antigravity` and
-  `gemini-cli` presets and images, and the `generic` preset, are provided and documented
-  as "not yet validated". Each image pins its tool's version and is built locally with
-  `docker compose` (profile `cli`).
+  sandbox, JSON events, final message extraction). The `claude-code` and `antigravity`
+  presets and images, and the `generic` preset, are provided and documented as "not yet
+  validated". Each image pins its tool's version and is built locally with `docker
+  compose` (profile `cli`). The Gemini CLI is out of scope: the Antigravity CLI replaces
+  it on the free plan.
 - **AC-10:** The fake adapters return scripted responses (by step and by ticket key) from
   test resources, and can simulate errors, timeouts and invalid output.
 - **AC-11:** API keys and CLI credentials are never logged or stored. Each CLI tool keeps
@@ -95,12 +96,16 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   container; Kaizent's application mounts that volume but never reads or copies it. Inside
   the tool's container, the image's wrapper may move the login between the volume and a
   private temporary folder, and the volume holds the login only (ADR-0031). An API key for
-  a CLI tool reaches only that tool's container.
+  a CLI tool reaches only that tool's container. Exception for the presets that have no
+  login volume: Claude Code (with a subscription token) and Antigravity (with an API key)
+  receive their credential as an environment variable from `.env`, by name and never on
+  the command line, and they have no login volume.
 - **AC-12:** `GET /api/v1/system` lists each pipeline step with its adapter, its model or
   preset, and its cost type.
 - **AC-13:** The README documents the CLI mode as a local, personal development mode and
   tells users to check their provider's terms of use (ADR-0016). It documents the setup:
-  building the images and logging in to each tool (ADR-0030).
+  building the images and logging in to each tool, or setting its credential variable
+  (ADR-0030).
 
 ## Evaluation cases
 

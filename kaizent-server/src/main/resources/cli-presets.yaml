@@ -47,3 +47,78 @@ kaizent:
             # The answer from the output file; the token usage from the JSON events.
             source: FILE
             events: codex
+
+      # NOT VALIDATED (spec 0004 AC-9): the flags come from the tools' --help and documentation,
+      # and no real call has been made yet. Treat these two as a starting point.
+      claude-code:
+        image: kaizent-cli-claude-code
+        tool-version: 2.1.319           # pinned in docker/cli/claude-code/Dockerfile
+        validated: false
+        cost-type: SUBSCRIPTION         # a Claude subscription, through a long-lived token
+        # The token from "claude setup-token", set in .env. It reaches only this container, by
+        # name (never on the command line), and there is no login volume.
+        env: [CLAUDE_CODE_OAUTH_TOKEN]
+        llm:
+          # kaizent-claude keeps the tool's state in a temporary CLAUDE_CONFIG_DIR and turns
+          # --json-schema-file into --json-schema. No tools (--tools ""), no session files.
+          # The prompt comes from stdin ("Non-interactive mode reads stdin"). With --json-schema,
+          # Claude Code's JSON output (--output-format json) carries the answer in the field
+          # structured_output; the "claude" reader extracts it, and the tokens from usage when
+          # they are reported (the field names inside usage are still to be confirmed).
+          args:
+            - kaizent-claude
+            - -p
+            - --output-format
+            - json
+            - --tools
+            - ""
+            - --no-session-persistence
+            - --json-schema-file
+            - "{schemaFile}"
+          model-args: [--model, "{model}"]
+          prompt: STDIN
+          output:
+            source: STDOUT
+            events: claude
+
+      antigravity:
+        image: kaizent-cli-antigravity
+        tool-version: 1.5.9             # pinned in docker/cli/antigravity/Dockerfile
+        validated: false
+        cost-type: API                  # the Gemini API through GEMINI_API_KEY; price unknown
+        # A Google account login uses the system keyring and is not supported in a container.
+        env: [GEMINI_API_KEY]
+        llm:
+          # kaizent-agy uses a temporary HOME with settings that deny the tool's own tools
+          # ("toolPermission": "strict"). agy has no flag to turn its tools off, and
+          # --dangerously-skip-permissions is never used. --print-timeout is a little under
+          # the executor's timeout (5m by default); lower it if kaizent.cli.timeout is lower.
+          args:
+            - kaizent-agy
+            - -p
+            - --output-format
+            - text
+            - --json-schema
+            - "{schemaFile}"
+            - --print-timeout
+            - 290s
+          model-args: [--model, "{model}"]
+          prompt: STDIN
+          output:
+            source: STDOUT
+            events: text
+
+      # generic: an example for any other tool. A preset that is incomplete fails only when a
+      # step selects it, so this one stays commented out; copy it under
+      # kaizent.cli.presets.<name> in your configuration and fill it in (README).
+      #
+      # my-tool:
+      #   image: my-tool-image
+      #   validated: false
+      #   cost-type: UNKNOWN
+      #   env: [MY_TOOL_API_KEY]
+      #   llm:
+      #     args: [my-tool, --print, --schema, "{schemaFile}"]
+      #     model-args: [--model, "{model}"]
+      #     prompt: STDIN                # or FILE, with {promptFile} in args
+      #     output: { source: STDOUT, events: text }

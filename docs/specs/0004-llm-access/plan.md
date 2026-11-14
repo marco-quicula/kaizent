@@ -66,6 +66,49 @@ kaizent.cli.presets.codex:
 
 The `agent` call (spec 0004 T8) is added to the presets with the `AgentRuntime`.
 
+**Presets that are not validated (T10).** `claude-code` and `antigravity` follow the same
+shape and are `validated: false`. Each has a wrapper in its image, run as the non-root user
+10001 with a read-only root file system:
+
+- `kaizent-claude` (Claude Code, pinned by npm version): creates a private folder under
+  `/tmp`, sets `CLAUDE_CONFIG_DIR` to it, turns `--json-schema-file <path>` into
+  `--json-schema <contents>`, runs `claude`, deletes the folder and returns its exit code.
+  The preset runs `-p --output-format json --tools "" --no-session-persistence`, with the
+  prompt on standard input. The token comes only from `CLAUDE_CODE_OAUTH_TOKEN` (cost type
+  `SUBSCRIPTION`, no login volume). The `claude` output reader reads the single JSON result:
+  the answer is `structured_output`, serialized as JSON; when the field is missing (for
+  example, Claude declined the request) the call fails with a clear message that quotes a
+  part of `result`, which is never used as the structured answer. The usage is
+  `usage.input_tokens` and `usage.output_tokens` when they exist, read defensively: the names
+  inside `usage` are not in the documentation and are to be confirmed by the real
+  validation. `total_cost_usd` is ignored (no price for a subscription).
+- `kaizent-agy` (Antigravity CLI, pinned by the package URL and its SHA-512, because the
+  official installer reads a mutable manifest): creates a private `HOME` under `/tmp`,
+  copies the image's `/etc/kaizent/agy-settings.json` (`toolPermission` `strict`, and deny
+  rules for `read_file(*)`, `write_file(*)`, `command(*)`, `unsandboxed(*)`, `read_url(*)`,
+  `execute_url(*)` and `mcp(*)`) to `$HOME/.gemini/antigravity-cli/settings.json`, runs `agy`, deletes the `HOME`
+  and returns its exit code. `agy` has no flag to turn its tools off, and
+  `--dangerously-skip-permissions` is never used. The key comes only from `GEMINI_API_KEY`
+  (cost type `API`, price unknown, no login volume); the Google account login uses the
+  system keyring and is not supported in a container.
+
+**What is known about the Antigravity deny rules.** The actions and the `*` target come from
+the literal table of the official permissions page (D2e). The key `permissions.deny` comes
+from the text of the headless page, which says to add a rule "under permissions.allow in
+~/.gemini/antigravity-cli/settings.json"; its example JSON was not seen. The CLI ignores a
+rule that it does not understand, without a warning, so the effect of the rules is **not
+proven**. Protections that do not depend on them: a single call, no workspace mounted, a
+read-only root file system, no capabilities, mode `strict`, and headless mode denying what
+would need approval. The proof is left to the real validation of the preset (a call that
+asks to read a file, which must be denied); until then the preset is "not validated".
+
+The Antigravity preset's `--print-timeout 290s` is a little under the executor's default
+timeout (`kaizent.cli.timeout`, 5 minutes): the two values go together, so lower the
+`--print-timeout` whenever `kaizent.cli.timeout` is lowered.
+
+The `generic` preset is documented in the README: an incomplete preset fails only when a
+step selects it, so the bundled file carries a commented example instead of a preset.
+
 **Tool state.** Codex keeps its login, sessions, logs, caches and plugins in the same
 folder (`CODEX_HOME`), and `--ephemeral` alone does not keep that folder unchanged (the
 discovery run counted 598 files after two calls). The image's `kaizent-codex` wrapper
@@ -76,7 +119,8 @@ from one call to the next (ADR-0030), and Kaizent's application never reads the 
 (ADR-0031).
 
 **Output readers (`CliEvents`).** `text` takes the standard output as the answer;
-`codex` reads `codex exec --json`: the answer is the last `item.completed` event of type
+`claude` reads the JSON result of `claude -p --output-format json` (below); `codex` reads
+`codex exec --json`: the answer is the last `item.completed` event of type
 `agent_message`, and the tokens are the sum of the `turn.completed` events' `usage`
 (`input_tokens`, `output_tokens`). The events carry no model id, so the usage records the
 profile's model, if any.
