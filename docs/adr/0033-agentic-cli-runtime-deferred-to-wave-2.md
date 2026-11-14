@@ -15,12 +15,15 @@ read-only access to the role's knowledge and skills. ADR-0032 made the second on
 on a gate: layer 1 (least capability) must be in place and validated with the real tool
 before the agentic CLI runtime is released.
 
-The discovery with the real Codex CLI (spec 0004 T8) showed that Codex's sandbox lets the
-agent **read any file in the container**, including the tool's login. A mounted read-only
-workspace limits writes and the paths we grant, but it does not stop reads of the rest of
-the container, and the login has to be in the container for the tool to work (ADR-0031).
-Layer 1 of ADR-0032 therefore cannot be met with Codex as an agent, and a documented
-warning does not lift the gate.
+The discovery for the single-call preset (spec 0004 T7) and the tool's documented read-only
+sandbox indicate that the sandbox restricts **writes, not reads**: an agent could read other
+files in the container, including the tool's login (not tested in agent mode). A mounted
+read-only workspace limits writes and the paths we grant, but it is not shown to stop reads
+of the rest of the container, and the login has to be in the container for the tool to
+work (ADR-0031). Layer 1 of ADR-0032 requires this restriction to be validated with the
+real tool, and that validation, with whatever design it needs, is deferred with the runtime.
+That layer is therefore not demonstrated, and cannot be assumed, for Codex as an agent, and a
+documented warning does not lift the gate.
 
 An external review (2026-11) reached the same conclusion from the specs: the validation done
 for single calls (no tools, no workspace) says nothing about the isolation of an agent.

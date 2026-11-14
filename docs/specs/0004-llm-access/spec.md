@@ -75,9 +75,10 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   tool's output.
 - **AC-8:** The `AgentRuntime` port, the `TraceSink` and the fake `AgentRuntime` (AC-10)
   exist, so that the resolution loop (spec 0008) runs behind a seam that is tested. The
-  **CLI `AgentRuntime` adapter is not part of wave 1** (ADR-0033): the discovery with the
-  real Codex CLI showed that its sandbox lets an agent read any file in the container,
-  including the tool's login, so layer 1 of ADR-0032 cannot be met. The CLI adapter, its
+  **CLI `AgentRuntime` adapter is not part of wave 1** (ADR-0033): the discovery for
+  the single-call preset (T7) and the tool's documented read-only sandbox indicate that the
+  sandbox restricts writes, not reads (not tested in agent mode), so layer 1 of ADR-0032 is not
+  demonstrated and cannot be assumed. The CLI adapter, its
   event mapping and the validation of its read and network restrictions move to wave 2,
   with Kaizent as an MCP server. In wave 1 the application refuses to start with
   `kaizent.agent.resolution.runtime: cli`.

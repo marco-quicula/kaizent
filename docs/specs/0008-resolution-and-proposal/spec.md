@@ -53,7 +53,8 @@ Replace the skeleton's single prompt with the real Do step:
   AC-8, made before every model call.
 - **AC-4:** *Moved to wave 2 (ADR-0033).* The CLI runtime, which would receive only the
   role's knowledge roots and skill folders as read-only paths, is not part of wave 1: the
-  sandbox of Codex lets an agent read the whole container, including the tool's login.
+  read restriction that ADR-0032 requires is not demonstrated for a CLI agent (the sandbox of
+  Codex is documented as restricting writes, not reads; not tested in agent mode).
   The wave 1 resolution runtimes are `native` and `fake`, and both answer with the
   `Proposal` schema of AC-5.
 - **AC-5:** The `Proposal` contains:

@@ -255,9 +255,9 @@ through the `cli` adapter. Today the **Codex CLI** has a preset (`codex`); other
 follow.
 
 > **Not for the resolution step.** The agentic CLI runtime, where the tool itself resolves
-> the ticket with file access, is planned for wave 2 (ADR-0033): the sandbox of Codex lets
-> an agent read any file in its container, including the login, so it cannot meet the
-> read restriction that ADR-0032 requires. The resolution step needs an API key. The
+> the ticket with file access, is planned for wave 2 (ADR-0033): the sandbox of Codex is
+> documented as restricting writes, not reads (not tested in agent mode), so the read
+> restriction that ADR-0032 requires is not demonstrated for an agent. The resolution step needs an API key. The
 > skeleton's single resolution call still accepts a CLI preset until spec 0008 replaces it.
 
 > **A local, personal development mode.** Read this before you use it:
