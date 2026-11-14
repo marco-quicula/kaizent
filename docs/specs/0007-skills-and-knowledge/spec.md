@@ -31,7 +31,9 @@ build on.
   the list of resource files in the skill folder.
 - **AC-3:** Each skill has a version: the last commit that touched its folder when the
   workspace is a git working copy (read-only, JGit), otherwise a SHA-256 of the folder's
-  content.
+  content. A commit does not identify what was actually read (the working copy can hold
+  uncommitted changes, and new lessons have no commit), so every `load` also returns a
+  `contentHash`: the SHA-256 of the content returned. The run records both (spec 0009 AC-3).
 
 ### Knowledge
 
@@ -46,7 +48,10 @@ build on.
   (`kaizent.knowledge.max-read`, default 16 KB). When the document or section is longer,
   the result carries `truncated = true`, the number of characters returned and the total,
   and the outline of the document's section headings, so that the caller can read another
-  section. A section that is itself longer than the cap is cut the same way.
+  section. A section that is itself longer than the cap is cut the same way. The result also
+  carries a `contentHash`, the SHA-256 of the text returned (the section or the document,
+  after the cap), besides the version of AC-3, so that a reader can tell later whether the
+  document changed since it was read.
 - **AC-7:** Every path is normalized and must resolve inside `knowledge/` (for
   `KnowledgeSource`) or `skills/` (for `SkillRepository`). Anything else, including
   `..` and symbolic links that point outside, is rejected.

@@ -103,3 +103,6 @@ Where each layer is specified: layer 1 in spec 0004 (T8, the agentic CLI runtime
 
 - Clarified by spec 0009 AC-2 (2026-11): layer 4 also covers the trace and the triage and
   lesson drafts.
+- Scheduling clarified by ADR-0033 (2026-11): the agentic CLI runtime, and with it the
+  validation of layer 1 and the policy of layer 3, move to wave 2. In wave 1 the resolution
+  runtime is the native one.

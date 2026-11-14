@@ -11,11 +11,10 @@
 | `resolution` | `ConfidencePolicy` | Applies the configurable caps of ADR-0022 |
 | `resolution` | `ResolutionService` | Orchestrates the steps: assemble, run, validate, score, return a `Proposal` |
 | `run` | `RunOrchestrator` | Calls `ResolutionService`; handles `BUDGET_EXCEEDED` |
-| `resolution` | `RuntimeSelector` | Chooses the runtime for a run (AC-11): the configured one for a `SAFE` ticket; for a `SUSPICIOUS` one, the native runtime with `kaizent.security.api-runtime` (`api-runtime`) or the configured one (`flag-only`); fails the run with a clear message when no allowed runtime is configured. At startup, it refuses a CLI preset with `read-restricted: false` as the resolution runtime or as `api-runtime`, for any ticket |
+| `resolution` | `RuntimeSelector` | Picks the configured runtime (`native` or `fake`); at startup, refuses `runtime: cli` with a message that points to ADR-0033 (spec 0004 AC-8). The routing of suspicious tickets (ADR-0032 layer 3) comes back with the CLI runtime in wave 2 |
 | `llm` (public API) | `OutputLeakCheck` | **The one barrier** of ADR-0032 layer 4, shared by `resolution`, `triage`, `learning` and the `TraceSink`. Redacts token and key formats, paths outside the granted ones (for a step with no granted path, such as triage and lesson, every absolute or home-folder path) and URLs to unknown hosts in every model-produced text that is stored or shown: diagnosis, reply, confidence rationale, citation paths and sections, the triage rationale, the lesson draft, and the model's messages, raw responses, repair attempts, errors, unknown events and tool-call arguments in trace events (before the `TraceSink` records them). Returns one flag per redaction with the field (AC-12) |
-| `resolution` | `SecurityPolicyWarning` | Logs a WARN at startup when `kaizent.security.suspicious-tickets` is not `api-runtime` (AC-11) |
 
-Runtime selection: `kaizent.agent.resolution.runtime = native | cli | fake`. With
+Runtime selection: `kaizent.agent.resolution.runtime = native | fake` (`cli` is wave 2, ADR-0033). With
 `native`, `kaizent.agent.resolution.adapter` and `model` choose the Spring AI provider.
 
 ## Output record
@@ -25,6 +24,8 @@ record ProposalOutput(String diagnosis, String suggestedReply, double rawConfide
                       String confidenceRationale, List<Citation> citations,
                       List<String> skillsUsed, boolean lacksInformation) {}
 record Citation(String path, @Nullable String section) {}
+// The stored citation adds `contentHash` and `version` of what the run actually read for it
+// (absent when it was not read), so that the console can tell whether the document changed since.
 ```
 
 The stored `Proposal` adds `adjustedConfidence`, `appliedRules`, `invalidCitations`, the
@@ -54,16 +55,14 @@ first).
 ```yaml
 kaizent:
   agent:
-    resolution: { runtime: native, adapter: gemini-api, model: <id> }  # or runtime: cli, preset: codex
+    resolution: { runtime: native, adapter: gemini-api, model: <id> }  # or runtime: fake; cli is wave 2 (ADR-0033)
     max-tool-result: 16KB                # cap on each tool result sent to the model (AC-2)
     max-context-tokens: <model limit>    # context check before each model turn (AC-3)
   budget: { max-tool-calls: 20, max-output-per-call: 4000 }   # the rest of the budget: spec 0009
   confidence: { no-citation-cap: 0.5, invalid-citation-cap: 0.3, lacks-information-cap: 0.3 }
   security:
-    suspicious-tickets: api-runtime        # or flag-only (operator's risk; WARN at startup)
-    api-runtime: { adapter: gemini-api, model: <id> }   # the native runtime for suspicious tickets
     known-hosts: []                        # hosts whose URLs are not notes (spec 0006) nor redacted
-  cli.presets.<name>.agent.read-restricted: true   # validated per tool (spec 0004 T8)
+  # wave 2 (ADR-0033): suspicious-tickets, api-runtime and cli.presets.<name>.agent.read-restricted
 ```
 
 ## Testing
@@ -72,20 +71,17 @@ kaizent:
 |---|---|
 | AC-1 | `TaskAssembler` unit test |
 | AC-2, AC-3 | `NativeAgentRuntime` tests with a stub `ChatModel` that scripts tool calls (in scope, out of scope, over the limit); a result longer than `max-tool-result` is cut, marked and offers the outline, and another section can then be read; a context that would exceed the model limit fails with `BUDGET_EXCEEDED` before the call |
-| AC-4 | CLI runtime test with a fake CLI script, asserting the paths passed |
 | AC-5 to AC-8 | `ProposalValidator` and `ConfidencePolicy` unit tests |
 | AC-9, AC-10 | Orchestrator and end-to-end tests with the fake runtime |
-| AC-11 | `RuntimeSelector` tests for every combination of risk, policy and runtime: a suspicious ticket with a CLI runtime goes to the API runtime; without one, the run fails with the message; `flag-only` keeps the configured runtime; startup fails with a `read-restricted: false` preset as the resolution runtime (so neither a `SAFE` nor a `SUSPICIOUS` ticket reaches it) or as `api-runtime`; a log-capture test of the startup WARN; an orchestrator test that records `resolvedBy` |
+| AC-11 | `RuntimeSelector` tests: `native` and `fake` start; `runtime: cli` fails at startup with the ADR-0033 message; an orchestrator test that a suspicious ticket is resolved by the native runtime, with its risk shown on the run, and that `resolvedBy` is recorded |
 | AC-12 | `OutputLeakCheck` unit tests with synthetic tokens and keys, outside paths and unknown URLs (redacted and flagged) in each covered field, including `confidenceRationale`, a citation section, a trace message, the triage rationale and a lesson draft, and with legitimate text (unchanged); an end-to-end test with a fake runtime whose answer leaks a synthetic token in the reply and in the confidence rationale |
-| EV-1 to EV-6 | Evaluation runner with two profiles; results recorded in the PR |
+| EV-1 to EV-6 | Evaluation runner with the native-runtime API profile; results recorded in the PR |
 
 ## Risks and mitigations
 
 - The model cites documents it never read → the native runtime can cross-check
   citations against the `read_document` calls; flag them as "unread citation" (reported,
   without a confidence cap in wave 1).
-- Native and CLI runtimes behave differently → the evaluations run with both, and the
-  differences are reported in the PR.
 - Redaction hides a legitimate part of the reply (for example a documented URL) → known
   hosts are configurable, every redaction is flagged for the reviewer, and the human
   verdict stays mandatory.

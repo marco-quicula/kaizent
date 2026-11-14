@@ -1,7 +1,8 @@
 # ADR-0016: LLM access through two ports, with API and CLI adapters
 
 - **Status:** Accepted; how CLI tools run (`LocalProcessExecutor`) is superseded by
-  [ADR-0030](0030-cli-tools-run-in-containers.md)
+  [ADR-0030](0030-cli-tools-run-in-containers.md), and the agentic CLI runtime in wave 1 by
+  [ADR-0033](0033-agentic-cli-runtime-deferred-to-wave-2.md)
 - **Date:** 2026-11-01
 - **Supersedes:** [ADR-0007](0007-llm-gateway-provider-neutral.md)
 

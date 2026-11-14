@@ -16,13 +16,10 @@
   preset and image, the `cli` compose profile with its login command, `CliLlmGateway` (the
   `cli` adapter) and the event reader. *Covers:* AC-7, AC-9 (part), AC-11 (part). The
   preset became `validated: true` with EV-1 (T13).
-- [ ] **T8:** The `AgentRuntime` port (in `resolution`), `CliAgentRuntime` and
-  `TraceSink`, with the read and network restrictions of ADR-0032 (layer 1) found in a
-  discovery with the real tool and validated with a synthetic injected ticket.
-  *Covers:* AC-8. Also: the Codex CLI refuses to create its helper binaries under `/tmp`,
-  where the wrapper keeps `CODEX_HOME` (a warning only; no effect on single calls). Check
-  its effect in agent mode and, if needed, give the preset a dedicated temporary path
-  (`tmpfs`) for them.
+- [ ] **T8:** The `AgentRuntime` port (in `resolution`) and the `TraceSink`. *Covers:*
+  AC-8. The `CliAgentRuntime`, the read and network restrictions of ADR-0032 (layer 1)
+  and the Codex helper-binaries check (`/tmp`, `tmpfs`) moved to wave 2 (ADR-0033). The
+  fake `AgentRuntime` is in T9.
 - [ ] **T9:** Fake `LlmGateway` and `AgentRuntime` with scripts and error markers.
   *Covers:* AC-10. (The fake `LlmGateway` is done: scripts by step and ticket key, and the
   `__error__`, `__timeout__` and `__invalid__` markers. The fake `AgentRuntime` comes with

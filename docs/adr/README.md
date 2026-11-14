@@ -22,7 +22,7 @@ behind them. The format is described in [ADR-0001](0001-record-architecture-deci
 | [0013](0013-demo-domain-spring-petclinic.md) | Spring PetClinic as the demo domain, with synthetic data | Accepted |
 | [0014](0014-file-based-connectors-for-mvp.md) | File-based connectors and a canonical problem model for the MVP | Accepted |
 | [0015](0015-spec-driven-development.md) | Spec-driven development (spec, plan and tasks per slice) | Accepted |
-| [0016](0016-llm-access-api-and-cli-adapters.md) | LLM access through `LlmGateway` and `AgentRuntime`, with API, CLI and fake adapters | Accepted; partly superseded by 0030 |
+| [0016](0016-llm-access-api-and-cli-adapters.md) | LLM access through `LlmGateway` and `AgentRuntime`, with API, CLI and fake adapters | Accepted; partly superseded by 0030 and 0033 |
 | [0017](0017-pipeline-orchestration-in-own-code.md) | Pipeline orchestration in our own code on Spring AI (Embabel deferred) | Accepted |
 | [0018](0018-dependency-version-baseline.md) | Dependency version baseline and pinning policy | Accepted |
 | [0019](0019-repository-and-module-layout.md) | Repository and Maven module layout | Accepted |
@@ -39,6 +39,8 @@ behind them. The format is described in [ADR-0001](0001-record-architecture-deci
 | [0030](0030-cli-tools-run-in-containers.md) | CLI tools run in a new container per call, with only the granted workspace paths, read-only | Accepted; partly superseded by 0031 |
 | [0031](0031-cli-tool-state-and-login-in-the-container.md) | CLI tool state stays in the container; the image may move the login inside it | Accepted |
 | [0032](0032-defense-against-prompt-injection.md) | Defense against prompt injection in layers: least capability, risk triage, a policy for suspicious tickets, an output check | Accepted |
+| [0033](0033-agentic-cli-runtime-deferred-to-wave-2.md) | Agentic CLI runtime deferred to wave 2: wave 1 resolves with the native API runtime only | Accepted |
+| [0034](0034-role-eligibility-decided-by-code.md) | Role eligibility is decided by code; classification only chooses within it | Accepted |
 
 ## Open decisions
 
@@ -48,7 +50,7 @@ resolved. The "Needed by" column says when the answer is required.
 | # | Question | Needed by | Notes |
 |---|---|---|---|
 | 1 | Redaction of personal data before prompts leave the system, and before traces are stored | Before any real ticket data enters the system, through any channel (including the file inbox) | Deadline tied to exposure, not to a technology (external review, 2026-11) |
-| 2 | Kaizent as an MCP server: exposing its tools to CLI runtimes and other clients | Wave 2 | Required before the vector store (wave 3). |
+| 2 | Kaizent as an MCP server: exposing its tools to CLI runtimes and other clients | Wave 2 | Required before the vector store (wave 3). Candidate design for the agentic CLI runtime (ADR-0033), which stays subject to the layer 1 gate of ADR-0032: MCP alone does not guarantee the read restriction. |
 | 3 | Delivery of skill improvement proposals: branch, pull request, or both; which git hosting APIs; Kaizent's git identity | Wave 2 | ADR-0027 defers git writes to wave 2. |
 | 4 | Embedding model(s) and the chunking strategy | Wave 3 | Local ONNX option vs. cloud APIs. |
 | 5 | Final thresholds and minimum sample sizes for the autonomy levels, and how levels act | Wave 4 | Provisional values in spec 0012. |

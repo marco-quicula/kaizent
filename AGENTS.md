@@ -60,7 +60,8 @@ Progress is tracked in GitHub issues under the "Wave 1 – MVP" milestone.
   `KnowledgeSource`, `KnowledgeWriter`, `RoleCatalog`, `LlmGateway`, `AgentRuntime`,
   `CliExecutor`, `RunStore`. See `docs/architecture.md`.
 - **LLM access (ADR-0016):** single structured calls go through `LlmGateway`; the
-  resolution loop goes through `AgentRuntime`. Adapters are API (Spring AI), CLI (Codex,
+  resolution loop goes through `AgentRuntime` (wave 1: the native API runtime only; the
+  agentic CLI runtime is wave 2, ADR-0033). Adapters are API (Spring AI), CLI (Codex,
   Claude Code, Antigravity, Gemini CLI presets, through `CliExecutor`) or fake, selected
   per pipeline step by configuration. Never call a provider SDK or a CLI from the core.
   CLI tools always run in a new container per call, with only the granted workspace paths

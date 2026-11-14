@@ -41,7 +41,7 @@ No real customer data is used. See [ADR-0013](adr/0013-demo-domain-spring-petcli
 | Step | Delivered in the MVP |
 |---|---|
 | **Ingestion** | A file-based inbound connector: a folder (`inbox/`) in a git repository, with one ticket per file (Markdown body plus YAML front matter) and polling. It maps each ticket to the canonical `Problem` model. |
-| **Triage (Plan)** | The LLM classifies the problem's subject and type, and the code selects the **role** from file-based role definitions (persona, allowed skills, knowledge sources), deterministically. See [spec 0006](specs/0006-triage-and-roles/spec.md). |
+| **Triage (Plan)** | The LLM classifies the problem's subject and type, and the code selects the **role** from file-based role definitions (persona, allowed skills, knowledge sources), deterministically, by subject and problem type ([ADR-0034](adr/0034-role-eligibility-decided-by-code.md), [spec 0006](specs/0006-triage-and-roles/spec.md)). |
 | **Context assembly (Plan)** | Skills in the Agent Skills format (`SKILL.md`) are loaded from a git folder. Knowledge comes from Markdown files in git, exposed to the agent as tools (`search_knowledge` for text search, `read_document`). There is no vector store yet. |
 | **Resolution (Do)** | An agent loop with tool calling (Spring AI). It produces structured output: diagnosis, suggested reply, confidence, cited sources and skills used. |
 | **Review (Check)** | A web console (React SPA) over a REST API, with a queue of runs and a full trace for each one (role, skills, sources, tool calls, tokens, cost, confidence). The reviewer can **approve**, **edit and approve**, or **reject with a comment**. |
@@ -50,7 +50,7 @@ No real customer data is used. See [ADR-0013](adr/0013-demo-domain-spring-petcli
 | **Metrics** | Per subject: approved-as-is, approved-with-edits and rejected rates. The **autonomy level is computed and displayed, but does not act yet**: every answer still requires human approval. |
 | **Data capture** | Each run stores input, assembled context, proposal, final answer, verdict, tokens and cost. This is the seed for evaluation and future fine-tuning. |
 | **Cost control** | Tokens and cost per run are visible in the console, with a configurable budget limit per run. The budget is a soft ceiling, checked before every provider call (repairs and retries included), so a run can exceed it by at most one call. |
-| **LLM access** | Two ports, `LlmGateway` (single structured calls) and `AgentRuntime` (the resolution loop), with **API adapters** (Gemini, OpenAI, Anthropic, Ollama, through Spring AI) and **CLI adapters** (Codex validated; Claude Code, Antigravity and Gemini CLI presets provided) selected per pipeline step by configuration. Validated with Codex CLI, the Gemini API free tier and fake adapters. See [ADR-0016](adr/0016-llm-access-api-and-cli-adapters.md). |
+| **LLM access** | Two ports, `LlmGateway` (single structured calls) and `AgentRuntime` (the resolution loop), with **API adapters** (Gemini, OpenAI, Anthropic, Ollama, through Spring AI) and **CLI adapters** for single structured calls (Codex validated; Claude Code, Antigravity and Gemini CLI presets provided) selected per pipeline step by configuration. The resolution step uses the native API runtime only: the agentic CLI runtime moved to wave 2 ([ADR-0033](adr/0033-agentic-cli-runtime-deferred-to-wave-2.md)). Validated with Codex CLI (single calls), the Gemini API free tier and fake adapters. See [ADR-0016](adr/0016-llm-access-api-and-cli-adapters.md). |
 | **Evaluation** | An opt-in runner executes the demo's evaluation cases against real adapters and writes a report. CI never calls real models. See [ADR-0020](adr/0020-testing-and-evaluation-strategy.md). |
 | **Project hygiene** | `LICENSE`, `CONTRIBUTING.md` (DCO), `SECURITY.md`, `.env.example`, no secrets committed, and CI that builds and tests every pull request. |
 
@@ -64,8 +64,9 @@ authentication or multi-user support, and Kubernetes deployment.
 
 A newcomer can:
 
-1. clone the repository and configure one LLM access: an API key in a local `.env` file
-   (the Gemini free tier works) or a logged-in local CLI tool (Codex);
+1. clone the repository and configure an LLM access: an **API key** in a local `.env` file
+   for the resolution step (the Gemini free tier works), and optionally a logged-in local
+   CLI tool (Codex) for the single calls (triage and lessons);
 2. start the stack locally (PostgreSQL through `docker compose`, then the application);
 3. drop a demo ticket into `inbox/`;
 4. watch the run in the console and inspect its full trace;
@@ -93,6 +94,12 @@ Wave 1 is broken down into 12 specs, listed in implementation order in
 - MCP client support: MCP servers configured per role and exposed as agent tools.
 - Kaizent as an MCP server: its knowledge and skill tools exposed to CLI runtimes, so
   that every runtime uses the same tools and produces the same trace.
+- The **agentic CLI runtime** (Codex first), moved here from wave 1 ([ADR-0033](adr/0033-agentic-cli-runtime-deferred-to-wave-2.md)):
+  the candidate design is the MCP server above, and it is released only after the layer 1
+  validation of ADR-0032 on the real tool (it must fail to read the login and any file
+  outside the grant). MCP alone does not guarantee the read restriction.
+- Triage modes `llm`, `rules` and `rules-then-llm` (`kaizent.triage.mode`), once a real
+  connector gives trusted metadata with its provenance ([ADR-0034](adr/0034-role-eligibility-decided-by-code.md)).
 - A second problem type: business and analytical questions over internal knowledge.
 - **Skill improvement proposals**, delivered as a branch or pull request on the skills
   repository, and **new-skill suggestions**.
