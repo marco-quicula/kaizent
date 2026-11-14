@@ -102,8 +102,7 @@ class BundledCliPresetsTest {
 
   @Test
   void theClaudeCodePresetPassesTheTokenByNameAndTurnsTheToolsOff() throws Exception {
-    Run run =
-        runPreset("claude-code", "sonnet", "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
+    Run run = runPreset("claude-code", "sonnet", "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
     CliCommand command = run.command();
 
     assertThat(command.image()).isEqualTo("kaizent-cli-claude-code");
@@ -131,8 +130,7 @@ class BundledCliPresetsTest {
 
   @Test
   void theAntigravityPresetPassesTheKeyByNameAndNeverSkipsPermissions() throws Exception {
-    Run run =
-        runPreset("antigravity", null, "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
+    Run run = runPreset("antigravity", null, "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
     CliCommand command = run.command();
 
     assertThat(command.image()).isEqualTo("kaizent-cli-antigravity");
