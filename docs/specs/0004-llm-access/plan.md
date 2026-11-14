@@ -86,6 +86,10 @@ shape and are `validated: false`. Each has a wrapper in its image, run as the no
   (cost type `API`, price unknown, no login volume); the Google account login uses the
   system keyring and is not supported in a container.
 
+The Antigravity preset's `--print-timeout 290s` is a little under the executor's default
+timeout (`kaizent.cli.timeout`, 5 minutes): the two values go together, so lower the
+`--print-timeout` whenever `kaizent.cli.timeout` is lowered.
+
 The `generic` preset is documented in the README: an incomplete preset fails only when a
 step selects it, so the bundled file carries a commented example instead of a preset.
 

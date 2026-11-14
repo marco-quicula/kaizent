@@ -16,5 +16,9 @@ cp /etc/kaizent/agy-settings.json "$HOME/.gemini/antigravity-cli/settings.json"
 status=0
 agy "$@" || status=$?
 
-rm -rf "$HOME"
+# KAIZENT_AGY_KEEP_HOME=1 keeps the temporary HOME, only to check by hand that the settings
+# were copied. Kaizent never passes it: a CLI container gets only the variables of its preset.
+if [ "${KAIZENT_AGY_KEEP_HOME:-}" != "1" ]; then
+  rm -rf "$HOME"
+fi
 exit "$status"
