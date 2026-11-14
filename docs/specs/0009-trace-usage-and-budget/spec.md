@@ -63,7 +63,8 @@ fine-tuning depend on.
   only each `LlmGateway.complete` or `AgentRuntime.run`. A run that mixes cost types
   reports each one separately. A call whose usage the provider did not report is recorded
   as **unknown**, never as zero: the totals show how many calls were unknown, and the
-  cost type is `UNKNOWN` for them (spec 0004 AC-5).
+  cost type is `UNKNOWN` for them (spec 0004 AC-5). The call is also marked **estimated**
+  (AC-8), because the guard debited something for it.
 - **AC-7:** Per-run budgets: `max-input-tokens`, `max-output-tokens`, `max-cost`,
   `max-tool-calls` and `timeout`. Exceeding a token, cost or tool limit fails the run
   with `BUDGET_EXCEEDED`. Exceeding the wall-clock timeout fails it with `TIMEOUT`. Both
@@ -81,17 +82,28 @@ fine-tuning depend on.
     **one whole CLI call**, bounded by the container timeout (ADR-0030). Its usage arrives
     aggregated, after the call, and may be unknown (AC-6), never zero.
 
-  The **CLI in agent mode is outside wave 1** (ADR-0033). A per-turn guarantee for it
-  (a turn limit of the tool when there is one, the timeout, or calls mediated by Kaizent,
-  such as through MCP) is a **requirement of wave 2** before that runtime is released.
+  The **CLI in agent mode is outside wave 1** (ADR-0033). A **per-turn guarantee for it is
+  a requirement before that runtime is released** (a turn limit of the tool when there is
+  one, the timeout, or calls mediated by Kaizent, such as through MCP). The single-call
+  guarantee above does not cover it.
 - **AC-8:** The remaining budget is checked **before every provider call**, including
   each repair attempt, each retry and each turn of the agent loop (for a CLI single call,
   before each `CliExecutor` call, as AC-7 says). Kaizent estimates the
   input tokens and, if the estimate already exceeds the remaining input budget, or the
   remaining cost or time is exhausted, it fails without calling. When the provider
   accepts an output limit, Kaizent sends one: the smaller of the remaining output budget
-  and the per-call cap. Usage that is unknown (AC-6) is not counted as zero: when a
-  limit depends on it, the guard uses the estimate for that call and flags it.
+  and the per-call cap. Usage that is unknown (AC-6) is **debited at the conservative
+  upper bound of the call**, so that the next call is still barred in time:
+  - input tokens: the estimate;
+  - output tokens: the output limit sent to the provider;
+  - cost: those two values at the configured price; without a configured price, the cost
+    dimension does not limit, and the token limits apply.
+
+  The call is marked **estimated**, and the reported total stays unknown, never zero.
+  The guarantee degrades explicitly: when the provider accepts no output limit and
+  reports no usage, nothing bounds one call from above, and the guarantee becomes "the
+  next call is barred by the estimated balance". It is a guarantee on estimates, not on
+  real usage.
 - **AC-9:** `POST /api/v1/runs/{id}/retry` on a `FAILED` run increments `attempt`, keeps
   the previous events (tagged with their attempt) and moves the run to `RECEIVED`. A
   delivery failure is retried at delivery (ADR-0023). A retry on any other status

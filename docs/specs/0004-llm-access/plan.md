@@ -170,7 +170,9 @@ calls the model once more with the validation errors and the previous answer, an
 fails with `LlmOutputException`. The usage of both calls is added up. **Budget:** the repair is a second provider call, so
 it is checked like any other: `StructuredOutputs` and `Retrying` call
 `CallBudget.beforeCall` before **each** provider call (the first, the repair and every retry)
-and `afterCall` with its usage (spec 0009 AC-6 to AC-8). If the budget or the deadline is
+and `afterCall` with its usage (spec 0009 AC-6 to AC-8). This is the guarantee of the API adapters;
+the CLI adapter, for single calls, checks the balance before each `CliExecutor` call, and the
+tool's own turns and retries are not visible to Kaizent (spec 0009 AC-7). If the budget or the deadline is
 spent, the call fails with `BUDGET_EXCEEDED` or `TIMEOUT` instead of repairing or retrying,
 and a retry's backoff never waits past the deadline. The output limit that `beforeCall`
 returns is sent to the provider when its API accepts one (for example `maxOutputTokens`);
