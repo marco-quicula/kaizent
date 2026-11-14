@@ -45,7 +45,7 @@ JSON shape is versioned in code.
 
 | AC | Test |
 |---|---|
-| AC-1, AC-3 to AC-5, AC-9 to AC-11 | Vitest and React Testing Library page tests with mocked API responses; for AC-4, a citation whose recorded hash differs from the current one shows the "changed since the run" warning, and one that matches does not |
+| AC-1, AC-3 to AC-5, AC-9 to AC-11 | Vitest and React Testing Library page tests with mocked API responses; for AC-4, a citation whose recorded `documentHash` differs from the current one shows the "changed since the run" warning, and one that matches does not; a different `max-read` without a file edit gives no warning, and an edit outside the section read does |
 | AC-2 | SSE controller integration test, plus a hook test with a mock `EventSource` |
 | AC-6, AC-7 | `ReviewService` unit tests and API tests |
 | AC-12 | Testing Library queries by role and label; manual keyboard check |

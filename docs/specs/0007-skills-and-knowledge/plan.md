@@ -10,8 +10,8 @@ interface SkillRepository {
 }
 record SkillSummary(String name, String description, String version) {}
 record SkillContent(String name, String description, String body, List<String> resources,
-                    String version, String contentHash) {}
-// KnowledgeDocument(path, section, content, version, contentHash, truncated, totalChars, outline)
+                    String version, String documentHash, String contentHash) {}
+// KnowledgeDocument(path, section, content, version, documentHash, contentHash, truncated, totalChars, outline)
 
 // knowledge module
 interface KnowledgeSource {
@@ -43,7 +43,7 @@ No database changes.
 
 ## API
 
-`GET /knowledge/document?path=&section=` → `{ path, section?, content, version, contentHash, truncated, totalChars, outline? }`.
+`GET /knowledge/document?path=&section=` → `{ path, section?, content, version, documentHash, contentHash, truncated, totalChars, outline? }`.
 
 ## Dependencies
 
@@ -59,8 +59,8 @@ JGit is EDL (BSD-style) and commonmark-java is BSD-2-Clause.
 | AC-4 to AC-6 | Index tests on the demo knowledge (for example, the query "telephone" ranks KI-001 first) |
 | AC-7 | Path traversal and symbolic link tests |
 | AC-8 | Watcher test with Awaitility |
-| AC-3 | The `contentHash` of a skill and of a document changes with an uncommitted edit, while the commit version does not; a new lesson has a hash and no commit |
-| AC-6 | Read tests: a long document and a long section are cut with the marker, the totals and the outline, and another section can be read |
+| AC-3 | The `documentHash` and `contentHash` of a skill and of a document change with an uncommitted edit, while the commit version does not; a new lesson has hashes and no commit |
+| AC-6 | Read tests: a long document and a long section are cut with the marker, the totals and the outline, and another section can be read; changing `max-read` without editing the file changes `contentHash` and leaves `documentHash` unchanged; editing a part outside the section read changes `documentHash` and leaves `contentHash` unchanged |
 | AC-9 | Writer tests (new file, same content again, different content, outside `lessons/`; a re-index repeated twice) |
 | AC-10 | API tests |
 

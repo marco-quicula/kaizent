@@ -40,10 +40,12 @@ fine-tuning depend on.
   and the documentation says so.
 - **AC-3:** `TOOL_CALL` events store the tool name, the arguments (after the same output
   check), a result summary (paths and headings, not full documents), the duration and, for
-  the read tools, the **provenance of what was returned**: the SHA-256 of the content
-  actually read (the section or the document, after the cap) and, when the workspace is a git
-  working copy, the commit version (spec 0007 AC-3 and AC-6). A commit alone does not
-  identify the content read, because of uncommitted changes and new lessons.
+  the read tools, the **provenance of what was returned**: `contentHash`, the SHA-256 of the
+  text actually returned (the section or the document, after the cap), and `documentHash`,
+  the SHA-256 of the whole document on disk, which later detects a change whatever the cap
+  or the section was; and, when the workspace is a git working copy, the commit version
+  (spec 0007 AC-3 and AC-6). A commit alone does not identify the content read, because of
+  uncommitted changes and new lessons.
 - **AC-4:** For CLI runtimes (wave 2, ADR-0033), the mapped tool events become
   `AGENT_EVENT`s. Unmapped raw events are kept in the `LLM_CALL` details, after the same
   redaction (AC-2). In wave 1 the type `AGENT_EVENT` exists, and the native runtime may use

@@ -24,8 +24,9 @@ record ProposalOutput(String diagnosis, String suggestedReply, double rawConfide
                       String confidenceRationale, List<Citation> citations,
                       List<String> skillsUsed, boolean lacksInformation) {}
 record Citation(String path, @Nullable String section) {}
-// The stored citation adds `contentHash` and `version` of what the run actually read for it
-// (absent when it was not read), so that the console can tell whether the document changed since.
+// The stored citation adds `documentHash`, `contentHash` and `version` of what the run actually
+// read for it (absent when it was not read), so that the console can tell whether the document
+// changed since (it compares `documentHash`).
 ```
 
 The stored `Proposal` adds `adjustedConfidence`, `appliedRules`, `invalidCitations`, the
