@@ -66,6 +66,29 @@ kaizent.cli.presets.codex:
 
 The `agent` call (spec 0004 T8) is added to the presets with the `AgentRuntime`.
 
+**Presets that are not validated (T10).** `claude-code` and `antigravity` follow the same
+shape and are `validated: false`. Each has a wrapper in its image, run as the non-root user
+10001 with a read-only root file system:
+
+- `kaizent-claude` (Claude Code, pinned by npm version): creates a private folder under
+  `/tmp`, sets `CLAUDE_CONFIG_DIR` to it, turns `--json-schema-file <path>` into
+  `--json-schema <contents>`, runs `claude`, deletes the folder and returns its exit code.
+  The preset runs `-p --output-format text --tools "" --no-session-persistence`, with the
+  prompt on standard input. The token comes only from `CLAUDE_CODE_OAUTH_TOKEN` (cost type
+  `SUBSCRIPTION`, no login volume). Limitation: the answer is text, so the usage is
+  unknown until there is a reader for Claude Code's JSON output.
+- `kaizent-agy` (Antigravity CLI, pinned by the package URL and its SHA-512, because the
+  official installer reads a mutable manifest): creates a private `HOME` under `/tmp`,
+  copies the image's `/etc/kaizent/agy-settings.json` (`toolPermission` `strict`; deny rules
+  to be added from the official docs, D2d) to `$HOME/.gemini/antigravity-cli/settings.json`, runs `agy`, deletes the `HOME`
+  and returns its exit code. `agy` has no flag to turn its tools off, and
+  `--dangerously-skip-permissions` is never used. The key comes only from `GEMINI_API_KEY`
+  (cost type `API`, price unknown, no login volume); the Google account login uses the
+  system keyring and is not supported in a container.
+
+The `generic` preset is documented in the README: an incomplete preset fails only when a
+step selects it, so the bundled file carries a commented example instead of a preset.
+
 **Tool state.** Codex keeps its login, sessions, logs, caches and plugins in the same
 folder (`CODEX_HOME`), and `--ephemeral` alone does not keep that folder unchanged (the
 discovery run counted 598 files after two calls). The image's `kaizent-codex` wrapper

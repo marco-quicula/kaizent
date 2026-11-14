@@ -15,5 +15,8 @@ RUN groupadd -g 10001 kaizent \
  && useradd -u 10001 -g 10001 -m -d /home/kaizent kaizent \
  && chown -R 10001:10001 /home/kaizent
 
+COPY kaizent-claude.sh /usr/local/bin/kaizent-claude
+RUN chmod 755 /usr/local/bin/kaizent-claude
+
 USER 10001:10001
 WORKDIR /workspace

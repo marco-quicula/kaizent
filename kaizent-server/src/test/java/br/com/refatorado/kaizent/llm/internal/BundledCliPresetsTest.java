@@ -7,6 +7,7 @@ import br.com.refatorado.kaizent.llm.CliResult;
 import br.com.refatorado.kaizent.llm.CostType;
 import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmRequest;
+import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.TestStructuredOutputs;
 import br.com.refatorado.kaizent.llm.adapter.cli.CliLlmAdapter;
 import br.com.refatorado.kaizent.llm.adapter.cli.CodexEvents;
@@ -26,8 +27,10 @@ class BundledCliPresetsTest {
 
   record Answer(String ok) {}
 
-  @Test
-  void theCodexPresetRunsKaizentCodexWithTheValidatedFlags() throws Exception {
+  /** The command that the adapter makes for the preset, with the executor faked. */
+  private static Run runPreset(
+      String preset, String model, String stdout, Map<String, String> files, Answer expected)
+      throws Exception {
     StandardEnvironment environment = new StandardEnvironment();
     new YamlPropertySourceLoader()
         .load("cli-presets", new ClassPathResource("cli-presets.yaml"))
@@ -41,26 +44,37 @@ class BundledCliPresetsTest {
             List.of(new CodexEvents()),
             command -> {
               commands.add(command);
-              return new CliResult(
-                  "{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":2}}",
-                  "",
-                  false,
-                  Map.of("answer.txt", "{\"ok\":\"yes\"}"),
-                  Duration.ofSeconds(1));
+              return new CliResult(stdout, "", false, files, Duration.ofSeconds(1));
             },
             TestStructuredOutputs.create(),
             properties.timeout());
-    LlmProfile profile = new LlmProfile("cli", null, "codex");
+    LlmProfile profile = new LlmProfile("cli", model, preset);
 
     assertThat(adapter.invalidProfile(profile)).isEmpty();
     var response =
         adapter.complete(
             new LlmRequest<>("triage", "system", "user", Answer.class, Map.of()), profile);
 
-    assertThat(response.output()).isEqualTo(new Answer("yes"));
-    assertThat(response.usage().inputTokens()).isEqualTo(10);
-    assertThat(response.usage().costType()).isEqualTo(CostType.SUBSCRIPTION);
-    CliCommand command = commands.getFirst();
+    assertThat(response.output()).isEqualTo(expected);
+    assertThat(ConfigurationPropertySources.get(environment)).isNotNull();
+    return new Run(commands.getFirst(), response.usage());
+  }
+
+  record Run(CliCommand command, Usage usage) {}
+
+  @Test
+  void theCodexPresetRunsKaizentCodexWithTheValidatedFlags() throws Exception {
+    Run run =
+        runPreset(
+            "codex",
+            null,
+            "{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":10,\"output_tokens\":2}}",
+            Map.of("answer.txt", "{\"ok\":\"yes\"}"),
+            new Answer("yes"));
+    CliCommand command = run.command();
+
+    assertThat(run.usage().inputTokens()).isEqualTo(10);
+    assertThat(run.usage().costType()).isEqualTo(CostType.SUBSCRIPTION);
     assertThat(command.image()).isEqualTo("kaizent-cli-codex");
     assertThat(command.args())
         .containsExactly(
@@ -82,7 +96,76 @@ class BundledCliPresetsTest {
             "-");
     assertThat(command.credentials())
         .isEqualTo(new CliCommand.Credentials("kaizent-cli-codex", "/home/kaizent/.codex-login"));
+    assertThat(command.env()).isEmpty();
     assertThat(command.grantedPaths()).isEmpty();
-    assertThat(ConfigurationPropertySources.get(environment)).isNotNull();
+  }
+
+  @Test
+  void theClaudeCodePresetPassesTheTokenByNameAndTurnsTheToolsOff() throws Exception {
+    Run run =
+        runPreset("claude-code", "sonnet", "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
+    CliCommand command = run.command();
+
+    assertThat(command.image()).isEqualTo("kaizent-cli-claude-code");
+    assertThat(command.args())
+        .containsExactly(
+            "kaizent-claude",
+            "-p",
+            "--output-format",
+            "text",
+            "--tools",
+            "",
+            "--no-session-persistence",
+            "--json-schema-file",
+            "/scratch/schema.json",
+            "--model",
+            "sonnet");
+    assertThat(command.stdin()).isEqualTo("system\n\nuser");
+    // The token reaches the container by name only: no login volume, and never in the arguments.
+    assertThat(command.env()).containsExactly("CLAUDE_CODE_OAUTH_TOKEN");
+    assertThat(command.credentials()).isNull();
+    assertThat(String.join(" ", command.args())).doesNotContain("TOKEN");
+    assertThat(run.usage().costType()).isEqualTo(CostType.SUBSCRIPTION);
+    assertThat(run.usage().inputTokens()).isNull();
+  }
+
+  @Test
+  void theAntigravityPresetPassesTheKeyByNameAndNeverSkipsPermissions() throws Exception {
+    Run run =
+        runPreset("antigravity", null, "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
+    CliCommand command = run.command();
+
+    assertThat(command.image()).isEqualTo("kaizent-cli-antigravity");
+    assertThat(command.args())
+        .containsExactly(
+            "kaizent-agy",
+            "-p",
+            "--output-format",
+            "text",
+            "--json-schema",
+            "/scratch/schema.json",
+            "--print-timeout",
+            "290s");
+    assertThat(command.args()).doesNotContain("--dangerously-skip-permissions");
+    assertThat(command.stdin()).isEqualTo("system\n\nuser");
+    assertThat(command.env()).containsExactly("GEMINI_API_KEY");
+    assertThat(command.credentials()).isNull();
+    assertThat(run.usage().costType()).isEqualTo(CostType.API);
+  }
+
+  @Test
+  void thePresetsThatAreNotValidatedSayso() throws Exception {
+    StandardEnvironment environment = new StandardEnvironment();
+    new YamlPropertySourceLoader()
+        .load("cli-presets", new ClassPathResource("cli-presets.yaml"))
+        .forEach(environment.getPropertySources()::addLast);
+    CliProperties properties =
+        Binder.get(environment).bindOrCreate("kaizent.cli", CliProperties.class);
+
+    assertThat(properties.presets().get("codex").validated()).isTrue();
+    assertThat(properties.presets().get("claude-code").validated()).isFalse();
+    assertThat(properties.presets().get("claude-code").toolVersion()).isEqualTo("2.1.319");
+    assertThat(properties.presets().get("antigravity").validated()).isFalse();
+    assertThat(properties.presets().get("antigravity").toolVersion()).isEqualTo("1.5.9");
   }
 }

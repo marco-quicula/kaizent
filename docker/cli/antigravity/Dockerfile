@@ -12,8 +12,8 @@ ARG AGY_SHA512=d01eb13ba7750eed18907f1ae8860864371e0ad9064415e8d033d22b4bd7b9b4e
 
 # The package is pinned by URL and checked with its SHA-512: the build fails on a mismatch.
 # The official installer is not used, because it reads a mutable manifest. The package is
-# deleted after it is extracted. The link /usr/local/bin/agy is not created yet: the name
-# of the binary inside the package is known only after the D2c discovery.
+# deleted after it is extracted. The package holds a single executable, antigravity (found
+# in the D2c discovery), which is linked as agy.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl \
  && rm -rf /var/lib/apt/lists/* \
@@ -21,11 +21,19 @@ RUN apt-get update \
  && echo "${AGY_SHA512}  /tmp/agy.tar.gz" | sha512sum -c - \
  && mkdir -p /opt/antigravity \
  && tar -xzf /tmp/agy.tar.gz -C /opt/antigravity \
- && rm -f /tmp/agy.tar.gz
+ && rm -f /tmp/agy.tar.gz \
+ && ln -s /opt/antigravity/antigravity /usr/local/bin/agy
 
 RUN groupadd -g 10001 kaizent \
  && useradd -u 10001 -g 10001 -m -d /home/kaizent kaizent \
  && chown -R 10001:10001 /home/kaizent
+
+# The settings that restrict the tool's own tools, copied into a temporary HOME per call.
+# For now only toolPermission "strict": deny rules to be added from the official docs (D2d).
+COPY agy-settings.json /etc/kaizent/agy-settings.json
+COPY kaizent-agy.sh /usr/local/bin/kaizent-agy
+RUN chmod 644 /etc/kaizent/agy-settings.json \
+ && chmod 755 /usr/local/bin/kaizent-agy
 
 USER 10001:10001
 WORKDIR /workspace

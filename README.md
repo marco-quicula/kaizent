@@ -27,7 +27,7 @@ ticket file ─► triage ─► role ─► skills + knowledge ─► agent pro
 - **Pluggable everywhere.** Ticket sources, reply sinks, skill repositories, knowledge
   sources, tools (MCP) and LLM access are ports with swappable adapters, chosen at setup.
   Models can be reached through provider APIs or through agent CLI tools such as Codex,
-  run in containers built locally.
+  Claude Code and Antigravity, run in containers built locally.
 - **Human in the loop first.** At the start, a person confirms every answer. Human
   approvals, edits and rejections are both the safety net and the success metric.
 - **Graduated autonomy.** Each subject gets a level (Junior → Mid-level → Senior →
@@ -245,8 +245,9 @@ is 0 when the call works, and 1 otherwise, with the provider's cause, for exampl
 ## Run with a CLI tool (local, personal mode)
 
 Instead of an API key, a step can use an agentic command-line tool that you are already
-logged in to, through the `cli` adapter. Today the **Codex CLI** has a preset (`codex`);
-other tools follow.
+logged in to, through the `cli` adapter. The **Codex CLI** has a validated preset
+(`codex`). **Claude Code** and the **Antigravity CLI** have presets that are
+**not validated yet** (see [Other tools](#other-tools-not-validated-yet)).
 
 > **A local, personal development mode.** Read this before you use it:
 >
@@ -311,6 +312,67 @@ capabilities, CPU and memory limits and a timeout (5 minutes by default,
 To log out and remove the login, run
 `docker compose --profile cli run --rm codex-cli kaizent-codex logout`, then
 `docker volume rm kaizent-cli-codex`.
+
+### Other tools (not validated yet)
+
+These presets come from each tool's `--help` and documentation. No real call has been
+made with them yet (`validated: false` in
+[`cli-presets.yaml`](kaizent-server/src/main/resources/cli-presets.yaml)), so they may need
+adjustments. The notice above (personal use, your own account, your provider's terms)
+applies to them too. Neither has a login volume: the credential is an environment
+variable that you set in `.env`, which reaches only that tool's container, by name and
+never on the command line. Build their images, each pinned to a tool version, with:
+
+```bash
+docker compose --profile cli build claude-code-cli antigravity-cli
+```
+
+**Claude Code** (`claude-code`, version pinned in `docker/cli/claude-code/Dockerfile`):
+uses your Claude subscription through a long-lived token.
+
+1. Generate the token once, with a browser, on a machine where Claude Code is installed:
+   `claude setup-token`. It prints the token once.
+2. Put it in `.env` as `CLAUDE_CODE_OAUTH_TOKEN=` and select the preset:
+
+   ```
+   KAIZENT_LLM_RESOLUTION_ADAPTER=cli
+   KAIZENT_LLM_RESOLUTION_PRESET=claude-code
+   ```
+
+3. To revoke the token, revoke it in your Claude account settings and remove it from
+   `.env`.
+
+The tool runs with no tools of its own (`--tools ""`) and no session files, and keeps its
+state in a temporary folder. Limitation: the answer is plain text, so the token usage is
+unknown until Kaizent can read Claude Code's JSON output.
+
+**Antigravity CLI** (`antigravity`, version pinned in `docker/cli/antigravity/Dockerfile`):
+uses the Gemini API with your own key.
+
+1. Put the key in `.env` as `GEMINI_API_KEY=` (the same variable that the `gemini-api`
+   adapter uses) and select the preset:
+
+   ```
+   KAIZENT_LLM_RESOLUTION_ADAPTER=cli
+   KAIZENT_LLM_RESOLUTION_PRESET=antigravity
+   ```
+
+2. A Google account login is **not supported** in a container: it uses the system
+   keyring. Use the API key.
+
+`agy` has no flag to turn its tools off, so its image carries settings that deny them
+(`toolPermission` set to `strict`; more deny rules are to come), copied into a temporary
+home for each call;
+`--dangerously-skip-permissions` is never used. The price per token is unknown, so the
+cost is not computed.
+
+**Another tool** (`generic`): a CLI tool without a preset can be added in your
+configuration under `kaizent.cli.presets.<name>`, with an image that you build yourself.
+Set `image`, `llm.args` (use `{schemaFile}`, `{promptFile}` and `{outputFile}` for the
+files of the call, and `model-args` with `{model}`), `prompt` (`STDIN` or `FILE`) and
+`output` (`STDOUT` or `FILE`), and name the credential variables in `env`. A commented
+example is at the end of `cli-presets.yaml`. An incomplete preset fails only when a step
+selects it.
 
 Each call runs in its own container, removed when the call ends. If Kaizent logs that it
 could not confirm a removal, or that a `docker create` was cut off, remove what is left

@@ -34,6 +34,23 @@ services:
     volumes:
       - kaizent-cli-codex:/home/kaizent/.codex-login
 
+  # Not validated yet (spec 0004 T10). These two only build the images: they use no login
+  # volume, because the credential comes from .env as an environment variable.
+  #   docker compose --profile cli build claude-code-cli antigravity-cli
+  claude-code-cli:
+    profiles: [cli]
+    build: docker/cli/claude-code
+    image: kaizent-cli-claude-code
+    read_only: true
+    tmpfs: [/tmp]
+
+  antigravity-cli:
+    profiles: [cli]
+    build: docker/cli/antigravity
+    image: kaizent-cli-antigravity
+    read_only: true
+    tmpfs: [/tmp]
+
 volumes:
   kaizent-postgres:
   # The Codex login only; never read by Kaizent. The codex preset mounts it by this name.
