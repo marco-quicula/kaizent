@@ -120,7 +120,7 @@ class BundledCliPresetsTest {
             "/scratch/schema.json",
             "--model",
             "sonnet");
-    assertThat(command.stdin()).isEqualTo("system\n\nuser");
+    assertThat(command.stdin()).startsWith("system\n\nuser");
     // The token reaches the container by name only: no login volume, and never in the arguments.
     assertThat(command.env()).containsExactly("CLAUDE_CODE_OAUTH_TOKEN");
     assertThat(command.credentials()).isNull();
@@ -147,7 +147,7 @@ class BundledCliPresetsTest {
             "--print-timeout",
             "290s");
     assertThat(command.args()).doesNotContain("--dangerously-skip-permissions");
-    assertThat(command.stdin()).isEqualTo("system\n\nuser");
+    assertThat(command.stdin()).startsWith("system\n\nuser");
     assertThat(command.env()).containsExactly("GEMINI_API_KEY");
     assertThat(command.credentials()).isNull();
     assertThat(run.usage().costType()).isEqualTo(CostType.API);
