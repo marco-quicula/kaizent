@@ -24,7 +24,9 @@
   its effect in agent mode and, if needed, give the preset a dedicated temporary path
   (`tmpfs`) for them.
 - [ ] **T9:** Fake `LlmGateway` and `AgentRuntime` with scripts and error markers.
-  *Covers:* AC-10.
+  *Covers:* AC-10. (The fake `LlmGateway` is done: scripts by step and ticket key, and the
+  `__error__`, `__timeout__` and `__invalid__` markers. The fake `AgentRuntime` comes with
+  the `AgentRuntime` port, after the review of the resolution flow.)
 - [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`), the
   `generic` preset, and the documentation of the CLI mode and its setup. The Gemini CLI
   left the scope because the Antigravity CLI replaces it on the free plan. *Covers:*
