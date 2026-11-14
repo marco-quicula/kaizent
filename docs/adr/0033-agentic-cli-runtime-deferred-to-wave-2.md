@@ -72,3 +72,10 @@ for single calls (no tools, no workspace) says nothing about the isolation of an
   contract of the wave 2 CLI runtime (spec 0008 AC-11).
 - Wave 2 gets the CLI runtime, the MCP server (open decision 2) and the layer 1 validation as
   one piece of work.
+- **Before the agent-mode CLI runtime is released in wave 2, a budget per turn or per
+  internal call is a requirement** (spec 0009 AC-7). The provider calls happen inside the
+  tool, so the guarantee of spec 0009 for the native runtime (a check before each provider
+  call) does not carry over. The mechanism is decided in wave 2. Possible forms: a turn
+  limit of the tool itself, when it has one; the container timeout; or calls mediated by
+  Kaizent (through MCP), where Kaizent sees each call. In wave 1, single CLI calls are
+  bounded by one whole call and the container timeout.
