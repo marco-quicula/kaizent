@@ -73,10 +73,15 @@ shape and are `validated: false`. Each has a wrapper in its image, run as the no
 - `kaizent-claude` (Claude Code, pinned by npm version): creates a private folder under
   `/tmp`, sets `CLAUDE_CONFIG_DIR` to it, turns `--json-schema-file <path>` into
   `--json-schema <contents>`, runs `claude`, deletes the folder and returns its exit code.
-  The preset runs `-p --output-format text --tools "" --no-session-persistence`, with the
+  The preset runs `-p --output-format json --tools "" --no-session-persistence`, with the
   prompt on standard input. The token comes only from `CLAUDE_CODE_OAUTH_TOKEN` (cost type
-  `SUBSCRIPTION`, no login volume). Limitation: the answer is text, so the usage is
-  unknown until there is a reader for Claude Code's JSON output.
+  `SUBSCRIPTION`, no login volume). The `claude` output reader reads the single JSON result:
+  the answer is `structured_output`, serialized as JSON; when the field is missing (for
+  example, Claude declined the request) the call fails with a clear message that quotes a
+  part of `result`, which is never used as the structured answer. The usage is
+  `usage.input_tokens` and `usage.output_tokens` when they exist, read defensively: the names
+  inside `usage` are not in the documentation and are to be confirmed by the real
+  validation. `total_cost_usd` is ignored (no price for a subscription).
 - `kaizent-agy` (Antigravity CLI, pinned by the package URL and its SHA-512, because the
   official installer reads a mutable manifest): creates a private `HOME` under `/tmp`,
   copies the image's `/etc/kaizent/agy-settings.json` (`toolPermission` `strict`, and deny
@@ -114,7 +119,8 @@ from one call to the next (ADR-0030), and Kaizent's application never reads the 
 (ADR-0031).
 
 **Output readers (`CliEvents`).** `text` takes the standard output as the answer;
-`codex` reads `codex exec --json`: the answer is the last `item.completed` event of type
+`claude` reads the JSON result of `claude -p --output-format json` (below); `codex` reads
+`codex exec --json`: the answer is the last `item.completed` event of type
 `agent_message`, and the tokens are the sum of the `turn.completed` events' `usage`
 (`input_tokens`, `output_tokens`). The events carry no model id, so the usage records the
 profile's model, if any.

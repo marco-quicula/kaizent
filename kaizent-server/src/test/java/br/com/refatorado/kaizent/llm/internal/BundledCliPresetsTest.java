@@ -9,6 +9,7 @@ import br.com.refatorado.kaizent.llm.LlmProfile;
 import br.com.refatorado.kaizent.llm.LlmRequest;
 import br.com.refatorado.kaizent.llm.Usage;
 import br.com.refatorado.kaizent.llm.adapter.TestStructuredOutputs;
+import br.com.refatorado.kaizent.llm.adapter.cli.ClaudeEvents;
 import br.com.refatorado.kaizent.llm.adapter.cli.CliLlmAdapter;
 import br.com.refatorado.kaizent.llm.adapter.cli.CodexEvents;
 import java.time.Duration;
@@ -41,7 +42,7 @@ class BundledCliPresetsTest {
     CliLlmAdapter adapter =
         new CliLlmAdapter(
             properties.presets(),
-            List.of(new CodexEvents()),
+            List.of(new CodexEvents(), new ClaudeEvents()),
             command -> {
               commands.add(command);
               return new CliResult(stdout, "", false, files, Duration.ofSeconds(1));
@@ -102,7 +103,11 @@ class BundledCliPresetsTest {
 
   @Test
   void theClaudeCodePresetPassesTheTokenByNameAndTurnsTheToolsOff() throws Exception {
-    Run run = runPreset("claude-code", "sonnet", "{\"ok\":\"yes\"}", Map.of(), new Answer("yes"));
+    // The executor returns Claude Code's JSON envelope, with the answer in structured_output.
+    String envelope =
+        "{\"type\":\"result\",\"result\":\"Done.\",\"usage\":{\"input_tokens\":120,"
+            + "\"output_tokens\":18},\"structured_output\":{\"ok\":\"yes\"}}";
+    Run run = runPreset("claude-code", "sonnet", envelope, Map.of(), new Answer("yes"));
     CliCommand command = run.command();
 
     assertThat(command.image()).isEqualTo("kaizent-cli-claude-code");
@@ -111,7 +116,7 @@ class BundledCliPresetsTest {
             "kaizent-claude",
             "-p",
             "--output-format",
-            "text",
+            "json",
             "--tools",
             "",
             "--no-session-persistence",
@@ -125,7 +130,8 @@ class BundledCliPresetsTest {
     assertThat(command.credentials()).isNull();
     assertThat(String.join(" ", command.args())).doesNotContain("TOKEN");
     assertThat(run.usage().costType()).isEqualTo(CostType.SUBSCRIPTION);
-    assertThat(run.usage().inputTokens()).isNull();
+    assertThat(run.usage().inputTokens()).isEqualTo(120);
+    assertThat(run.usage().outputTokens()).isEqualTo(18);
   }
 
   @Test

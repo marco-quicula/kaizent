@@ -343,8 +343,9 @@ uses your Claude subscription through a long-lived token.
    `.env`.
 
 The tool runs with no tools of its own (`--tools ""`) and no session files, and keeps its
-state in a temporary folder. Limitation: the answer is plain text, so the token usage is
-unknown until Kaizent can read Claude Code's JSON output.
+state in a temporary folder. Its JSON output carries the answer in `structured_output`,
+which Kaizent reads; the token usage is recorded when Claude Code reports it. There is no
+price, because a subscription has none.
 
 **Antigravity CLI** (`antigravity`, version pinned in `docker/cli/antigravity/Dockerfile`):
 uses the Gemini API with your own key.
