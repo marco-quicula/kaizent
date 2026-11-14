@@ -84,10 +84,11 @@ scripted fakes. The native agent loop with Kaizent's own tools is implemented in
   such a preset is never used to resolve a ticket, whatever its injection risk: the
   application refuses to start with it as a resolution runtime (spec 0008 AC-11).
 - **AC-9:** The `codex` preset and its image are implemented and validated (read-only
-  sandbox, JSON events, final message extraction). The `claude-code`, `antigravity` and
-  `gemini-cli` presets and images, and the `generic` preset, are provided and documented
-  as "not yet validated". Each image pins its tool's version and is built locally with
-  `docker compose` (profile `cli`).
+  sandbox, JSON events, final message extraction). The `claude-code` and `antigravity`
+  presets and images, and the `generic` preset, are provided and documented as "not yet
+  validated". Each image pins its tool's version and is built locally with `docker
+  compose` (profile `cli`). The Gemini CLI is out of scope: the Antigravity CLI replaces
+  it on the free plan.
 - **AC-10:** The fake adapters return scripted responses (by step and by ticket key) from
   test resources, and can simulate errors, timeouts and invalid output.
 - **AC-11:** API keys and CLI credentials are never logged or stored. Each CLI tool keeps

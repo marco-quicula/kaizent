@@ -25,8 +25,9 @@
   (`tmpfs`) for them.
 - [ ] **T9:** Fake `LlmGateway` and `AgentRuntime` with scripts and error markers.
   *Covers:* AC-10.
-- [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`, `gemini-cli`),
-  the `generic` preset, and the documentation of the CLI mode and its setup. *Covers:*
+- [ ] **T10:** Unvalidated presets and images (`claude-code`, `antigravity`), the
+  `generic` preset, and the documentation of the CLI mode and its setup. The Gemini CLI
+  left the scope because the Antigravity CLI replaces it on the free plan. *Covers:*
   AC-9, AC-13. (The README section on the CLI mode, its terms-of-use notice and the Codex
   setup are done; the other presets and images remain.)
 - [x] **T11:** Secret hygiene: a log-capture test and the environment allowlist. *Covers:*

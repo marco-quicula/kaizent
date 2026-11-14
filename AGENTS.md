@@ -61,7 +61,7 @@ Progress is tracked in GitHub issues under the "Wave 1 – MVP" milestone.
   `CliExecutor`, `RunStore`. See `docs/architecture.md`.
 - **LLM access (ADR-0016):** single structured calls go through `LlmGateway`; the
   resolution loop goes through `AgentRuntime`. Adapters are API (Spring AI), CLI (Codex,
-  Claude Code, Antigravity, Gemini CLI presets, through `CliExecutor`) or fake, selected
+  Claude Code, Antigravity presets, through `CliExecutor`) or fake, selected
   per pipeline step by configuration. Never call a provider SDK or a CLI from the core.
   CLI tools always run in a new container per call, with only the granted workspace paths
   mounted read-only (never `evals/`) and a timeout (ADR-0030). Record usage and the cost type for every call, and respect
