@@ -94,7 +94,8 @@ The targets are reported, not enforced, in wave 1.
 
 ## Out of scope
 
-- Several roles per subject, or role escalation (later waves).
+- Applying several roles to one run, or role escalation (later waves). Mapping a subject
+  to different roles by problem type is in scope (AC-2, AC-5).
 - Choosing the role with the model. The selection is deterministic by design.
 - The triage modes `llm`, `rules` and `rules-then-llm` (`kaizent.triage.mode`), where a
   rule or the model chooses among the eligible candidates: wave 2, when a real connector
