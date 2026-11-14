@@ -25,11 +25,14 @@ roles defined in the workspace.
   means all three), `allowedSkills`, `knowledgePaths` and the persona (the body). Invalid
   roles fail workspace validation with the file and the reason.
 - **AC-2:** A role serves the pairs (subject, problem type) of its `subjects` and
-  `problemTypes`. Every pair of a subject declared in `kaizent-workspace.yaml` and a problem
-  type is claimed by **at most one role**: two roles that claim the same pair fail
-  validation, and the message names both. A role that omits `problemTypes` claims all
-  three types, so it conflicts with another role only on the pairs that both state or
-  both leave open (precedence: AC-5). Pairs with no role fall back to `defaultRole`, which
+  `problemTypes`. A role claims in one of two **tiers** (the tiers of the precedence in
+  AC-5): an **exact** claim for each pair it lists, when it states `problemTypes`, and a
+  **subject-wide** claim for each subject it lists, when it omits `problemTypes`. Within a
+  tier, at most one role may claim the same pair (exact) or the same subject
+  (subject-wide): two roles that do fail validation, and the message names both. Roles in
+  different tiers never conflict, so a subject-wide role plus a role limited to
+  `problemTypes: [BUG]` on the same subject is valid, and the exact claim wins for
+  its pairs (AC-5). Pairs with no role fall back to `defaultRole`, which
   must exist and have a **conservative scope**: its `knowledgePaths` must name explicit
   paths (not the whole `knowledge/` tree), because the code assigns it whenever nothing
   matches, including for the subject `unknown`. Validation reports the pairs that only the
