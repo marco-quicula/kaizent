@@ -8,7 +8,7 @@ interface LlmGateway {
   <T> LlmResponse<T> complete(LlmRequest<T> request);
 }
 record LlmRequest<T>(String step, String system, String user, Class<T> outputType,
-                     Map<String, Object> attributes) {}
+                     Map<String, Object> attributes, CallBudget budget) {}   // CallBudget: spec 0009
 record LlmResponse<T>(T output, Usage usage, String rawOutput) {}
 
 interface CliExecutor {
@@ -21,7 +21,7 @@ interface AgentRuntime {
 }
 record AgentTask(String step, String instructions, String problemText,
                  List<SkillSummary> skills, List<Path> knowledgeRoots, List<Path> skillRoots,
-                 JsonSchema outputSchema, Budget budget) {}
+                 JsonSchema outputSchema, CallBudget budget) {}
 record AgentResult(String outputJson, Usage usage, List<String> rawEvents) {}
 ```
 
@@ -167,7 +167,17 @@ schema (networknt json-schema-validator), maps to the record with strict Jackson
 (no type conversion), and meets the record's Bean Validation constraints, which can be
 stricter than the schema (for example, a confidence from 0 to 1). On an invalid answer it
 calls the model once more with the validation errors and the previous answer, and then
-fails with `LlmOutputException`. The usage of both calls is added up. The pipeline's
+fails with `LlmOutputException`. The usage of both calls is added up. **Budget:** the repair is a second provider call, so
+it is checked like any other: `StructuredOutputs` and `Retrying` call
+`CallBudget.beforeCall` before **each** provider call (the first, the repair and every retry)
+and `afterCall` with its usage (spec 0009 AC-6 to AC-8). This is the guarantee of the API adapters;
+the CLI adapter, for single calls, checks the balance before each `CliExecutor` call, and the
+tool's own turns and retries are not visible to Kaizent (spec 0009 AC-7). If the budget or the deadline is
+spent, the call fails with `BUDGET_EXCEEDED` or `TIMEOUT` instead of repairing or retrying,
+and a retry's backoff never waits past the deadline. The output limit that `beforeCall`
+returns is sent to the provider when its API accepts one (for example `maxOutputTokens`);
+Kaizent does not assume that every provider honors it. The usage of a call that reports
+none stays unknown, never zero (see **Usage per adapter**). The pipeline's
 output records (for example `ResolutionOutput`) are separate from the stored records
 (`Proposal`), which also carry the usage.
 

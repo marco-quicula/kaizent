@@ -14,9 +14,10 @@ record SkillContent(String name, String description, String body, List<String> r
 // knowledge module
 interface KnowledgeSource {
   List<KnowledgeHit> search(String query, int limit, List<String> roots);
-  KnowledgeDocument read(String path, @Nullable String section);
+  KnowledgeDocument read(String path, @Nullable String section);   // capped: truncated, totalChars, outline
 }
 interface KnowledgeWriter {
+  // Idempotent: the same name and content again is a no-op; the same name with other content is refused.
   KnowledgeDocument writeLesson(String fileName, String content);
 }
 ```
@@ -31,7 +32,7 @@ interface KnowledgeWriter {
 | `knowledge` | `MarkdownChunker` | Splits a document into heading-based chunks (CommonMark parser) |
 | `knowledge` | `LuceneKnowledgeIndex` | `ByteBuffersDirectory`, `StandardAnalyzer`, fields `path`, `title`, `heading`, `tags`, `text`; BM25; highlighter for snippets |
 | `knowledge` | `KnowledgeWatcher` | `WatchService` over `knowledge/`, debounced re-indexing |
-| `knowledge` | `FileKnowledgeWriter` | Creates files atomically under `knowledge/lessons/` |
+| `knowledge` | `FileKnowledgeWriter` | Creates files atomically under `knowledge/lessons/` (a temporary file, then a move that does not replace); a second write of identical content is a no-op, and the re-index it triggers is repeatable |
 | `api` | `KnowledgeController` | Document read endpoint |
 
 ## Data
@@ -56,7 +57,8 @@ JGit is EDL (BSD-style) and commonmark-java is BSD-2-Clause.
 | AC-4 to AC-6 | Index tests on the demo knowledge (for example, the query "telephone" ranks KI-001 first) |
 | AC-7 | Path traversal and symbolic link tests |
 | AC-8 | Watcher test with Awaitility |
-| AC-9 | Writer tests (new file, existing file, outside `lessons/`) |
+| AC-6 | Read tests: a long document and a long section are cut with the marker, the totals and the outline, and another section can be read |
+| AC-9 | Writer tests (new file, same content again, different content, outside `lessons/`; a re-index repeated twice) |
 | AC-10 | API tests |
 
 ## Risks and mitigations

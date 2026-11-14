@@ -38,10 +38,19 @@ Replace the skeleton's single prompt with the real Do step:
 - **AC-2:** The **native runtime** exposes three tools, each restricted to the role's
   scope: `search_knowledge(query, limit ≤ 10)`, `read_document(path, section?)` and
   `read_skill(name)`. A call outside the scope returns a tool error to the model and does
-  not throw.
+  not throw. Each tool result is capped at `kaizent.agent.max-tool-result` (default 16 KB).
+  A longer result is cut, carries an explicit truncation marker (how much was returned, out
+  of how much) and, for a document, the outline of its section headings, so that the model
+  can read another section with `read_document(path, section)`. The cap applies to what is
+  sent to the model; the trace keeps the result summary (spec 0009 AC-3).
 - **AC-3:** The native runtime stops when the model returns the final structured answer,
   or when the maximum number of tool calls (`kaizent.budget.max-tool-calls`, default 20)
-  is reached. In the second case, the run fails with `BUDGET_EXCEEDED`.
+  is reached. In the second case, the run fails with `BUDGET_EXCEEDED`. Before each model
+  call, the context sent (instructions, messages and tool results so far) plus a reserve
+  for the output (`kaizent.budget.max-output-per-call`) must fit the model's context limit
+  (`kaizent.agent.max-context-tokens`); otherwise the run fails with `BUDGET_EXCEEDED`
+  and an `ERROR` event that names the context limit. The check is the one of spec 0009
+  AC-8, made before every model call.
 - **AC-4:** The **CLI runtime** (spec 0004) receives only the role's knowledge roots and
   allowed skill folders as read-only paths, and must answer with the same schema.
 - **AC-5:** The `Proposal` contains:
@@ -85,7 +94,11 @@ Replace the skeleton's single prompt with the real Do step:
   `flag-only` logs a WARN at startup that names the setting and the risk, and the README
   documents it as the operator's risk. The runtime that resolved the ticket is recorded
   on the proposal.
-- **AC-12:** **Output check** (ADR-0032, layer 4): before a proposal is stored, token and
+- **AC-12:** **Output check** (ADR-0032, layer 4). It is **one barrier**, applied to every
+  text the model produced before that text is stored or shown, whatever the step: the
+  proposal, the model's text in the trace (including the raw responses, the invalid ones,
+  the repair attempts, errors and unknown events, spec 0009 AC-2 and AC-4), the triage
+  rationale (spec 0006) and the lesson draft (spec 0011). Before a proposal is stored, token and
   key formats (for example `eyJ…` JWTs, `sk-…` keys), paths outside the granted ones and
   URLs to hosts outside `kaizent.security.known-hosts` are redacted in every text the
   model produced that is stored or shown: the diagnosis, the suggested reply, the

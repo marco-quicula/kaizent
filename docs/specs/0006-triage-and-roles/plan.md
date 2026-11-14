@@ -6,7 +6,7 @@
 |---|---|---|
 | `triage` | `RoleCatalog` (port), `FileRoleCatalog` | Loads `roles/*.md` (front matter and persona) |
 | `triage` | `RoleSelector` | Deterministic subject → role mapping |
-| `triage` | `TriageService` | Builds the prompt from `prompts/triage.md`, calls `LlmGateway` (step `triage`) with `TriageOutput`, normalizes unknown subjects |
+| `triage` | `TriageService` | Builds the prompt from `prompts/triage.md`, calls `LlmGateway` (step `triage`) with `TriageOutput`, normalizes unknown subjects, and passes the rationale through the shared `OutputLeakCheck` (module `llm`, spec 0008) before storing it |
 | `workspace` | `WorkspaceValidator` | Extended with role rules (AC-1, AC-2) |
 | `run` | `RunOrchestrator` | Adds the `TRIAGING` step before resolution |
 | `triage` | `InjectionRiskDetector` | Deterministic injection-risk rules (AC-9, ADR-0032 layer 2): returns `SAFE` or `SUSPICIOUS`, the matched reasons and the notes. It runs before the triage call and costs no model call |
@@ -60,7 +60,7 @@ time.
 | AC | Test |
 |---|---|
 | AC-1, AC-2 | Validator tests on fixtures |
-| AC-3 to AC-6 | `TriageService` and orchestrator tests with the fake adapter (valid output, unknown subject, failure) |
+| AC-3 to AC-6 | `TriageService` and orchestrator tests with the fake adapter (valid output, unknown subject, failure, a rationale that leaks a synthetic token: redacted and flagged) |
 | AC-7 | API tests |
 | AC-8 | Unit test on prompt hashing |
 | AC-9 | `InjectionRiskDetector` unit tests: each rule with positive and negative synthetic samples, including Portuguese phrasings; the 12 demo tickets are `SAFE`; URLs alone give notes, not reasons; orchestrator test that the risk is stored before the triage call; API test |
