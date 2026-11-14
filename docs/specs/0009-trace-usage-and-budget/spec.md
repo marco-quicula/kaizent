@@ -75,7 +75,8 @@ fine-tuning depend on.
   each repair attempt, each retry and each turn of the agent loop (for a CLI single call,
   before each `CliExecutor` call, as AC-7 says). Kaizent estimates the
   input tokens and, if the estimate already exceeds the remaining input budget, or the
-  remaining cost or time is exhausted, it fails without calling. When the provider
+  remaining time is exhausted, or the remaining cost cannot cover the call's conservative
+  debit (the estimate priced at the configured price), it fails without calling. When the provider
   accepts an output limit, Kaizent sends one: the smaller of the remaining output budget
   and the per-call cap. Usage that is unknown (AC-6) is **debited at the conservative
   upper bound of the call**, so that the next call is still barred in time:
