@@ -49,9 +49,9 @@
     <json-schema-validator.version>3.0.9</json-schema-validator.version>
 
     <!-- Build plugins -->
-    <spotless-maven-plugin.version>3.10.4</spotless-maven-plugin.version>
+    <spotless-maven-plugin.version>3.11.0</spotless-maven-plugin.version>
     <google-java-format.version>2.0.0</google-java-format.version>
-    <openapi-generator.version>7.26.0</openapi-generator.version>
+    <openapi-generator.version>7.27.0</openapi-generator.version>
     <frontend-maven-plugin.version>2.0.2</frontend-maven-plugin.version>
     <!-- Node.js for the console build (ADR-0018, ADR-0025) -->
     <node.version>v24.22.2</node.version>
